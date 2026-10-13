@@ -1,0 +1,14 @@
+{
+  "version": "analysis-v2.1-preregistered",
+  "seed": 42,
+  "cluster_resamples": 2000,
+  "confidence": 0.95,
+  "primary_metrics": ["token_f1", "context_full_reference_coverage"],
+  "primary_interpretation": "文字重合代理与实际上下文证据覆盖，不等于全面正确性或faithfulness",
+  "within_model_contrasts": [["E2", "R2", "R0"], ["E2", "R3", "R2"]],
+  "model_scale_comparison": {"experiment": "E2", "method": "R2", "pairs": [["9b", "2b"], ["4b", "2b"]]},
+  "inference": "All multiple contrasts are explicitly exploratory; percentile intervals are descriptive, no unadjusted significance or causal claims.",
+  "reference_context_length_bins": [0, 512, 1024, 2048],
+  "missing_results": "retain expected denominator and report INCOMPLETE; never create synthetic observations",
+  "failed_results": "retain failed applicable answer rows as zero; genuine unanswerable token F1 is N/A and abstention scored separately"
+}
