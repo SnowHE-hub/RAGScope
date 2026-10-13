@@ -14,7 +14,7 @@
 | test，论文内 | R512 | 200 / 0 | 182 | 0.7033 | 0.7404 |
 | E8，509篇论文全库 | R512 | 100 / 0 | 100 | 0.1700 | 0.1783 |
 
-来源是 `D:/RAGScope_Runtime/runs/20261014_v2_retrieval/E1_bm25_SUMMARY.json` 和 `TEST_CONTEXT_E8_SUMMARY.json`。每行可以沿其 records 路径追溯到逐问题 ContextBundle、规范化坐标、实际发送片段和排除原因。前两行用于 BM25 初筛，测试行仅用于事后评估；正式 Hybrid dev 矩阵及其候选冻结尚未完成，不能称 R512 是所有方法的最终最优方案。
+来源是 `D:/RAGScope_Runtime/runs/20261014_v2_retrieval/E1_bm25_SUMMARY.json` 和 `TEST_CONTEXT_E8_SUMMARY.json`。每行可以沿其 records 路径追溯到逐问题 ContextBundle、规范化坐标、实际发送片段和排除原因。前两行用于 BM25 初筛，测试行仅用于事后评估；这是较早BM25快照，不能称R512是所有方法的最终最优方案。随后11组切块×3种检索的完整dev矩阵已完成，按预声明Hybrid规则选择R512与F512_O0、两者使用neighbor，见`reports/v2/retrieval_interim/DEV_RESULTS.md`；正式test生成仍需独立完成。
 
 “完整参考集合覆盖0.75”表示：在92个证据指标适用的开发问题中，有69个问题的至少一组完整合法参考证据进入了实际打包上下文。不是75%的答案正确，也不是75%的token来自正确内容。连续覆盖则按规范化原文区间衡量每个证据单元覆盖比例，再按已冻结的多参考规则汇总。8个不可回答开发问题和18个不可回答测试问题在这些证据指标中为N/A；它们仍留在拒答和系统错误评估的人口中。
 

@@ -26,9 +26,9 @@
 
 8 项离线分析测试实际通过，覆盖缺失分母、失败零分、单论文置信区间和篡改拒绝；它们使用临时教学夹具，未计入真实模型成绩。正式命令为 `scripts/analyze_generation_v2.py --campaign <已冻结运行目录> --output <结果目录>`。
 
-## 尚未写入里程碑提交的运行工作
+## 运行状态与学习记录的边界
 
-正在执行的真实模型预检、CPU Dense/Hybrid、路由和 LoRA 不以本页的代码说明代替验收。当前状态与准确续跑命令见 `docs/execution/STATUS.md`、`DATA_RETRIEVAL_CHECKPOINT.md` 和 `GENERATION_HANDOVER.md`。后续提交完成后在此追加实际验证结果。
+真实模型预检、CPU Dense/Hybrid、路由和 LoRA 不以本页的代码说明代替验收。每一段描述该提交对应的已知状态；较早段落里的待完成项可能已由后续提交落实。当前状态与准确续跑命令见 `docs/execution/STATUS.md`、`DATA_RETRIEVAL_CHECKPOINT.md` 和 `GENERATION_HANDOVER.md`。
 
 用户最新要求原训练手动续跑；结束时只释放本项目资源并通知用户，不自动重启原任务。历史停止与断点核验保留在 `docs/execution/RECOVERY.md`。
 
@@ -57,3 +57,33 @@ UI实际浏览器完成BM25查询、证据展开与4B400行回放；新的Window
 `ui/routing_options.py`将已冻结路由接到实验选择器。可见长度来自所选规范文档；选择路由时固定语料、扩展和片段上限，并保存实际决策耗时。UI默认另核dev/在线门槛，不能仅靠配置文字把未经验证的路由上线。`ui/live_generation.py`复用项目服务身份与租约检查、单客户端锁和总调用预算；交互输出单独保存为带hash的UI记录。22项离线契约测试通过，真实最终模型UI仍待验证。
 
 E0固定版本重建与LoRA训练图均从已核验的实际逐条来源生成PNG/SVG，并通过实际图像查看。E0原历史权重未知的限制直接写在图上；LoRA图保留所有原始loss波动和保存恢复位置，不能将曲线下降改写成尚未实测的QA提升。图像检查凭据为主run/FIGURES_E0_LORA_VISUAL_QA.json。
+
+## 7fef669：让默认路由和模型资源对应真实测量条件
+
+路由在内存里常驻时测得的延迟，不能直接用于证明每次从磁盘冷加载的网页更快。`ui/routing_options.py`把这两种条件分开；只有完整dev质量和真实在线配对数据、索引与模型身份、运行条件都吻合时才允许改变默认路径。40个离线守卫案例检查缺行、身份变动、错误调用票据等情形，不能因此声称真实在线收益已经测出。
+
+本次也保存了`reports/v2/retrieval_interim/DEV_RESULTS.md`和三张真实dev图。R512的neighbor扩展让完整证据覆盖净增1/92，但连续覆盖下降；图表保留两个方向。`ragscope/experiments/context_stress.py`只冻结来源足够长的8个dev问题用于4K/8K压力诊断，92个太短的来源保留排除原因。冻结输入与实际运行是两种状态，后者仍需真实模型日志。
+
+## 9c058fd：从最终报告抽数字，再回到原始结果
+
+`scripts/audit_final_report_v2.py`先用seed42从已经写好的`FINAL_REPORT.md`生成结果表抽10个数字，再独立读取原始输出、标准答案和来源坐标重新计算。收据记录报告哈希、表格位置、显示精度与原始记录哈希，因此报告改了一个数就不能继续沿用旧收据。9项功能测试通过；正式最终报告尚未生成时，这一项验收仍是PENDING。
+
+## 093c18a：有界观察Laya加载，不把成功导入当路由效果
+
+`ragscope/routing/laya_supervision.py`只监督本项目创建且身份吻合的子进程。加载阶段与已经授权正式请求后的退出策略不同：前者尚无结果可丢失，后者必须合作保存。一次备选加载有固定内存范围、时限与唯一尝试记录，不能不断放宽门槛直到成功。
+
+这一提交后的完整core回归527项通过、2项明确skip；models隔离环境24项通过补回Torch专属项。去重后528个不同测试通过，剩余Windows创建symlink权限一项skip。`FULL_OFFLINE_REGRESSION_20261014_0533.json`绑定当时176份Python源文件及实际日志；后续修改仍须自己的验证，不能套用旧收据。Laya真实路由实验此时仍未执行。
+
+## 16d49f8：把E3资源观测的口径写清楚
+
+`reports/v2/resource_interim/RESOURCE_REPORT.md`来自1200条正式E3输出和9次单独预热。设备显存采样包含同时运行的其他进程；进程RSS是主机内存；两者不能互换，也不能直接称为模型最低硬件要求。非流式调用没有实测首token时间，因此该项保留未知。
+
+脚本`build_e3_resource_report.py`核对原始来源和逐组数值后生成报告，并拒绝覆盖旧结果。第一次因预热记录的模型身份在config中而读取错误的日志也保留；修复取值位置后通过，没有补造预热记录或重跑质量实验。
+
+## 0be4b56：减少编码范围，同时保留BM25的统计基准
+
+E6的simple对照只查询固定test的75篇论文，因此可只为这些论文生成777个神经向量。但BM25的词频权重和平均块长度依赖整个语料，直接删掉其他论文会改变分数，破坏与全509篇结果的可比性。
+
+`ragscope/indexing/scoped_index.py`保留全509篇simple块的稀疏统计，只缩小神经向量存储与允许的论文范围，并拒绝全库查询。`ragscope/experiments/simple_scope.py`和`scripts/prepare_simple_scope_v2.py`在实际冻结200题上比较top50的ID、顺序与分数，全部精确一致，记录位于`20261014_v2_simple_scope_preflight`。相关21项功能测试和额外36项加载/冻结接口测试通过。
+
+这个工程优化避免不需要的编码；它不构成simple神经检索已经跑完的证据。已启动的structured worker也不会因为磁盘源码更新而自动加载新代码，`ACTIVE_WORKER_CODE_PROVENANCE.json`明确区分当前磁盘文件、后验仓库重建与未记录的启动时源码哈希。
