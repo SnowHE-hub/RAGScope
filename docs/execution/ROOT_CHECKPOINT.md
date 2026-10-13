@@ -1,6 +1,16 @@
 # 主执行器恢复点
 
-2026-10-14 05:37 Australia/Sydney。Goal ACTIVE、无预算、未终验。用户禁止阶段等待；还有可执行核心任务，不能提前完成或标整体BLOCKED。不要创建新goal/线程/代理。原训练由用户手动续跑，gpu_lease=USER_MANUAL_RESUME；日更不动，结束只释放自己的资源并通知。
+2026-10-14 06:47 Australia/Sydney。Goal ACTIVE、无预算、未终验。用户禁止阶段等待；还有可执行核心任务，不能提前完成或标整体BLOCKED。不要创建新goal/线程/代理。原训练由用户手动续跑，gpu_lease=USER_MANUAL_RESUME；日更不动，结束只释放自己的资源并通知。
+
+**当前恢复已发生，覆盖下面暂停快照：一次受监督备选真实成功，CPU服务19112/create1791920756.4124439。加载9次采样最低host1.62GiB，8-token控制健康请求1024维PASS；这是加载/小健康请求阶段，不是所有正文请求峰值。monitor已join后才resume旧worker，旧socket WinError10054随后真实exit1/session60616已结束。已记第三/最后一次有界缓存重放：新worker20816/create1791920803.708412/session22849，仍归data_preparation所有。5088→5090 durable observations；新控制台的较小计数是重新读取缓存的位置，不是丢失结果。STRUCTURED_THIRD_REPLAY_STARTUP.json实测了此次启动源码hash。host约1.58GiB、服务不重启，按structured→ROUTE→R3交接继续。不要再执行一次性resume脚本/消费第二次备选。**
+
+**当前状态覆盖较早快照：19:26:06Z因持续RAM降至0.59–0.76GiB，data_preparation已暂停精确核验的worker24020，排空自身CPU服务后使36892退出，11436关闭。5088/6551 durable observations，manifest未完成。worker仍SUSPENDED_LOW_RAM并持有campaign锁；Python内存中可能有1在途请求/最多7条未批次记账缓存，不冒称持久进程断点。缓存与旧结果不变，可用RAM回升1.91GiB。STRUCTURED_LOW_RAM_PAUSE.json有完整前后哈希与身份；恢复guard保持≥3GiB，仍由data代理持有和处理，root不重启/解锁/重复编码。现有非计划连接恢复计数2/3，本次恢复尚未发生。其他进程未动。**
+
+学习文档补充已本地提交d95387d：近期里程碑说明、历史BM25状态纠正、真实dev论文相邻块坐标示例。主run/LEARNING_CHUNK_BOUNDARY_EXAMPLE.json SHA88e21a955858d051b9b621d21718516c08ffec0a2b8ca0105fc390f43b7a2afc；三项实际原文坐标检查PASS，token数来自原构建记录，不称新tokenizer实测。此后没有root常驻进程。
+
+最新只读观察06:14：同一R512 worker已写4528/6551，manifest尚未发布，可用RAM1.55GiB，正在正常推进。当前等待期间不增加模型、测试或性能实验；data_preparation拥有worker和session。现有代码/source provenance已保存，当前旧worker不冒称执行了提交后新增的simple分支。
+
+最新补记06:06：root只读观察当前R512 4168/6551已写入，manifest未发布，RAM约1.48GiB。19:00–19:03Z一度.92/.87GiB后回升，进程仍正常推进；没有停止任何进程、重启服务或新增模型。务必准确：当前旧worker仅有开始时768MiB guard，**没有运行中每请求自动RAM暂停**，由外部观察并在持续极低RAM/请求错误时按已有有界恢复策略保存证据处理。topWorkingSet只读观察未发现闲置自有模型；WSL、浏览器、系统维护/安全进程均不动。最新提交还包括16d49f8（E3资源）和0be4b56（simple限定范围），后者36项额外契约PASS。
 
 ## 正在运行与下一次交接
 
@@ -39,5 +49,7 @@ S1/S2计算CPU-only，但S3/S4与S2未结束有时间重叠，criterion14必须�
 
 下一条准确命令（只读；data继续拥有真实worker）：
 ```powershell
-Get-Content -LiteralPath D:/RAGScope_Runtime/runs/20261014_v2_retrieval/STRUCTURED_ENCODING_WORK_REMAINING.json -Raw
+Get-Content -LiteralPath D:/RAGScope_Runtime/runs/20261014_v2_retrieval/worker.json -Raw
 ```
+
+历史恢复入口`scripts/resume_structured_after_low_ram.py`已实际执行，**不可再运行**。root审阅发现的“resume成功后写盘失败误清理服务”已修：成功resume立即记录本地状态，之后异常保留服务；resume前异常才按PID/create/argv清理。后续加入一次受监督备选，5项小型行为fixturePASS；实际启动源SHA8f99d1a35eda13703fe4d3e5574aeec174779a7754fe20f2d1b32e2a3a53610b。WSL已运行的Ubuntu meminfo只读检查有大量guest可用内存，但不能当host可用，未修改配置、清缓存、启动或重启WSL。

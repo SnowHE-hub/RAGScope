@@ -6,6 +6,10 @@ campaign_id：`20261014_v2`；主目标 ACTIVE，尚未最终验收。正式 E3 
 
 ## 当前执行与资源
 
+- **06:47已恢复，覆盖下面暂停快照：** 一次受监督CPU加载真实通过（加载最低host1.62GiB、1024维健康检查），服务19112。旧worker恢复后发生历史socket reset，exit1；失败保留，并用第三/最后一次有界缓存重放启动worker20816/session22849。5090条durable observations仍在；读取缓存时控制台计数从前面开始不表示结果丢失。新启动源码hash已保存，未重启其他服务或原任务。恢复脚本5项离线行为测试通过，不替代索引完成。
+
+- **06:26当前覆盖早先运行快照：** 因持续低RAM，data执行器已暂停自身worker24020、排空并退出自身CPU embedding36892；11436端口关闭，已落盘5088/6551，未发布完整索引。worker仍在内存中暂停且持有campaign锁，不称为完整持久checkpoint；缓存保留。可用RAM回升1.91GiB，等待原定≥3GiB条件再恢复，连接恢复计数仍2/3。证据`STRUCTURED_LOW_RAM_PAUSE.json`；其他进程和用户原任务均未动。
+
 - 正式 seed42 2B BF16 LoRA 完成122步/972例/1epoch，进程已退出。真实5→10步恢复验证了 adapter、optimizer、scheduler、RNG 和数据顺序；dev59例最终loss .1356631101。过长剔除28/1例有证据，保留3个完整断点。损失下降不能代替问答质量提升；同精度100题对照尚待最终检索上下文。
 - 旧版固定 revision BGE-small CPU 重建完成22,254条向量、Dense/Hybrid各200题、失败0。曾在19,328条触发RAM保护并从第152批恢复；session37101 exit0，原索引与副本8个SHA不变、独立复算PASS。这是明确标注的重建替代，不冒称未知历史 embedding revision。
 - v2 CPU Dense/Hybrid 完成11/11个dev切块组、2200条神经检索，0失败；dev最终候选simple F512_O0 / structured R512，两者按预声明规则选择neighbor。完整率略升而连续覆盖下降，分别披露。CPU embedding服务36892仍运行；旧dev worker28832/session13666已正常结束，现全509论文worker24020/session60616运行。一次29请求batch基准已完成，batch2/4未达到1.15×门槛，保持12线程/request batch1。structured全库/主上下文/ROUTE260完成后安排R3/Laya内存窗口，再继续simple比较索引。
@@ -24,6 +28,7 @@ campaign_id：`20261014_v2`；主目标 ACTIVE，尚未最终验收。正式 E3 
 - UI补充实验路由入口：冻结上下文、合法文档元数据、路由加载和实际选择耗时、dev/online默认部署门槛。应用生成复用原服务租约核验、单客户端锁、全局调用预算和带hash日志，不会自动启动服务。22项离线UI契约测试通过；真实最终路由/生成UI仍待产物与资源窗口，不冒称已验收。
 - 本轮稳定模块回归482 PASS/1 skip（Windows symlink权限），125.65秒；明确排除仍在开发的Laya监督、Laya campaign、routing三份测试，不称最终全套通过。日志milestone_ui_stable_tests.log及XML/receipt已保存。部署守卫扩展到40项实际记录/身份/票据案例；所有新UI源文件均在本次稳定回归中覆盖。
 - Laya监督实现完成后，完整core回归527 PASS/2 skip（138.68秒），models隔离环境routing24 PASS（58.21秒），补回Torch项。去除23个重复案例后为528个不同测试通过，仅余Windows symlink权限一项明确skip；176份源文件hash、两份JUnit和日志绑定在`FULL_OFFLINE_REGRESSION_20261014_0533.json`。这些仍是功能测试，不替代真实Laya/路由质量实验。
+- 此后simple scoped-only工程优化完成：冻结test200的BM25 top50 ID/顺序/分数与full509参考逐题相等；仅减少神经编码范围（5710→777），保留全509稀疏统计，拒绝global。root相关36项接口契约PASS；后续真实777向量仍待编码，不冒称神经实跑完成。06:06 structured已写4168/6551，保持同一worker；当前旧worker只有启动RAM检查，运行期间由外部观察，不宣称有自动低内存暂停。
 - 本地图表已实际生成并目视核验pilot显存PNG/SVG；正式E2质量/延迟图等待真实完整结果。
 - 真实E3 2B每方法200题均无请求错误。182可答题文字F1：Oracle .5785604、NoContext .0414931；18不可答单列。10个数字已从原始输出与源坐标独立重算PASS，原始快照在generation_e3/analysis，后续不覆盖。
 - E3独立错误子报告已核1200输出及897原文片段：226条Oracle非拒答低F1仅是文字重合诊断，49条无可引上下文的“缺引用”候选标N/A并保留总分母；实际引用适用524条中缺4。八例代理原文检查与1200行人工待核验表已保存于generation_e3/analysis_complete/error_cases，人工状态全部NOT_REVIEWED。
@@ -33,7 +38,7 @@ campaign_id：`20261014_v2`；主目标 ACTIVE，尚未最终验收。正式 E3 
 
 最终CPU全库索引；ROUTE与R3上下文；核心E2及冻结扩展；4K/8K实际压力诊断；真实路由标签、七策略、Laya、在线配对；LoRA精度一致100题前后对照；自动支持度proxy及人工待核验样例；完整分析、至少10个数字反向核验、中文FINAL_REPORT与15项ACCEPTANCE、轻量结果包、资源清理。
 
-本地提交：9c43163、496354d、af94414、3b49ac4、fd836f4、3f67392、50513b4、7fef669。无push。逐模块恢复点见 `ROOT_CHECKPOINT.md`、`DATA_RETRIEVAL_CHECKPOINT.md`、`GENERATION_HANDOVER.md`；本文件以前的逐时追加快照已留在runtime/status_history和Git历史。
+本地提交：9c43163、496354d、af94414、3b49ac4、fd836f4、3f67392、50513b4、7fef669、9c058fd、093c18a、16d49f8、0be4b56、d95387d、b71a51e。无push。逐模块恢复点见 `ROOT_CHECKPOINT.md`、`DATA_RETRIEVAL_CHECKPOINT.md`、`GENERATION_HANDOVER.md`；本文件以前的逐时追加快照已留在runtime/status_history和Git历史。
 
 下一条准确命令（只读）：
 ```powershell
