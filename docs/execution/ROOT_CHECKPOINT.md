@@ -45,6 +45,8 @@ ui/live_generation.py：只接受real_model，复用既有GuardedClient租约/PI
 
 Git branch codex/ragscope-v2-autonomous-20261014，提交9c43163/496354d/af94414/3b49ac4/fd836f4/3f67392/50513b4。当前UI/图表/stress/dev报告等未提交，agent Laya备选仍开发，不混入其半成品。用户原untracked plan/zip/startprompt、architecture.md/html、rerun/、svg/不得add-A/push/delete。diff用-c core.autocrlf=false -c core.whitespace=cr-at-eol。
 
+补记：UI/dev报告/stress里程碑已本地提交`7fef669`，47个文件；仅已冻结Matplotlib SVG自带的trailing whitespace从源码空白检查中排除，以保留图表manifest SHA，其他检查通过。Laya代理仍修复Windows child.json原子替换WinError5竞态，勿将其文件纳入本次提交或完整测试。generation代理在独立E3错误子目录整理实际1200记录案例，没有新增模型请求。最终报告数字反查新入口及9个离线契约测试已通过，正式反查仍待FINAL_REPORT。
+
 下一条准确命令（只读）：
 ```powershell
 Get-Content -LiteralPath D:/RAGScope_Runtime/runs/20261014_v2/UI_CLIENT_IDENTITY_CHECK.json -Raw

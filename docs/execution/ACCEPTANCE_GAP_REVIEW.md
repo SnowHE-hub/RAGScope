@@ -42,6 +42,12 @@
 
 通用`completion_receipt`核验task规格、requirements名称、artifact哈希和`real_experiment=true`，**并不会理解任意artifact的实验语义**。最终签收仍需使用各模块专用校验器和逐条数据；不要把手填布尔字段当作模型已执行的证明。当前S3/S4没有据此伪造PASS。
 
+最终报告数字反查入口已补齐：`scripts/audit_final_report_v2.py`读取真实`FINAL_REPORT.md`中的现有`markdown_table`九列表，先从正文数字固定seed42抽10，再调用独立raw/source重算器。收据绑定报告文件SHA、行号、列号、显示精度、原始记录哈希；所有可核验表格数字均比较，另保留随机10项。旧收据禁止覆盖，不接受另一个报告名或此前audit结果替代原始数据。范围为生成表的均值、失败数、P50，不能扩称所有正文数字或bootstrap区间独立通过。9项离线契约测试PASS（2.97秒），日志`D:/RAGScope_Runtime/logs/final_report_audit_contract_tests.log`；**尚未有最终报告，正式第15项仍PENDING**。最终报告必须含既有生成汇总表，正式命令示例中的路径以最终产物为准：
+
+```powershell
+& D:/RAGScope_Runtime/envs/core/Scripts/python.exe scripts/audit_final_report_v2.py --report reports/v2/FINAL_REPORT.md --campaign D:/RAGScope_Runtime/runs/20261014_v2_generation --analysis reports/v2/ANALYSIS.json --corpus D:/RAGScope_Runtime/corpora/20261014_v2 --output D:/RAGScope_Runtime/runs/20261014_v2/FINAL_REPORT_REVERSE_AUDIT.json
+```
+
 ## 跨模块问题已修复
 
 `routing/campaign.py`的已存决策读取和replay入口原先只验hash/protocol，没有重新核dev60/test100完整唯一ID集合。此问题已由主执行器修复：校验dev/test唯一完整ID、文件/策略名、合法route、非负耗时及fallback，并要求replay实参与已冻结文件完全一致；全部七策略在读取test指标前完成校验。主执行器新增缺行、重复、换ID、错误策略/路径、负耗时及内存改值七项测试，campaign+online合计19 PASS。本复审未改该模块，实际路由质量实验仍依赖待完成的正式数据。

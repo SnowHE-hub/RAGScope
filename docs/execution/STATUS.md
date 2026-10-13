@@ -31,7 +31,7 @@ campaign_id：`20261014_v2`；主目标 ACTIVE，尚未最终验收。正式 E3 
 
 最终CPU全库索引；ROUTE与R3上下文；核心E2及冻结扩展；4K/8K实际压力诊断；真实路由标签、七策略、Laya、在线配对；LoRA精度一致100题前后对照；自动支持度proxy及人工待核验样例；完整分析、至少10个数字反向核验、中文FINAL_REPORT与15项ACCEPTANCE、轻量结果包、资源清理。
 
-本地提交：9c43163、496354d、af94414、3b49ac4、fd836f4、3f67392、50513b4。无push。逐模块恢复点见 `ROOT_CHECKPOINT.md`、`DATA_RETRIEVAL_CHECKPOINT.md`、`GENERATION_HANDOVER.md`；本文件以前的逐时追加快照已留在runtime/status_history和Git历史。
+本地提交：9c43163、496354d、af94414、3b49ac4、fd836f4、3f67392、50513b4、7fef669。无push。逐模块恢复点见 `ROOT_CHECKPOINT.md`、`DATA_RETRIEVAL_CHECKPOINT.md`、`GENERATION_HANDOVER.md`；本文件以前的逐时追加快照已留在runtime/status_history和Git历史。
 
 下一条准确命令（只读）：
 ```powershell
