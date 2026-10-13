@@ -1,0 +1,23 @@
+{
+  "schema_version": "ragscope-v2-data-1",
+  "campaign": "20261014_v2",
+  "seed": 42,
+  "source": "allenai/qasper",
+  "source_revision": "v0.3",
+  "qasper_license": "CC-BY-4.0",
+  "split_policy": "official_train_dev_test_by_paper",
+  "targets": {"train": 1000, "dev": 100, "test": 200},
+  "max_selected_documents": 600,
+  "global_answerable_test_target": 100,
+  "reference_tokenizer": "cl100k_base",
+  "length_groups": {"short_max": 512, "medium_max": 4096},
+  "quarantine": ["float_evidence", "unmatched_evidence", "ambiguous_evidence_location", "answerability_conflict", "missing_annotations", "missing_text_evidence", "malformed_question", "malformed_answerability", "missing_answer"],
+  "duplicate_policy": "quarantine_cross_split_groups; same_split_keep_smallest_doc_id; preserve_all_raw",
+  "near_duplicate_screen": "bottom128_word_trigram_hash_candidates_then_exact_jaccard_0.9",
+  "technical_source": "python/cpython",
+  "technical_revision": "v3.12.7",
+  "technical_license": "PSF-2.0",
+  "technical_pages": ["datastructures", "errors", "inputoutput"],
+  "technical_cases_authorship": "agent_authored_not_human_validated",
+  "network": {"attempts_per_url": 3, "timeout_seconds": 60, "max_official_alternatives": 2}
+}

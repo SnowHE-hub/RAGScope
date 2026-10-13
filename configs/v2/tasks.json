@@ -1,0 +1,4 @@
+{"tasks": [
+  {"id": "S1.1", "command": ["{python}", "scripts/audit_environment.py"], "input_files": ["scripts/audit_environment.py", "requirements-v2.lock"], "outputs": ["{runtime}/runs/{campaign}/environment.json"], "timeout_seconds": 120},
+  {"id": "S1.5", "command": ["{python}", "scripts/prepare_v2_data.py"], "outputs": ["{runtime}/corpora/{campaign}/SPLIT_MANIFEST.json"], "input_files": ["configs/v2/data.json"], "timeout_seconds": 1200}
+]}

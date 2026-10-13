@@ -16,3 +16,8 @@ dist/
 build/
 .venv/
 venv/
+.codegraph/
+.coverage*
+.pytest_cache/
+.hypothesis/
+configs/v2/paths.local.json
