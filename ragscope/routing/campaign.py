@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections import Counter
 import json
+import math
 from pathlib import Path
 import random
 
@@ -149,21 +150,43 @@ def prepare_labels(campaign, output):
     return labels
 
 
+def validate_decisions(saved, protocol, name):
+    """A valid hash cannot substitute for the complete frozen population."""
+    body = {key: value for key, value in saved.items() if key != 'decision_hash'}
+    if (signature(body) != saved.get('decision_hash') or saved.get('name') != name
+            or saved.get('protocol_hash') != protocol['protocol_hash']):
+        raise ValueError('Decision population or identity changed')
+    if set(saved.get('decisions', {})) != {'dev', 'test'}:
+        raise ValueError('Decision population must contain dev and test')
+    for split in ('dev', 'test'):
+        population = protocol['populations'][split]
+        expected = population['query_ids']
+        visible = [query['query_id'] for query in population['visible_queries']]
+        observed = [item['query_id'] for item in saved['decisions'][split]]
+        if (len(expected) != len(set(expected)) or Counter(visible) != Counter(expected)
+                or Counter(observed) != Counter(expected)):
+            raise ValueError(f'Decision population differs from frozen {split} IDs')
+        for item in saved['decisions'][split]:
+            decision = item['decision']
+            elapsed = decision.get('elapsed_s')
+            if (decision.get('route') not in ROUTES or type(decision.get('fallback')) is not bool
+                    or type(elapsed) not in (int, float) or not math.isfinite(elapsed) or elapsed < 0):
+                raise ValueError('Decision route, fallback or measured duration is invalid')
+    return saved
+
+
 def freeze_decisions(router, protocol, output, name):
     """No test generation metrics are loaded before decisions are committed."""
     path = Path(output)/f'DECISIONS_{name}.json'
     if path.exists():
         saved = json.loads(path.read_text(encoding='utf-8'))
-        expected = saved.pop('decision_hash')
-        if signature(saved) != expected or saved['protocol_hash'] != protocol['protocol_hash']:
-            raise ValueError('Decision population changed')
-        saved['decision_hash'] = expected
-        return saved
+        return validate_decisions(saved, protocol, name)
     decisions = {split: [{'query_id': query['query_id'], 'decision': router.choose(RoutingRequest.from_query(query)).to_dict()}
                  for query in protocol['populations'][split]['visible_queries']] for split in ('dev', 'test')}
     body = {'name': name, 'protocol_hash': protocol['protocol_hash'], 'decisions': decisions,
             'router_identity': getattr(router, 'identity', getattr(router, 'report', {}))}
     body['decision_hash'] = signature(body)
+    validate_decisions(body, protocol, name)
     atomic_json(path, body)
     return body
 
@@ -171,14 +194,21 @@ def freeze_decisions(router, protocol, output, name):
 def evaluate_decisions(campaign, protocol, decisions, output):
     # Freeze every mandatory policy's test choices before looking at test route
     # scores; freezing only the current policy is insufficient for blind analysis.
+    frozen = {}
     for name in REQUIRED_ROUTERS:
         path = Path(output)/f'DECISIONS_{name}.json'
         if not path.exists():
             raise ValueError(f'All mandatory policy decisions must be frozen before test analysis: {name}')
         saved = json.loads(path.read_text(encoding='utf-8'))
-        expected = saved.pop('decision_hash')
-        if signature(saved) != expected or saved['protocol_hash'] != protocol['protocol_hash']:
-            raise ValueError('A mandatory policy decision changed')
+        frozen[name] = validate_decisions(saved, protocol, name)
+    name = decisions['name']
+    validate_decisions(decisions, protocol, name)
+    path = Path(output)/f'DECISIONS_{name}.json'
+    stored = frozen.get(name)
+    if stored is None:
+        stored = validate_decisions(json.loads(path.read_text(encoding='utf-8')), protocol, name)
+    if stored != decisions:
+        raise ValueError('Replay decisions differ from the frozen artifact')
     records, sources = load_route_records(campaign, protocol, ('dev', 'test'))
     by_key = {(r['query_id'], r['path']): r for r in records}
     groups = {}

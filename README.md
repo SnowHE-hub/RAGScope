@@ -22,11 +22,13 @@ Windows 主路径使用项目外的 `D:/RAGScope_Runtime`，模型、环境、�
 & "$env:RAGSCOPE_HOME/envs/core/Scripts/python.exe" -m pytest tests/unit -q
 
 # 打开本地 UI；需要已完成并校验的 v2 索引
-& "$env:RAGSCOPE_HOME/envs/core/Scripts/python.exe" -m streamlit run ui/chat_app.py
+./scripts/run_ui_v2.ps1
 ```
 
 runner 在任务未齐备时返回退出码 `2` 并留下具体原因；这不表示整套实验已经完成。
 GPU 服务、真实训练和正式生成另有资源交接及冻结清单校验，不会因为打开 UI 而自动下载或训练模型。
+UI 启动器先检查端口，只监听 `127.0.0.1`；可用 `-Port 18501` 指定其他本机端口，`-CheckOnly` 只检查依赖与端口。
+启动器优先使用已具备 Streamlit 的 CPU `models` 环境以支持重排，否则使用 `core`；可用 `-Environment core` 明确只运行轻量界面。所有模型在实际点击运行时仍检查就绪与资源。
 Linux 启动脚本要求单独的 Linux 环境，不能复用 Windows 虚拟环境；本轮未安装 Linux 模型环境。
 
 阅读实现与结果解释可从 [`docs/learning/00_project_map.md`](docs/learning/00_project_map.md) 开始。

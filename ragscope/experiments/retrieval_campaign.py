@@ -28,6 +28,19 @@ def read_jsonl(path):
                 yield json.loads(line)
 
 
+def verify_corpus_files(corpus, names):
+    """Reject changed frozen source bytes before any indexing or model calls."""
+    corpus = Path(corpus)
+    manifest = json.loads((corpus / "SPLIT_MANIFEST.json").read_text(encoding="utf-8"))
+    for name in names:
+        expected = manifest["files"].get(name)
+        path = corpus / name
+        if (not expected or not path.is_file() or file_hash(path) != expected["sha256"]
+                or ("bytes" in expected and path.stat().st_size != expected["bytes"])):
+            raise ValueError("Frozen corpus source hash/size differs: " + name)
+    return manifest
+
+
 def write_jsonl(path, rows):
     path = Path(path)
     temporary = path.with_suffix(".jsonl.part")
@@ -111,7 +124,10 @@ def build_group(documents, group, tokenizer, root, base_identity):
                 "body_token_mean": sum(c["n_tokens"] for c in chunks)/max(1, len(chunks)),
                 "boundary_events": dict(events), "document_checks": doc_checks,
                 "preflight": {"documents": min(3, len(documents)), "seconds": preflight_seconds,
-                              "split": "dev", "gpu_used": False},
+                              "split": base_identity.get("split", "unspecified"),
+                              "sample_document_ids": [d["doc_id"] for d in documents[:3]],
+                              "source_split_counts": dict(Counter(d.get("split", "unspecified") for d in documents[:3])),
+                              "gpu_used": False},
                 "artifacts": [artifact(directory / "chunks.jsonl"), artifact(directory / "parents.jsonl")]}
     atomic_json(manifest_path, manifest)
     return chunks, parents, manifest, directory
@@ -309,7 +325,7 @@ def run_campaign(home: Path, data_campaign="20261014_v2", stage="bm25", embeddin
     chunking = json.loads((project / "configs/v2/chunking.json").read_text(encoding="utf-8"))
     config = json.loads((project / "configs/v2/retrieval.json").read_text(encoding="utf-8"))
     corpus = home / "corpora" / data_campaign
-    manifest = json.loads((corpus / "SPLIT_MANIFEST.json").read_text(encoding="utf-8"))
+    manifest = verify_corpus_files(corpus, ("documents.jsonl", "queries_dev.jsonl"))
     queries = list(read_jsonl(corpus / "queries_dev.jsonl"))
     doc_ids = {q["doc_id"] for q in queries}
     documents = [d for d in read_jsonl(corpus / "documents.jsonl") if d["doc_id"] in doc_ids]
@@ -433,6 +449,7 @@ def run_test_contexts(home: Path, data_campaign="20261014_v2"):
              "device": "cpu", "cpu_only": True, "status": "PASS" if available >= 768*1024**2 else "BLOCKED_RESOURCE"}
     project = Path(__file__).resolve().parents[2]
     corpus = home / "corpora" / data_campaign
+    verify_corpus_files(corpus, ("documents.jsonl", "queries_test.jsonl", "queries_global_test.jsonl"))
     with Campaign(home, data_campaign + "_retrieval") as campaign:
         guard_path = campaign.path / "test_context_resource_guard.json"
         atomic_json(guard_path, guard)
@@ -590,6 +607,8 @@ def run_final_contexts(home: Path, data_campaign="20261014_v2", dataset="qasper"
     corpus = home / "corpora" / data_campaign
     if dataset == "squad":
         corpus /= "squad_e4"
+    verify_corpus_files(corpus, ("documents.jsonl", "queries_test.jsonl")
+                        + (("queries_global_test.jsonl",) if dataset == "qasper" else ()))
     chunking = json.loads((project / "configs/v2/chunking.json").read_text(encoding="utf-8"))
     config = json.loads((project / "configs/v2/retrieval.json").read_text(encoding="utf-8"))
     config["split"], config["scope"] = "test", "explicit_query_scope"
@@ -625,6 +644,8 @@ def run_final_contexts(home: Path, data_campaign="20261014_v2", dataset="qasper"
         selected = json.loads(selection_path.read_text(encoding="utf-8"))
         if selected.get("split") != "dev" or selected.get("method") != "hybrid" or set(selected["selected"]) != {"simple", "structured"}:
             raise ValueError("Final retrieval requires both frozen Hybrid dev candidates")
+        if selected.get("data_manifest_sha256") != file_hash(home / "corpora" / data_campaign / "SPLIT_MANIFEST.json"):
+            raise ValueError("Candidate selection points to a different frozen QASPER split")
         context_selection_path = campaign.path / "CONTEXT_SELECTION.json"
         context_selection = json.loads(context_selection_path.read_text(encoding="utf-8"))
         if context_selection.get("candidate_selection_sha256") != file_hash(selection_path) or context_selection.get("split") != "dev":

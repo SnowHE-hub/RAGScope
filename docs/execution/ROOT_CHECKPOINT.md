@@ -1,32 +1,39 @@
 # 主执行器恢复点
 
-2026-10-14 04:03 Australia/Sydney。Goal ACTIVE，无预算；全部可执行任务继续，尚未最终验收。
+2026-10-14 04:45 Australia/Sydney。Goal ACTIVE，无预算；尚未终验，不要新建goal/线程或提前完成。
 
-用户最新恢复规则：原训练和定时检查已停、日更不动；RAGScope释放资源后通知，由用户手动续跑。gpu_lease=USER_MANUAL_RESUME，禁止自动恢复、不得再动原项目或任务。
+用户最新恢复政策：原训练和定时检查已停，日更不动；结束释放后通知，由用户手动续跑。gpu_lease=USER_MANUAL_RESUME，不自动恢复。
 
-当前进程/代理：
-- generation_evaluation持自有Ollama11435，exec54636/PID14564，GPU单实例锁。正式E3独立shard已冻结1200tasks，2B400/400真实完成、error0；E0窗口已交回，4B exec78438正在运行，之后串行9B400。root不得并开GPU模型。主generation完整manifest尚缺最终retrieval上下文。
-- chunking_core的E0续跑exec37101 exit0，实际PID37108已退出；22254/22254向量、Dense200/Hybrid200真实完成，无错误，独立复算及8个原索引SHA不变PASS。该代理还负责R3 CPU真实50→10源物化、Laya真实分类，以及等待窗口期间有界验收差距审阅。
-- data_preparation CPU embedding服务36892/create1791909754.8890424、Dense worker28832/create1791909810.3224635、session13666，当前6/11dev组完成/1200neuralrows，S512编码中。先完成11dev和扩展选择，再structured全509/test200/global100/ROUTE200+60物化，然后在正常命令结束边界停止自有CPU服务给R3/Laya内存窗口，再继续simple/SQuAD。禁止重复worker或中途切断HTTP。已消耗2/3恢复（包含已记录计划内暂停导致的10054）。
-- 正式seed42 LoRA122/122完成，972train/59dev/1epoch，TRAINING_AUDIT PASS，三init相同SHA、5/10步精确恢复、3完整断点、best=step122。training进程/GPU已退出。最终devloss .1356631101不是问答质量改善；相同BF16 base/adapter100test仍缺最终R2上下文。
+## 当前资源/代理
 
-E3 shard：D:/RAGScope_Runtime/runs/20261014_v2_generation_e3，manifest_hash8c6a71031d25f0a0218a85a3abbd9d8dc35d3c0f56dafa046e8249beeffb5599。E2仍0/2400。2B每方法200题，其中182可答；oracle F1 .5785604023，no_context .0414930593，CI2000paperbootstrap；18unanswerable另列。root已实际analysis+独立10数字raw/source审计PASS。保持e3/analysis/不可变快照不覆盖；4B/9B齐后另用analysis_complete。global budget615reserved/core400（之后代理会继续增长）。
+- data_preparation：CPU Dense/Hybrid 11/11 dev已完成2200条、0失败；worker28832/session13666正常exit0。服务36892/create1791909754.8890424仍CPU12/11436。正式dev冻结simple F512_O0、structured R512。当前一次有界batch1/2/4 benchmark session33240，固定8dev文本、最多29请求；≥1.15×且向量/排名等价/资源保护通过才采用，否则保留串行。下一步选定扩展→structured all509 TEST200/E8/ROUTE260→正常边界释放embedding给R3/Laya→再simple/SQuAD。不得中途切断HTTP；此前2/3恢复保留。
+- generation_evaluation：完整E3 1200/1200、0失败，实际token匹配1200；9warmp单列，global1421total/1200core。自有11435/PID14564已卸载退出、端口关闭、gpu.lock重新获取PASS，当前GPU模型空闲。正在生产acceptance和S3.5上下文压力诊断：实际8dev源足够长，其余92too-short有证据；4K输入3584、8K7680、统一512输出，16冻结正式输入+6warmups=22预算调用，独立run_context_stress、尚未生成。manifest e87d506a9eab594eac0f088317d094df315c82097bc3eaa3ce0a56cbb04589c9。等data benchmark与RAM交接再启动2B，做完释放。
+- chunking_core：E0全部完成，额外200题严格回映原SQuAD146articles、2000cluster CI已真实计算，8测试PASS。R3真实50→10五个population和Laya1080 raw decisions等待structured/full/ROUTE源和RAM。当前可加Streamlit1.65.0到models隔离env用于最终R3 UI；必须保持原45包版本，旧manifest/lock归档、新锁/pipcheck，若冲突不改模型栈。root已授权该依赖增补。
+- root临时UI服务22472+venv launcher27044、session41625已退出，两PID不存在，浏览器临时页关闭。UI_INTERIM_BROWSER_QA.json记录BM25实际查询及4B400行浏览器回放。Chrome工具不可用，使用既有in-app browser，没有安装Chrome。cua_repl ragTab已close，若后续浏览器任务需重取新tab/文档。
 
-独立分组联合：generation_campaign.iter_record_sources(directory,manifest,inputs)返回{directory,manifest,inputs,owned_task_ids}。最终freezer自动显式引用E3 shardmanifest；所有external task即使missing也不在main重复跑。严格验task/input/model/gen/protocol字段、禁止嵌套/重复来源；analysis和独立auditor都已接入。不可复制改写E3原行冒充main记录。
+## 已完成证据
 
-最新工程：core全套414PASS、2明确skip(Torch隔离models、Windows无symlink创建权限)，D/logs/unit_suite_20261014_0355.log与同runJUnit，unit_suite_latest.json持证据。随后online新增1项、Laya等专项单列。模型测试/真实结果不能由此推断。root package_results_v2.py已2fixture测试PASS，仅最终15项ACCEPTANCE均终态时本地allowlist打包，保留失败和原hash、清楚标portable路径改写、不含权重/私有任务快照，未真正打最终包。
+E3 run：D:/RAGScope_Runtime/runs/20261014_v2_generation_e3，manifest 8c6a71031d25f0a0218a85a3abbd9d8dc35d3c0f56dafa046e8249beeffb5599。COMPLETION_RECEIPT和GPU_RELEASE_RECEIPT已封存。analysis_complete/ANALYSIS.json COMPLETE1200，INDEPENDENT_NUMBERS_ALL.json实际30数字独立复算PASS。原2B analysis/快照不要覆盖。Oracle F1分别2B .5785604023、4B .5455298179、9B .4704580676；NoContext .0414930593/.0044469761/0，9B全部200拒答，不是请求失败。图PNG/SVG和E3_REPORT.md已实际生成/目视，当前完整主E2仍0。
 
-Windowsbootstrap现固定3.12.13+require-hashes，已有env只dry-run/check不重建；真实74包无变化兼容PASS。run_v2.ps1新增-Gpu/-ReconcileOnly/-CoordinatedTask，Windows实际对账exit2（8PASS其余等待）。WSL bash-n通过，实际wrapper明确Linuxenv缺失exit2，未安装/重启WSL，CPU预检历史被RAM阻止；不能宣称Linux完整跑通。
+新production_acceptance.py / scripts/accept_generation_v2.py：固定主3模型/200题及扩展预声明集合、blocked证据、跨shard逐行核验。E3独立scope COMPLETE1200不等于main；主scope PENDING无manifest。完整性错误状态FAILED_VALIDATION，审计本身audit_generation_calls0。10测试通过；catalog S3.5接入该实际校验。
 
-存储中期实际runtime117247files，逻辑33.319874515GB、hardlink去重27.320451700GB；D全盘净增27.550240768GB、C空闲净增.901668864GB，不作独占归因。storage_mid_training_0338.json保存快照；final需重跑新snapshot。已知C例外：原uv/Ollama/Codex可执行资源与系统字体读取，模型/cache均D。PRESERVATION_AUDIT.json旧2报告+master副本3项SHA一致。MASTER_PLAN原件SHA157040e71eab86b44bb3007bf43c1ba25240403b892a7cd5f93c1fb37e280117。
+路由decision guard已修：完整dev/test唯一ID集合、策略名、合法route/时间、实参与已冻结文件一致，7种策略都先验证再读test质量。campaign+online19测试PASS。
 
-接下来：CPU矩阵/两候选冻结；structured源→R3/Laya；simple/SQuAD；完整生成manifest引用E3并运行E2与扩展/route780；真实七路由学习与dev选择/paired在线30×2；LoRA100pair；supportjudge≤200；正式统计/图/错误/独立反核≥10/中文FINAL_REPORT/15项ACCEPTANCE/轻包；最后退出本项目CPU/GPU并通知用户手动续跑。LayaINPUTS已实际冻结train200dev60test100三order1080决策，hashb82d4b56253f1773672fc35a49402b38409256a6e892777cd55fa64c20b270f5，尚未加载；需5GiB free且留1.25GiB，等待上述RAM窗口。
+正式seed42 LoRA122步/972train/59dev已完成，5→10→122真实恢复、3init一致、3完整断点、best122 adapter a532dc22942d84e4dceabacb64b936c191b37ebdfa9fda092f3f87464d0bbae4。TRAINING_AUDIT PASS，模型/GPU已退出；BF16base/adapter固定100test仍缺最终R2inputs，不能宣称QA质量提升。新的training loss PNG/SVG实际从122条hash记录生成；ylabel已修为样本loss均值，最后图需在最终汇总中复看。
 
-S1/S2计算始终CPU-only，但完整S2尚未完成时已根据用户追加资源优先授权交接S3/S4；DECISIONS已明示阶段顺序偏差，最终criterion14不能虚构原任务直到阶段二结束仍运行。
+11个CPUdev矩阵完成；旧all509BM25两索引preflight.split历史错误为dev，但实际identity/scope/doc_checks是全库且有效，CHUNK_PREFLIGHT_SCOPE_AUDIT已明示，不改旧manifest。未来buildmetadata已修。
 
-本地分支codex/ragscope-v2-autonomous-20261014；已有9c43163/496354d/af94414/3b49ac4/fd836f4，root准备新里程碑。不要stage用户原untracked plan/zip/startprompt、architecture.md/html、rerun/、svg/。无push。
+core全套先前414PASS2skip仍是最近完整套；本次变化相关95PASS/32.01s，日志D:/RAGScope_Runtime/logs/milestone_e3_regressions.log和主run/milestone_e3_regressions.xml。之后UI新增RAMguard、startup Environment auto未再全套；最终统一复验。UI caption不再把仅检索写成模型实际接收，启动器scripts/run_ui_v2.ps1+项目.streamlit/config.toml强制loopback、telemetryoff、端口占用拒绝，18501空闲check0/11436占用check1已实测。
 
-下一条准确命令（只读，不加载模型）：
+## 下一步与不可提前完成项
+
+CPU最终上下文/structured全索引→R3/Laya→simple/SQuAD；main生成manifest严格外部引用E3不复制改写，运行E2和扩展/ROUTE780；七路由真实训练、test100冻结决策、Laya校准和30dev×2在线；BF16pair100×2；support judge≤200；最终分析图/错误/中文FINAL_REPORT/15条ACCEPTANCE/随机≥10从最终报告反查/轻包/真实清理。原任务最终只通知手动续跑。
+
+D:/Runtime中期hardlink去重27.32GB，final需重查；C例外为既有可执行/字体读取，整盘差异不独占归因。阶段S1/S2运算CPU-only但后续已按追加资源优先授权与S3/S4重叠，criterion14必须如实标注，不能虚构顺序。
+
+Git分支codex/ragscope-v2-autonomous-20261014，已提交9c43163/496354d/af94414/3b49ac4/fd836f4/3f67392。root将提交E3/守卫/UI里程碑，压力诊断仍在开发不要混stage。用户原untracked plan/zip/startprompt、architecture.md/html、rerun/、svg/保留，不add-A、不push。git diff检查用-c core.autocrlf=false -c core.whitespace=cr-at-eol避开CRLF误报。
+
+下一条准确只读命令：
 ```powershell
-Get-Content -LiteralPath D:/RAGScope_Runtime/runs/20261014_v2/generation_service.json -Raw
+Get-Content -LiteralPath D:/RAGScope_Runtime/runs/20261014_v2_retrieval/CANDIDATE_SELECTION.json -Raw
 ```

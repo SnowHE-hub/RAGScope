@@ -13,7 +13,7 @@ from matplotlib import pyplot as plt
 from matplotlib import font_manager
 import numpy as np
 
-from ragscope.indexing.identity import artifact, atomic_json
+from ragscope.indexing.identity import artifact, atomic_json, signature, verify_artifacts
 
 BLUE, INK, GRID = '#3878A8', '#22313B', '#E4E8EB'
 FONT = Path('C:/Windows/Fonts/msyh.ttc')
@@ -122,14 +122,85 @@ def main_figures(source, output):
     save(fig, output, 'evidence_answer', plotted, source)
 
 
+def e3_figures(source, output):
+    report = json.loads(source.read_text(encoding='utf-8'))
+    groups = [g for g in report['groups'] if g['experiment_id'] == 'E3']
+    models = ('qwen_2b', 'qwen_4b', 'qwen_9b')
+    methods = ('no_context', 'oracle')
+    lookup = {(g['model_id'], g['method']): g for g in groups}
+    if (len(groups) != 6 or set(lookup) != {(m, r) for m in models for r in methods}
+            or any(g['status'] != 'COMPLETE' or g['n_expected'] != 200 or g['n_observed'] != 200 for g in groups)):
+        raise ValueError('E3 requires the complete three-model paired200 population')
+    fig, axes = plt.subplots(1, 2, figsize=(11, 4.8), layout='constrained')
+    colors = {'no_context': '#788690', 'oracle': BLUE}
+    names = {'no_context': '无上下文', 'oracle': 'Oracle 证据上下文'}
+    for method, offset in zip(methods, [-.14, .14]):
+        for i, model in enumerate(models):
+            group = lookup[model, method]
+            stats = group['estimates']['token_f1']
+            y = i + offset
+            mean = stats['mean']
+            axes[0].errorbar(mean, y, xerr=[[mean-stats['low']], [stats['high']-mean]],
+                fmt='o', color=colors[method], capsize=4, label=names[method] if i == 0 else None)
+            axes[0].text(mean+.018, y-.07, f'{mean:.3f}', fontsize=9)
+            elapsed = group['observed_summary']['latency_ms']['p50']/1000
+            axes[1].scatter(elapsed, y, color=colors[method], s=40)
+            axes[1].text(elapsed+.03, y-.06, f'{elapsed:.2f} s', fontsize=9)
+    for ax in axes:
+        ax.set_yticks(range(3), ['Qwen3.5 2B', 'Qwen3.5 4B', 'Qwen3.5 9B'])
+        ax.set_ylim(2.45, -.5); ax.grid(axis='x')
+    axes[0].set_xlim(-.02, 1); axes[0].set_xlabel('答案 token F1（文字重合代理）')
+    axes[0].set_title('可回答题；论文聚类 95% 区间', loc='left', fontsize=11)
+    axes[0].legend(loc='lower right', fontsize=9)
+    axes[1].set_xlim(left=0, right=axes[1].get_xlim()[1]*1.3)
+    axes[1].set_xlabel('生成包装器 P50（秒；含遥测收尾）')
+    axes[1].set_title('全部 200 题；不含检索', loc='left', fontsize=11)
+    fig.suptitle('E3：有无已知证据时的真实模型表现', x=.01, ha='left', fontsize=15, fontweight='bold')
+    fig.supxlabel('每条件 200 test；不可答题另列拒答指标。2,000 次论文聚类重采样。\n单卡串行生成，CPU 同时索引；延迟为该运行环境下的观测值。Oracle 不保证生成正确。', fontsize=9)
+    save(fig, output, 'e3_oracle_no_context', groups, source)
+
+
+def training_figures(source, output):
+    audit = json.loads(source.read_text(encoding='utf-8'))
+    if audit['status'] != 'PASS_REAL_TRAINING_AUDIT' or not verify_artifacts(audit['artifacts']):
+        raise ValueError('Completed, unchanged real training audit required')
+    rows = [json.loads(line) for line in (source.parent/'steps.jsonl').read_text(encoding='utf-8').splitlines() if line]
+    if len(rows) != audit['actual_optimizer_steps'] or [r['step'] for r in rows] != list(range(1, len(rows)+1)):
+        raise ValueError('Optimizer step population differs')
+    for row in rows:
+        if signature({k: v for k, v in row.items() if k != 'record_hash'}) != row['record_hash']:
+            raise ValueError('Training step checksum changed')
+    fig, axes = plt.subplots(1, 2, figsize=(11, 4.8), layout='constrained')
+    axes[0].plot([r['step'] for r in rows], [r['loss'] for r in rows], color=BLUE, linewidth=1)
+    axes[0].set_title('逐步训练 loss（原始值，不平滑）', loc='left', fontsize=11)
+    for step in audit['restoration_steps']:
+        axes[0].axvline(step, color='#9BA5AD', linestyle='--', linewidth=.8)
+    dev = audit['dev_losses']
+    axes[1].plot([r['step'] for r in dev], [r['dev_loss'] for r in dev], color=BLUE, marker='o')
+    for row in dev:
+        axes[1].annotate(f"{row['dev_loss']:.4f}", (row['step'], row['dev_loss']),
+                         xytext=(0, 9), textcoords='offset points', ha='center', fontsize=9)
+    axes[1].margins(y=.3)
+    axes[1].set_title('冻结 dev 集的验证 loss', loc='left', fontsize=11)
+    for ax in axes:
+        ax.set_xlabel('Optimizer step'); ax.set_ylabel('样本 loss 均值（交叉熵）'); ax.grid(axis='y')
+    fig.suptitle('2B BF16 LoRA：实际训练与恢复', x=.01, ha='left', fontsize=15, fontweight='bold')
+    fig.supxlabel(f"seed42 · {audit['train_examples']} train · 1 epoch / {len(rows)} 步 · dev 59 条\n虚线为保存后恢复的第 5 / 10 步；loss 下降不能替代同精度问答对照。", fontsize=9)
+    save(fig, output, 'lora_training_loss', {'steps': rows, 'audit': audit}, source)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--pilot', type=Path); parser.add_argument('--analysis', type=Path)
+    parser.add_argument('--e3-analysis', type=Path)
+    parser.add_argument('--training-audit', type=Path)
     parser.add_argument('--output', required=True, type=Path)
     args = parser.parse_args()
-    if not args.pilot and not args.analysis: parser.error('A verified source is required')
+    if not any((args.pilot, args.analysis, args.e3_analysis, args.training_audit)): parser.error('A verified source is required')
     if args.pilot: pilot(args.pilot, args.output)
     if args.analysis: main_figures(args.analysis, args.output)
+    if args.e3_analysis: e3_figures(args.e3_analysis, args.output)
+    if args.training_audit: training_figures(args.training_audit, args.output)
 
 
 if __name__ == '__main__':

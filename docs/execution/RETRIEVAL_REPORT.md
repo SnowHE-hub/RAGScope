@@ -1,8 +1,9 @@
 # S2 CPU 检索实验报告
 
 执行日期：2026-10-14（Australia/Sydney）。子campaign：`20261014_v2_retrieval`。
-当前已完成BM25全11组及有界上下文扩展对照；Dense/Hybrid经历三次CPU后端启动前RAM不足后，已在资源恢复后实际开始11组矩阵，完整质量结果尚待运行结束。固定语料上的test上下文与E8 BM25独立执行，不用test重选参数。
-神经矩阵前四组已完成800条真实查询结果。主执行器要求为真实LoRA训练释放RAM，当前在第五组编码期间暂停自身worker并停止自身CPU服务；完整缓存与恢复凭据见`PLANNED_TRAINING_RAM_PAUSE.json`，属于计划内资源交接，不是完成或永久阻断。
+BM25全11组及有界上下文扩展对照已完成；真实CPU Dense/Hybrid全11组也已正常结束，2,200条、0失败。最终dev-only候选冻结为简单F512_O0和结构R512；这与BM25初筛简单候选F512_O64不同，主对照须使用正式冻结候选。上下文扩展选择及正式全库神经索引正在继续，不能将初筛test上下文称为全部正式矩阵完成。
+
+此前为真实LoRA训练暂停自身worker/停止自身CPU服务，训练正常退出并明确handover后恢复。暂停/恢复凭据为`PLANNED_TRAINING_RAM_PAUSE.json`、`TRAINING_RAM_RESUME.json`；两次在途HTTP重置保留为有界恢复2/3，无已完成查询丢失。当前矩阵worker已正常exit0，receipt更新COMPLETE。
 
 ## 冻结输入与公平性
 
@@ -179,3 +180,7 @@ root冻结的`ROUTING_QUERY_MANIFEST.json`哈希f1b6ae1ef21a44b720b53e1a6fffe660
 `scripts/export_retrieval_source_map_v2.py`已导出并核验`SOURCE_MAP.json`：在排序后的dev文档ID上以seed42固定抽3篇，覆盖11组、462个子块、31个父块、153个稳定证据单元，所有坐标片段逐个与canonical原文相同。导出包含canonical文字、Unicode半开区间、chunk参数、父子ID和明确标识为evaluation_only的标注，用于来源映射可视化，不进入在线检索输入。样本按文档ID抽取，未按检索成绩挑选。产物522587bytes，SHA256 `6c9faa968e9a930e614bf00f8ca2e0845022ca7b39c7b1db04ad4b596622c34c`；可重复执行要求相同内容。
 
 训练完整122步并明确资源handover后，CPU服务按精确旧命令恢复为PID36892/create1791909754.8890424，二进制/权重哈希、CPU0层offload、真实1024维向量均通过。暂停worker43932的在途HTTP连接重置已保存，确认退出后以原命令重启为28832，这是有界恢复2/3；1000条前五组Dense/Hybrid结果完成后继续第六组，无已完成query丢失。恢复过程见`TRAINING_RAM_RESUME.json`，当前身份以`worker.json`和主`embedding_service.json`为准。
+
+SQuAD E4将复用已冻结的Qwen查询指令（含scientific paper措辞），不单独为SQuAD调指令或检索参数。它用于同一短文本任务内的模型回归对照；数据领域、标注形式和长度均与QASPER不同，跨数据集差异不能归因为长度，也不能合并排名。
+
+历史元数据限制：独立`CHUNK_PREFLIGHT_SCOPE_AUDIT.json`核验13个chunk manifests，发现早期两个all509 BM25索引的preflight.split误写为dev。它们的不可变identity明确为frozen_all_splits_corpus，document_checks保留真实文档ID，数据/hash/检索结果均正确；审计另列实际预检前3篇及其source split。未改写旧manifest。未来manifest使用真实identity范围、显式sample_document_ids/source_split_counts。该耗时预检不参与质量选择，也不把全库预检冒称dev样本。

@@ -11,7 +11,7 @@ import pytest
 from ragscope.experiments.ledger import Campaign
 from ragscope.experiments.run import execute_plan_command, main as run_main
 from ragscope.experiments.task_catalog import (PLAN_IDS, child_evidence, command_views, completion_receipt,
-                                             expand, load_catalog, reconcile)
+                                             expand, load_catalog, reconcile, verify_dev_matrix_rows)
 from ragscope.indexing.identity import artifact, atomic_json, signature
 
 
@@ -42,6 +42,10 @@ def test_catalog_covers_all_25_master_plan_tasks_and_no_process_control():
     commands = json.dumps([row["commands"] for row in plan["tasks"]])
     assert "manage_previous_jobs" not in commands and "Stop-Process" not in commands
     assert "core-linux" not in commands  # Resolved per host, never a hard-coded Windows venv for Linux.
+    generation = next(row for row in plan["tasks"] if row["id"] == "S3.5")
+    validation = next(row for row in generation["commands"] if "scripts/accept_generation_v2.py" in row["argv"])
+    assert validation["argv"][-2:] == ["--scope", "main"] and validation["pending_exit_codes"] == [2]
+    assert not validation.get("gpu", False)
 
 
 def test_catalog_rejects_omission_and_bad_dependency(tmp_path):
@@ -297,3 +301,56 @@ def test_live_worker_receipt_requires_exact_process_identity(tmp_path, monkeypat
     receipt["creation_time"] = 1.4  # Reused PID is never trusted.
     atomic_json(directory / "worker.json", receipt)
     assert live_worker(directory) is None
+
+
+@pytest.mark.parametrize("kind", ["experiment", "delivery"])
+def test_historical_exact_task_name_cannot_bypass_formal_completion(tmp_path, kind):
+    spec = task(kind=kind, execution_completes_task=True)
+    with Campaign(tmp_path, "demo") as campaign:
+        campaign.begin(spec["id"], {"interface_only": True}, ["offline-fixture"])
+        output = campaign.path / "interface.json"
+        atomic_json(output, {"supported": True})
+        campaign.finish(spec["id"], "PASS", [output], {"exit_code": 0})
+        assert reconcile(campaign, catalog(spec))["tasks"][spec["id"]]["status"] == "PENDING"
+        assert campaign.state["tasks"][spec["id"]]["status"] == "PASS"
+
+
+def dev_matrix_fixture(tmp_path, method="dense", damage=None):
+    run_id = f"E1_fixture_{method}_none"
+    index = {"embedding": {"device": "cpu", "model_id": "offline_fixture"} if method != "bm25" else None}
+    config = {"run_id": run_id, "experiment_type": "retrieval", "method": method,
+              "query_ids": [f"q{i}" for i in range(100)], "index_identity": index}
+    fingerprint = signature(config)
+    rows = [{"query_id": query_id, "record_id": query_id, "config_hash": fingerprint,
+             "run_id": run_id, "experiment_type": "retrieval", "split": "dev", "device": "cpu",
+             "index_signature": signature(index), "embedding_identity": index["embedding"],
+             "real_model": method != "bm25", "error": "retained_fixture_error" if i == 0 else None}
+            for i, query_id in enumerate(config["query_ids"])]
+    if damage == "missing": rows.pop()
+    if damage == "duplicate": rows[-1] = dict(rows[0])
+    if damage == "mock_neural": rows[1]["real_model"] = False
+    if damage == "wrong_config": rows[1]["config_hash"] = "unrelated"
+    if damage == "wrong_index": rows[1]["index_signature"] = "unrelated"
+    for row in rows:
+        row["record_hash"] = signature(row)
+    if damage == "missing_hash": rows[1].pop("record_hash")
+    if damage == "bad_hash": rows[1]["record_hash"] = "corrupt"
+    path = tmp_path / f"{run_id}.jsonl"
+    path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
+    atomic_json(path.with_suffix(".config.json"), config)
+    return {"source_task_id": run_id, "input_fingerprint": fingerprint, "outputs": [artifact(path)],
+            "summaries": [{"observed": {"run_id": run_id, "method": method, "n_total": 100,
+                                          "n_failed": 0 if damage == "hidden_failure" else 1}}]}
+
+
+@pytest.mark.parametrize("method", ["bm25", "dense", "hybrid"])
+def test_dev_matrix_accepts_actual_method_and_retains_failures(tmp_path, method):
+    audit = verify_dev_matrix_rows([dev_matrix_fixture(tmp_path, method)])
+    assert audit[0]["rows"] == 100 and audit[0]["failures"] == 1
+
+
+@pytest.mark.parametrize("damage", ["missing", "duplicate", "mock_neural", "wrong_config", "wrong_index",
+                                     "missing_hash", "bad_hash", "hidden_failure"])
+def test_dev_matrix_rejects_incomplete_or_interface_only_rows(tmp_path, damage):
+    with pytest.raises(ValueError):
+        verify_dev_matrix_rows([dev_matrix_fixture(tmp_path, damage=damage)])

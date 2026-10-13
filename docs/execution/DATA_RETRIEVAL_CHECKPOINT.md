@@ -1,5 +1,7 @@
 # 数据与CPU检索恢复点
 
+最新进度：dev神经矩阵11/11组、2200行全部PASS/0失败，session13666正常exit0，PID28832已不存在，worker.json已更新COMPLETE。正式dev-only候选simple=F512_O0、structured=R512，原初筛simple=F512_O64不可冒充最终候选。root新增的有界CPU请求批量测试在当前worker正常结束后执行，脚本`scripts/benchmark_embedding_batches.py`，固定dev八块、batch1/2/4各两轮、最多29次HTTP、1.25GiB RAM保留；现有12线程服务不重启、不载额外模型。不满足1.15倍吞吐和向量/排名等价时保持串行。当前批量测试session33240已运行，尚待结果。运行准确命令为`& 'D:/RAGScope_Runtime/envs/core/Scripts/python.exe' -u scripts/benchmark_embedding_batches.py --home D:/RAGScope_Runtime --campaign 20261014_v2`，此前仍须source runtime_env.ps1并核验原worker确已结束。测试结束通知root和generation_evaluation；服务仍供后续全库编码，不代表权重已释放。
+
 此文件由数据/检索执行子任务维护，不替代主STATUS、RECOVERY或实验账本。
 
 已完成真实数据冻结：QASPER509篇，train1000/dev100/test200/global100，技术集32题；官方SQuAD2公开dev全库1204段落及E4固定100题。主数据和SQuAD均已完成独立哈希、证据坐标、scope检查。
@@ -7,7 +9,7 @@
 已完成BM25：dev11组1100行、额外context400行、两个论文内test各200行、E8全库100行，共2000行，0失败。所有行及配置位于`D:/RAGScope_Runtime/runs/20261014_v2_retrieval/records`。
 
 实际Qwen CPU Dense+Hybrid11组dev矩阵已在训练结束明确handover后恢复。当前终端session13666，实际worker PID28832/create_time1791909810.3224635、launcher18392；worker RUNNING。原session37932/PID43932恢复后因训练RAM释放期间断开的在途HTTP出现WinError10054，exit1已核验；随后从相同缓存和原记录恢复，是保存的有界恢复2/3。原session71547在线程切换时的第一次连接重置也保留；两次均未丢已完成query记录。
-已完成前四组共800条真实神经检索记录，第五组F1024_O0尚在编码。训练暂停前2404个完整文本向量落盘，最新5个缓存哈希验证一致。`runs/20261014_v2_retrieval/worker.json`保存当前实际身份，不能因旧进程已结束就同时启动第二个相同campaign。
+已完成前八组共1600条真实神经检索记录，R1024正在编码；P256_1024/P256_1536随后执行。训练暂停前2404个完整文本向量落盘，最新5个缓存哈希验证一致。`runs/20261014_v2_retrieval/worker.json`保存当前实际身份，不能因旧进程已结束就同时启动第二个相同campaign。
 本项目CPU服务当前PID36892/create_time1791909754.8890424，loopback11436，12线程/12batch线程、-ngl0/--no-op-offload。`TRAINING_RAM_RESUME.json`记录二进制/模型SHA核验、health与1024维实请求PASS；`embedding_service.json`已原子更新。训练释放证据为`runs/20261014_v2_lora/train_2b_1024_seed42/GPU_RELEASE_RECEIPT.json`，仅在明确handover后才恢复。启动后RAM3,069,685,760 bytes，持续编码时16:44:06UTC为2,532,061,184 bytes；其他模型须查实时余量。
 旧11224、39808与43932均不得仅凭PID再次清理。历史暂停详情保留在`PLANNED_TRAINING_RAM_PAUSE.json`；恢复脚本`scripts/resume_embedding_after_training.py`拒绝重复启动，不能再次直接执行。当前worker重启已读取新版selected_retrieval记录逻辑；前四组历史不可变行仍可能缺该字段，错误分析应保留ranking/packing无法细分的不确定性。已部分完成但未持久化的历史cold索引耗时不得用cache-hit时间替代。
 
@@ -22,8 +24,7 @@
 
 ```powershell
 & 'D:/RAGScope_Runtime/envs/core/Scripts/python.exe' -u scripts/run_retrieval_v2.py --home 'D:/RAGScope_Runtime' --campaign 20261014_v2 --selected-expansions --embedding-url 'http://127.0.0.1:11436' --embedding-identity 'D:/RAGScope_Runtime/runs/20261014_v2/embedding_identity.json'
-& 'D:/RAGScope_Runtime/envs/core/Scripts/python.exe' -u scripts/run_retrieval_v2.py --home 'D:/RAGScope_Runtime' --campaign 20261014_v2 --final-contexts --dataset squad --embedding-url 'http://127.0.0.1:11436' --embedding-identity 'D:/RAGScope_Runtime/runs/20261014_v2/embedding_identity.json'
-& 'D:/RAGScope_Runtime/envs/core/Scripts/python.exe' -u scripts/run_retrieval_v2.py --home 'D:/RAGScope_Runtime' --campaign 20261014_v2 --final-contexts --dataset qasper --embedding-url 'http://127.0.0.1:11436' --embedding-identity 'D:/RAGScope_Runtime/runs/20261014_v2/embedding_identity.json'
+& 'D:/RAGScope_Runtime/envs/core/Scripts/python.exe' -u scripts/run_retrieval_v2.py --home 'D:/RAGScope_Runtime' --campaign 20261014_v2 --final-contexts --dataset qasper --family structured --embedding-url 'http://127.0.0.1:11436' --embedding-identity 'D:/RAGScope_Runtime/runs/20261014_v2/embedding_identity.json'
 & 'D:/RAGScope_Runtime/envs/core/Scripts/python.exe' -u scripts/materialize_routing_contexts_v2.py --home 'D:/RAGScope_Runtime' --campaign 20261014_v2 --embedding-url 'http://127.0.0.1:11436' --embedding-identity 'D:/RAGScope_Runtime/runs/20261014_v2/embedding_identity.json' --routing-manifest-hash f1b6ae1ef21a44b720b53e1a6fffe6600a12d16d51e4b88aefe26a69c0ff952b
 ```
 
@@ -47,3 +48,12 @@ root指定的ROUTING_QUERY_MANIFEST哈希为f1b6ae1ef21a44b720b53e1a6fffe6600a12
 
 恢复后最新独立核验：30个已完成运行/3200行/13384个原文context片段/90个汇总数字PASS；6个完整神经索引/2623vectors/每索引20共120次缓存对齐PASS；875个去重文本有backend usage、1639历史无usage，未反填。辅助排序也已更新到30运行/3200行。当前S512组编码进行中，未计入完成。
 最终全库索引助手新增`build_performance.json`：实际成功尝试的encoding loop、数组构建、落盘、总时长和cache/modelcall计数，并链接逐chunk首次完成观察；不将warm/resumed耗时称作完整历史cold成本。现有14检索测试再次通过；这项测量改变不修改索引语义identity或逐题配置。
+
+后续交接准确边界：上述structured命令和ROUTE命令正常退出后，先确认当前worker已不存在、11436无在途请求，再只停止主`embedding_service.json`所载且creation_time/command匹配的本项目CPU服务。保存服务exit与缓存/逐题计数后直接向chunking_core发送group、expansion、五组源文件（selected dev100/test200/global100/train200/dev60）和退出凭据，由其顺序执行R3→Laya。无需用户阶段确认，但必须等待真实资源归还，不能并载权重。
+资源归还并恢复经过身份核验的同一CPU12服务后，再执行：
+```powershell
+. ./scripts/runtime_env.ps1
+& 'D:/RAGScope_Runtime/envs/core/Scripts/python.exe' -u scripts/run_retrieval_v2.py --home 'D:/RAGScope_Runtime' --campaign 20261014_v2 --final-contexts --dataset squad --family structured --embedding-url 'http://127.0.0.1:11436' --embedding-identity 'D:/RAGScope_Runtime/runs/20261014_v2/embedding_identity.json'
+& 'D:/RAGScope_Runtime/envs/core/Scripts/python.exe' -u scripts/run_retrieval_v2.py --home 'D:/RAGScope_Runtime' --campaign 20261014_v2 --final-contexts --dataset qasper --family simple --embedding-url 'http://127.0.0.1:11436' --embedding-identity 'D:/RAGScope_Runtime/runs/20261014_v2/embedding_identity.json'
+```
+实际源文件校验再次通过QASPER docs/train/dev/test/global与SQuAD docs/test。新版各阶段入口已在模型调用前验证SPLIT所固定SHA/bytes，15个检索测试通过（含篡改拒绝）。当前矩阵worker已预加载旧模块，不需因此重跑已验证的实际结果。

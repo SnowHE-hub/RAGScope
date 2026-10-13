@@ -1,6 +1,6 @@
 {
   "schema_version": "ragscope-ui-v2",
-  "status": "仅 BM25 的 100 题 dev 已验证；生成模型未就绪，Dense/Hybrid 资源受阻记录单列",
+  "status": "BM25 检索预览可用；E3 三模型共 1200 条真实结果可回放。正式检索矩阵运行中，交互生成尚未发布。",
   "default_model": "仅检索证据",
   "default_retriever": "R512_BM25_dev_selected",
   "default_scope": "qasper:1503.00841",
@@ -26,6 +26,9 @@
     "D:/RAGScope_Runtime/runs/20261014_v2_retrieval/records/E1_F512_O0_bm25_none.jsonl",
     "D:/RAGScope_Runtime/runs/20261014_v2_retrieval/records/E1_R512_bm25_none.jsonl",
     "D:/RAGScope_Runtime/runs/20261014_v2_retrieval/records/TEST_CONTEXT_R512_bm25_none.jsonl",
-    "D:/RAGScope_Runtime/runs/20261014_v2_retrieval/records/E8_R512_bm25_none.jsonl"
+    "D:/RAGScope_Runtime/runs/20261014_v2_retrieval/records/E8_R512_bm25_none.jsonl",
+    "D:/RAGScope_Runtime/runs/20261014_v2_generation_e3/records/E3_qwen_2b.jsonl",
+    "D:/RAGScope_Runtime/runs/20261014_v2_generation_e3/records/E3_qwen_4b.jsonl",
+    "D:/RAGScope_Runtime/runs/20261014_v2_generation_e3/records/E3_qwen_9b.jsonl"
   ]
 }

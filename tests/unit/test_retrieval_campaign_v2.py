@@ -9,6 +9,8 @@ from ragscope.experiments.ledger import Campaign
 from ragscope.experiments.retrieval_campaign import (build_group, chunker_for, read_jsonl,
     retrieval_scope, run_queries, score_retrieval, select_candidates, summarize_run, validate_chunks,
     verified_dense_index, run_final_contexts, select_context_strategy, write_jsonl)
+from ragscope.experiments.retrieval_campaign import verify_corpus_files
+from ragscope.indexing.identity import file_hash
 from ragscope.generation.context import pack_context
 from ragscope.indexing.array_index import ArrayIndex
 from ragscope.ingestion.chunkers import TokenizerAdapter
@@ -36,6 +38,8 @@ def test_group_indexes_validate_source_coverage_and_resume(tmp_path, corpus, gro
     chunks, parents, manifest, directory = first
     assert manifest["count"] == len(chunks)
     assert manifest["preflight"]["documents"] == 1
+    assert manifest["preflight"]["split"] == "dev"
+    assert manifest["preflight"]["sample_document_ids"] == [corpus[0]["doc_id"]]
     assert all(c["tokenizer_id"] == "unicode_codepoint" for c in chunks)
     with (directory / "chunks.jsonl").open("a", encoding="utf-8") as handle:
         handle.write("corrupt")
@@ -101,6 +105,17 @@ def test_immutable_chunk_writer(tmp_path):
     write_jsonl(path, [{"value": "中文"}])
     with pytest.raises(ValueError, match="Immutable"):
         write_jsonl(path, [{"value": "changed"}])
+
+
+def test_frozen_corpus_bytes_are_checked_before_indexing(tmp_path):
+    path = tmp_path / "documents.jsonl"
+    path.write_text('{"text":"original"}\n', encoding="utf-8")
+    expected = {"files": {path.name: {"sha256": file_hash(path), "bytes": path.stat().st_size}}}
+    (tmp_path / "SPLIT_MANIFEST.json").write_text(json.dumps(expected), encoding="utf-8")
+    assert verify_corpus_files(tmp_path, (path.name,)) == expected
+    path.write_text('{"text":"tampered"}\n', encoding="utf-8")
+    with pytest.raises(ValueError, match="hash/size"):
+        verify_corpus_files(tmp_path, (path.name,))
 
 
 def test_global_scope_never_uses_gold_document():

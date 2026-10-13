@@ -15,7 +15,7 @@ import re
 import sys
 
 from filelock import FileLock, Timeout
-from ragscope.experiments.ledger import append_jsonl, now
+from ragscope.experiments.ledger import append_jsonl, now, read_records
 from ragscope.indexing.identity import artifact, atomic_json, signature, verify_artifacts
 
 PROJECT = Path(__file__).resolve().parents[2]
@@ -156,6 +156,51 @@ def completion_receipt(task, home, campaign):
     return {"artifact": artifact(path), "receipt": receipt}
 
 
+def verify_dev_matrix_rows(proofs):
+    """A summary/command success cannot substitute for the frozen 100 real rows.
+
+    BM25 is a real algorithmic experiment without a neural model. Failed query
+    rows remain part of the population; they must agree with the summary count.
+    """
+    audits = []
+    for proof in proofs:
+        run_id = proof["source_task_id"]
+        files = [Path(item["path"]) for item in proof["outputs"]
+                 if Path(item["path"]).suffix == ".jsonl"]
+        if len(files) != 1:
+            raise ValueError(f"{run_id}: exactly one formal row file is required")
+        config = json.loads(files[0].with_suffix(".config.json").read_text(encoding="utf-8"))
+        expected = config.get("query_ids", [])
+        method = config.get("method")
+        if (signature(config) != proof["input_fingerprint"] or config.get("run_id") != run_id
+                or config.get("experiment_type") != "retrieval" or method not in {"bm25", "dense", "hybrid"}
+                or f"_{method}_" not in run_id or len(expected) != 100 or len(set(expected)) != 100):
+            raise ValueError(f"{run_id}: invalid frozen dev population/configuration")
+        rows = read_records(files[0])
+        if (len(rows) != 100 or {row.get("query_id") for row in rows} != set(expected)
+                or len({row.get("record_id") for row in rows}) != 100):
+            raise ValueError(f"{run_id}: incomplete or duplicate formal query population")
+        index = config["index_identity"]
+        for row in rows:
+            if (not row.get("record_hash") or row.get("record_id") != row.get("query_id")
+                    or row.get("config_hash") != proof["input_fingerprint"] or row.get("run_id") != run_id
+                    or row.get("experiment_type") != "retrieval" or row.get("split") != "dev"
+                    or row.get("device") != "cpu" or row.get("index_signature") != signature(index)
+                    or row.get("embedding_identity") != index.get("embedding")):
+                raise ValueError(f"{run_id}: row identity, hash or CPU scope mismatch")
+            if method != "bm25" and row.get("real_model") is not True:
+                raise ValueError(f"{run_id}: neural retrieval requires an actual model")
+        summaries = [item["observed"] for item in proof["summaries"]
+                     if item["observed"].get("run_id") == run_id]
+        failures = sum(bool(row.get("error")) for row in rows)
+        if (len(summaries) != 1 or summaries[0].get("n_total") != 100
+                or summaries[0].get("n_failed") != failures or summaries[0].get("method") != method):
+            raise ValueError(f"{run_id}: summary omits formal rows or failures")
+        audits.append({"run_id": run_id, "rows": 100, "failures": failures,
+                       "config": artifact(files[0].with_suffix(".config.json"))})
+    return audits
+
+
 def command_views(task, home, campaign, plan_tasks, allow_gpu=False):
     rows = []
     for spec in task.get("commands", []):
@@ -204,7 +249,8 @@ def reconcile(campaign, catalog, *, allow_gpu=False, persist=True):
                                    for path, digest in config.get("inputs", {}).items())):
                         continue  # Historical success remains immutable; changed inputs need a new execution.
                     # External commands can end successfully while the experiment remains incomplete.
-                    if execution_id == task_id or row.get("config", {}).get("completes_task"):
+                    if task["kind"] == "engineering" and (
+                            execution_id == task_id or row.get("config", {}).get("completes_task")):
                         completed_execution = {"execution_id": execution_id, "receipt": row}
                 else:
                     errors.append({"execution_id": execution_id, "error": "completed_execution_evidence_changed"})
@@ -220,6 +266,7 @@ def reconcile(campaign, catalog, *, allow_gpu=False, persist=True):
             status = receipt["receipt"]["status"]
         # A bounded complete child matrix may prove the task directly; partial rows never do.
         expected = task.get("required_child_task_ids", [])
+        formal_row_audit = []
         if expected and set(expected) <= {proof["source_task_id"] for proof in proofs}:
             matrix = [proof for proof in proofs if proof["source_task_id"] in expected and proof["source_task_id"].startswith("E1_")]
             dense = [proof["comparison_identity"]["embedding"] for proof in matrix
@@ -232,6 +279,11 @@ def reconcile(campaign, catalog, *, allow_gpu=False, persist=True):
                 errors.append({"error": "completed_matrix_has_inconsistent_embedding_queries_or_corpus"})
             else:
                 status = "PASS"
+                if task.get("verify_fixed_embedding"):
+                    try:
+                        formal_row_audit = verify_dev_matrix_rows(matrix)
+                    except (ValueError, OSError, KeyError, TypeError) as exc:
+                        errors.append({"error": "completed_matrix_formal_rows_invalid", "detail": str(exc)})
         if errors:
             status = "FAILED"
         actions = command_views(task, home, campaign.campaign_id, progress, allow_gpu)
@@ -250,6 +302,7 @@ def reconcile(campaign, catalog, *, allow_gpu=False, persist=True):
                 "resource_wait": any(worker["status"] == "SUSPENDED" for worker in workers),
                 "execution": completed_execution, "completion_receipt": receipt,
                 "validation_errors": errors, "outputs": latest.get("outputs", []),
+                "formal_row_audit": formal_row_audit,
                 "remaining": [] if status in COMPLETE else task["completion_requirements"]}
         progress[task_id] = item
         if persist:
@@ -265,6 +318,7 @@ def reconcile(campaign, catalog, *, allow_gpu=False, persist=True):
               "task_count": len(progress), "state_counts": dict(Counter(row["status"] for row in progress.values())),
               "status": "COMPLETE" if all(row["status"] in COMPLETE for row in progress.values()) else "INCOMPLETE",
               "resource_policy": catalog["resource_policy"], "tasks": progress}
+    result["completion_scope"] = "task_catalog_only; final MASTER_PLAN section 11 acceptance is separate"
     if persist:
         campaign.state["plan_tasks"] = progress
         campaign.state["plan_status"] = result["status"]

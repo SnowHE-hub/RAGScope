@@ -80,7 +80,7 @@ def execute_plan_command(campaign, task, action):
         path = Path(expand(value, campaign.path.parents[1], campaign.campaign_id))
         inputs[str(path.resolve())] = file_hash(path)
     config = {"plan_task_id": task["id"], "task_spec_hash": signature(task), "argv": action["argv"],
-              "inputs": inputs, "completes_task": task.get("execution_completes_task", False)}
+              "inputs": inputs, "completes_task": task["kind"] == "engineering" and task.get("execution_completes_task", False)}
     execution_id = "PLAN_" + task["id"] + "_" + signature(config)[:16]
     # Failed work has three attempts across input revisions. Prerequisite checks are
     # bounded per unchanged config, but do not consume failures after inputs change.

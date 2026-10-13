@@ -164,10 +164,17 @@ class ScopedRetriever:
         self.last_timings["ranking_ms"] = (time.perf_counter()-ranking_start)*1000
         if method == "hybrid+rerank":
             from ragscope.retrieval.reranker import Reranker
+            from ragscope.experiments.runtime import require_ram
             config = self.entry["reranker"]
             if not config.get("ready"):
                 raise ValueError("重排模型未就绪")
+            # CPU weight/framework estimate plus a separate host reserve. A UI
+            # click must not blindly load a second model into exhausted RAM.
+            require_ram(1536*1024**2, reserve_bytes=1280*1024**2)
+            load_start = time.perf_counter()
             reranker = Reranker(config["model_path"], revision=config["revision"], device="cpu", local_files_only=True)
+            self.last_timings["reranker_load_ms"] = (time.perf_counter()-load_start)*1000
+            require_ram(0, reserve_bytes=1280*1024**2)
             rerank_start = time.perf_counter()
             matches = reranker.rerank(question, matches, top_k=k)
             self.last_timings["rerank_ms"] = (time.perf_counter()-rerank_start)*1000
@@ -190,7 +197,7 @@ def result_view(st, record):
         st.error("不可见引用：" + ", ".join(result["invalid_citations"]))
     bundle = result.get("context_bundle", record.get("context_bundle", {}))
     citations = set(result.get("citations", []))
-    st.caption("下面展示模型实际收到的片段；检索但未发送的片段单独列出。")
+    st.caption("下面展示已打包的上下文片段；原始候选、预算与未纳入片段见下方记录。")
     for position, piece in enumerate(bundle.get("pieces", []), 1):
         label = f"{position}. {piece['chunk_id']}" + (" · 被引用" if piece["chunk_id"] in citations else "")
         with st.expander(label):

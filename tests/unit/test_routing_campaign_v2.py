@@ -7,6 +7,8 @@ import pytest
 from ragscope.routing.core import ROUTES, FixedRouter, build_proxy_labels, proxy_quality
 from ragscope.routing.evaluate import summarize
 from ragscope.routing.campaign import freeze_routing, normalized_record, freeze_decisions, evaluate_decisions
+from ragscope.routing.campaign import REQUIRED_ROUTERS
+from ragscope.indexing.identity import signature
 from ragscope.experiments.generation_campaign import freeze_campaign
 from test_generation_campaign_v2 import sample, IDENTITY
 
@@ -69,3 +71,56 @@ def test_actual_component_times_are_required_and_never_called_online():
     bad = copy.deepcopy(source); bad.pop('retrieval_timings')
     with pytest.raises(ValueError, match='actually measured'):
         normalized_record(row, bad, 'fixture')
+
+
+@pytest.mark.parametrize('corruption', ['missing', 'duplicate', 'substitute', 'name', 'route', 'negative_time'])
+def test_rehashed_incomplete_or_invalid_decisions_rejected_before_metrics(tmp_path, monkeypatch, corruption):
+    protocol = {'protocol_hash': 'fixture', 'populations': {
+        split: {'query_ids': [f'{split}0', f'{split}1'], 'visible_queries': [
+            {'query_id': f'{split}{i}', 'question': 'Fixture only', 'split': split} for i in range(2)]}
+        for split in ('dev', 'test')}}
+    frozen = {}
+    for name in REQUIRED_ROUTERS:
+        frozen[name] = freeze_decisions(FixedRouter(), protocol, tmp_path, name)
+    body = copy.deepcopy(frozen['linear'])
+    rows = body['decisions']['test']
+    if corruption == 'missing':
+        rows.pop()
+    elif corruption == 'duplicate':
+        rows[1] = copy.deepcopy(rows[0])
+    elif corruption == 'substitute':
+        rows[1]['query_id'] = 'foreign'
+    elif corruption == 'name':
+        body['name'] = 'mlp'
+    elif corruption == 'route':
+        rows[0]['decision']['route'] = 'oracle'
+    else:
+        rows[0]['decision']['elapsed_s'] = -1
+    body.pop('decision_hash')
+    body['decision_hash'] = signature(body)
+    (tmp_path/'DECISIONS_linear.json').write_text(json.dumps(body))
+    def forbid_metric_read(*args):
+        pytest.fail('Test metrics must not be read before decision validation')
+    monkeypatch.setattr('ragscope.routing.campaign.load_route_records', forbid_metric_read)
+    with pytest.raises(ValueError, match='Decision'):
+        freeze_decisions(FixedRouter(), protocol, tmp_path, 'linear')
+    with pytest.raises(ValueError, match='Decision'):
+        evaluate_decisions('unused', protocol, frozen['fixed_hybrid'], tmp_path)
+
+
+def test_replay_argument_must_equal_committed_decisions(tmp_path, monkeypatch):
+    protocol = {'protocol_hash': 'fixture', 'populations': {
+        split: {'query_ids': [split], 'visible_queries': [
+            {'query_id': split, 'question': 'Fixture only', 'split': split}]}
+        for split in ('dev', 'test')}}
+    for name in REQUIRED_ROUTERS:
+        body = freeze_decisions(FixedRouter(), protocol, tmp_path, name)
+    changed = copy.deepcopy(body)
+    changed['decisions']['test'][0]['decision']['route'] = 'bm25'
+    changed.pop('decision_hash')
+    changed['decision_hash'] = signature(changed)
+    def forbid_metric_read(*args):
+        pytest.fail('Changed choices must be rejected before test scores')
+    monkeypatch.setattr('ragscope.routing.campaign.load_route_records', forbid_metric_read)
+    with pytest.raises(ValueError, match='differ from the frozen'):
+        evaluate_decisions('unused', protocol, changed, tmp_path)

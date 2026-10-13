@@ -2,21 +2,21 @@
 
 Updated after completed E0 CPU handover, 2026-10-14 local date. This file contains current state only; historical measurements remain in TRAINING_REPORT.md and immutable runtime logs.
 
-## Active resource ownership
+## Current resource ownership
 
-Owned Ollama11435 lifecycle is exec54636, childPID14564/create1791909897.4709003. It is READY with LLAMA_ARG_CACHE_RAM=0 and owns D:/RAGScope_Runtime/runs/gpu.lock.
-Only **4B E3** is now running, exec78438, log D:/RAGScope_Runtime/logs/generation_e3_qwen_4b.log.
-Command already started; do not duplicate:
+E3 is COMPLETE: 1200/1200 real formal rows, three models × 400, zero request errors, 1200 actual token-count parity checks passed, and nine separate warmups. Both 4B exec78438 and 9B exec39846 exited 0.
 
-```powershell
-. ./scripts/runtime_env.ps1
-& D:/RAGScope_Runtime/envs/core/Scripts/python.exe scripts/run_generation_campaign.py --campaign-dir D:/RAGScope_Runtime/runs/20261014_v2_generation_e3 --model-id qwen_4b
-```
+Own Ollama11435 was explicitly unloaded and stopped. PID14564 is absent, port11435 is closed, gpu.lock was reacquired and released, GPU0 MiB / 0%, and host available RAM2,989,690,880bytes at 2026-10-13T17:21:27Z. GPU_RELEASE_RECEIPT.json records that Windows service terminate returned1 after successful explicit unload; this is separate from the successful formal generation processes.
 
-Before4B start: APIps was empty and hostavailable3,255,685,120bytes. The project's CPU embedding11436 and retrieval matrix have resumed under data_preparation ownership. E0 CPU encoding/retrieval is COMPLETE; chunking_core confirmed session37101 exit0 and actualworker37108 absent after full22,254encoding+200Dense+200Hybrid and independent original-index SHA audit. No E0/Laya/BGE-base model remains loaded by that agent.
+COMPLETION_RECEIPT.json seals the original manifest, frozen inputs, every record/config/summary file and all1200 row hashes. Global budget is1421 total /1200 core. Root owns full E3 analysis in fresh analysis_complete; preserve the older2B analysis snapshot unchanged.
 
-Next operation: poll exec78438; inspect its retained rows and completion summary. On completion unload only own4B via own11435/api/generate keep_alive0, verify APIps empty and GPU resources released, take freshRAM measurement. Then run the same command with --model-id qwen_9b and log generation_e3_qwen_9b.log. After9B and all GPU work, stop ownservice through generation.stop and verify release. Original user workloads remain **USER_MANUAL_RESUME**; never restart original jobs/daily jobs.
+CPU embedding11436 and retrieval matrix remain active under data_preparation. No project generation or training model is resident. Original workloads remain USER_MANUAL_RESUME; never restart them or their daily jobs.
 
+Production acceptance is implemented and executed: scripts/accept_generation_v2.py --scope e3 returns COMPLETE1200/1200; --scope main returns PENDING because the final main manifest is not frozen. Ten contract tests passed. Integrity failures use FAILED_VALIDATION, evidence-backed resource blocks use BLOCKED. The audit itself makes zero generation calls. Root completed analysis_complete and an independent30-number check; do not overwrite the old2B snapshot.
+
+Next task, assigned by root: implement and freeze the S3.5 4K/8K context-window resource diagnostic, only2B Q4, at most20 dev questions selected by source feasibility, three warmups per condition, global budget. Context must actually approach each true-template window budget, with512 output reserved, canonical source coordinates and no injected answer labels. Do not start GPU until data_preparation has normally finished its11-group matrix plus bounded CPU batch benchmark and explicitly released the resource window. Then run only these two conditions, retain errors, unload and stop own service. Do not add this diagnostic to main quality rankings.
+
+Diagnostic implementation and realCPUfreeze are now done: scripts/run_context_stress_v2.py, ragscope/experiments/context_stress.py, six offline testsPASS. Frozen run 20261014_v2_context_stress selected8/100dev because92 papers are too short for near8K input; all exclusions and a100-question canonical length audit are retained. The16paired input counts are exactly3584/7680, each plus512output. Manifest_hash e87d506a9eab594eac0f088317d094df315c82097bc3eaa3ce0a56cbb04589c9. Do not modify these frozen implementation files before execution. No GPU call yet. Data has completed11/11 and batch benchmark session33240 is active; wait its explicit completion/freshRAM message, then safely archive only own generation.stop after confirming prior service EXITED, start serve_generation.py -Gpu, and run stress --mode run --window4096 then unload/check then window8192. Exact spaced commands are in CONTEXT_STRESS.md. Source-scope engineering guard failure was retained and fixed before successful freeze; it was not a model call.
 ## E3 actual core experiments
 
 Shard directory D:/RAGScope_Runtime/runs/20261014_v2_generation_e3.

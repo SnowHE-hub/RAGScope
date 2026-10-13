@@ -832,6 +832,23 @@
             "{runtime}/runs/{campaign}/generation_service.json",
             "{runtime}/runs/{campaign}/gpu_lease.json"
           ]
+        },
+        {
+          "argv": [
+            "{python}",
+            "scripts/accept_generation_v2.py",
+            "--campaign-dir",
+            "{runtime}/runs/{campaign}_generation",
+            "--scope",
+            "main"
+          ],
+          "purpose": "actual_completion_validation",
+          "requires": [
+            "{runtime}/runs/{campaign}_generation/EXPERIMENT_MANIFEST.json"
+          ],
+          "pending_exit_codes": [
+            2
+          ]
         }
       ],
       "child_sources": [

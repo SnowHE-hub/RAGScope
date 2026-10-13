@@ -39,3 +39,7 @@ CPU全矩阵仍在运行时，先冻结同200test、相同最终提示/模型/�
 
 ### 2026-10-14：启动与本地交付核验
 已有core环境的bootstrap改为只读dry-run与pip check，不默认覆盖或同步；新环境固定Python3.12.13并require-hashes。实际74包Would make no changes。Windows显式GPU/资源交接参数已接线；WSL只做bash语法和缺环境失败路径验证，环境未安装、退出码2，不声明Linux端到端通过。本地轻量打包只取明确报告/公开benchmark结果和协议，十五项验收仍PENDING时拒绝导出，不上传，不含权重或原任务快照；portable路径修改与原哈希同时明确记录。
+
+### 2026-10-14：完整E3与资源诊断边界
+E3三模型1200条全部完成、0请求失败，完整分析写入新的analysis_complete，保持早期2B analysis快照不变；30数字从raw/source独立复算PASS。观察到Oracle F1为2B .5785604、4B .5455298、9B .4704581，保留非单调结果，不据此换模型或调prompt。NoContext9B全部拒答的0 F1不冒称后端故障。
+按任务书S3.5落实尚缺4K/8K资源诊断：仅2B、最多20个按源可行性预选dev问题，两条件与每条件3warmups，独立冻结/记账，不与主质量排名混算；先等CPU有界batch验证与资源交接，未运行之前不声称8K能力。
