@@ -11,14 +11,18 @@ from typing import Any, Dict, Optional
 import diskcache
 from loguru import logger
 
-# Default to user home so diskcache works on paths with non-ASCII characters
-_DEFAULT_CACHE_DIR = os.path.join(os.path.expanduser("~"), ".cache", "ragscope", "rag")
+def default_cache_dir():
+    runtime = os.environ.get("RAGSCOPE_HOME", "D:/RAGScope_Runtime" if os.name == "nt" else "/mnt/d/RAGScope_Runtime")
+    return str(Path(runtime) / "cache/ragscope/rag-v2")
+
+
+_DEFAULT_CACHE_DIR = default_cache_dir()
 
 
 class RAGCache:
-    def __init__(self, cache_dir: str = _DEFAULT_CACHE_DIR) -> None:
+    def __init__(self, cache_dir: str | None = None) -> None:
         # Resolve to absolute path to avoid issues with non-ASCII working dirs
-        resolved = str(Path(cache_dir).expanduser().resolve())
+        resolved = str(Path(cache_dir or default_cache_dir()).expanduser().resolve())
         Path(resolved).mkdir(parents=True, exist_ok=True)
         self._cache = diskcache.Cache(resolved)
         self._hits = 0
@@ -37,7 +41,12 @@ class RAGCache:
         return value
 
     def set(self, key: str, value: Any, ttl_hours: int = 168) -> None:
+        if getattr(value, "error", None) or (isinstance(value, dict) and value.get("error")):
+            return
         self._cache.set(key, value, expire=ttl_hours * 3600)
+
+    def close(self) -> None:
+        self._cache.close()
 
     # ------------------------------------------------------------------
     # Housekeeping

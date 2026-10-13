@@ -42,6 +42,8 @@ from ragscope.ingestion.chunkers import (
 from ragscope.indexing.dense_index import DenseIndex
 from ragscope.indexing.embedding import EmbeddingService
 from ragscope.indexing.sparse_index import BM25Index
+from ragscope.indexing.identity import signature, atomic_json, file_hash
+from ragscope.experiments.runtime import runtime_home
 
 # ---------------------------------------------------------------------------
 # Strategy registry
@@ -125,11 +127,25 @@ def run_chunking_pipeline(docs: List[Dict]) -> None:
 
 def _ensure_chunks(strategy: str) -> pd.DataFrame:
     """Load parquet for *strategy*, building chunks first if necessary."""
-    parquet_path, _ = STRATEGY_MAP[strategy]
-    if not Path(parquet_path).exists():
-        logger.warning(f"Parquet not found for '{strategy}'. Building chunks now…")
-        docs = load_corpus()
-        chunk_corpus(CHUNKER_FACTORY[strategy](), docs, parquet_path)
+    docs = load_corpus()
+    chunker = CHUNKER_FACTORY[strategy]()
+    identity = {"corpus": signature(docs), "chunking": chunker.chunking_signature,
+                "schema": "canonical-chunk-v2", "scope": "legacy-corpus"}
+    fingerprint = signature(identity)
+    target = runtime_home() / "indexes" / "legacy-rebuild" / fingerprint
+    target.mkdir(parents=True, exist_ok=True)
+    parquet_path = str(target / "chunks.parquet")
+    STRATEGY_MAP[strategy] = (parquet_path, f"ragscope_{fingerprint[:24]}")
+    manifest_path = target / "chunks.manifest.json"
+    if Path(parquet_path).exists():
+        if not manifest_path.exists():
+            raise ValueError("Unverified chunk artifact; refusing existence-only reuse")
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        if manifest["identity"] != identity or manifest["sha256"] != file_hash(parquet_path):
+            raise ValueError("Chunk manifest mismatch")
+    else:
+        df = chunk_corpus(chunker, docs, parquet_path)
+        atomic_json(manifest_path, {"identity": identity, "sha256": file_hash(parquet_path), "count": len(df)})
     df = pd.read_parquet(parquet_path)
     logger.info(f"Loaded {len(df):,} chunks from {parquet_path}")
     return df
@@ -145,12 +161,8 @@ def build_dense(
     embedding_service: EmbeddingService,
 ) -> DenseIndex:
     _, collection_name = STRATEGY_MAP[strategy]
-    dense = DenseIndex(collection_name=collection_name)
-
-    if dense.exists():
-        logger.info(f"  DenseIndex '{collection_name}' already exists — skipping build")
-    else:
-        dense.build(chunks_df, embedding_service)
+    dense = DenseIndex(collection_name=collection_name, persist_dir=str(runtime_home() / "indexes" / "legacy-rebuild" / "chroma"))
+    dense.build(chunks_df, embedding_service)
 
     n_vec = dense.collection.count()
     dim = embedding_service.get_dimension()
@@ -163,7 +175,8 @@ def build_dense(
 # ---------------------------------------------------------------------------
 
 def build_sparse(strategy: str, chunks_df: pd.DataFrame) -> BM25Index:
-    bm25_path = f"data/indexes/bm25_{strategy}.pkl"
+    identity = signature({"chunk_ids": chunks_df["chunk_id"].tolist(), "texts": chunks_df["text"].tolist(), "tokenizer": "legacy-alnum-v2"})
+    bm25_path = str(runtime_home() / "indexes" / "legacy-rebuild" / f"bm25_{identity}.json")
 
     if Path(bm25_path).exists():
         logger.info(f"  BM25 index already exists at {bm25_path} — reusing")

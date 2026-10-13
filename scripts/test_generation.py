@@ -27,9 +27,11 @@ from ragscope.generation.llm_client import MockLLMClient
 from ragscope.generation.pipeline import RAGPipeline, RAGResult
 from ragscope.generation.prompts import format_context
 
+import tempfile
+from ragscope.experiments.runtime import configure, runtime_home
+configure(cpu_only=True)
 _ENC = tiktoken.get_encoding("cl100k_base")
-# Use ASCII home path so diskcache works on Windows with non-ASCII working dirs
-_TMP = os.path.join(os.path.expanduser("~"), ".cache", "ragscope", "_test_generation")
+_TMP = tempfile.mkdtemp(prefix="generation-smoke-", dir=runtime_home() / "tmp")
 
 QUERY = "What is machine learning?"
 
@@ -76,10 +78,10 @@ def test_mock_llm() -> None:
 
 def test_format_context() -> None:
     chunks = [
-        {"chunk_id": "c0", "text": "Alpha " * 100},  # ~100 tokens
-        {"chunk_id": "c1", "text": "Beta "  * 100},
-        {"chunk_id": "c2", "text": "Gamma " * 100},
-        {"chunk_id": "c3", "text": "Delta " * 100},
+        {"chunk_id": "c0", "doc_id": "d0", "text": "Alpha " * 100},  # ~100 tokens
+        {"chunk_id": "c1", "doc_id": "d1", "text": "Beta "  * 100},
+        {"chunk_id": "c2", "doc_id": "d2", "text": "Gamma " * 100},
+        {"chunk_id": "c3", "doc_id": "d3", "text": "Delta " * 100},
     ]
     ctx = format_context(chunks, max_tokens=250)
     n_tok = len(_ENC.encode(ctx))
@@ -138,7 +140,7 @@ def test_pipeline_full() -> None:
 
 
 def test_pipeline_bad_json_fallback() -> None:
-    """LLM returning non-JSON should fall back to raw text."""
+    """Invalid JSON remains an explicit error and cannot invent a citation."""
 
     class _BadLLM:
         provider = model = "bad"
@@ -150,8 +152,10 @@ def test_pipeline_bad_json_fallback() -> None:
         use_cache=False, cache_dir=f"{_TMP}/bad_json",
     )
     r = pipeline.answer("anything", k=2)
-    assert r.answer == "Not JSON at all!"
-    assert r.citations == ["squad_7_chunk_0"]  # falls back to first chunk id
+    assert r.answer == ""
+    assert r.raw_output == "Not JSON at all!"
+    assert r.citations == []
+    assert r.parse_error is not None
     assert r.confidence == 0.0
     logger.info("test_pipeline_bad_json_fallback: PASS")
 
@@ -172,6 +176,8 @@ def main() -> None:
         test_pipeline_bad_json_fallback()
         print("\nAll generation checks: PASS")
     finally:
+        if not Path(_TMP).resolve().is_relative_to((runtime_home() / "tmp").resolve()):
+            raise ValueError("Refusing cleanup outside this run's temporary directory")
         shutil.rmtree(_TMP, ignore_errors=True)
 
 

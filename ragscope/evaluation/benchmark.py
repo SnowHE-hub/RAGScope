@@ -1,195 +1,81 @@
-"""
-Retrieval benchmark runner for RAGScope.
-
-Evaluates multiple retrieval configurations against a set of labelled queries
-and prints a formatted comparison table.
-"""
-
+"""Legacy retrieval benchmark with explicit failure denominators and row audit."""
 from __future__ import annotations
 
+import json
 import random
 import time
-from typing import Any, Dict, List, Optional
+from pathlib import Path
+from statistics import mean
 
-import numpy as np
-import pandas as pd
-from loguru import logger
-from tqdm import tqdm
+from ragscope.evaluation.retrieval_metrics import hit_rate_at_k, mrr, ndcg_at_k, recall_at_k
 
-from ragscope.evaluation.retrieval_metrics import (
-    hit_rate_at_k,
-    mrr,
-    ndcg_at_k,
-    recall_at_k,
-)
-
-# ---------------------------------------------------------------------------
-# Config schema (duck-typed)
-# ---------------------------------------------------------------------------
-# Each config dict must contain:
-#   name             str          — display name in the table
-#   retriever        BaseRetriever — pre-built retriever instance
-#   use_reranker     bool
-#   reranker         Reranker | None   — required when use_reranker=True
-#
-# Alternatively, lazy construction is supported via:
-#   retriever_class  type
-#   retriever_kwargs dict
-
-# ---------------------------------------------------------------------------
-# Table printing
-# ---------------------------------------------------------------------------
-
-_COL_WIDTHS = {
-    "Config":      22,
-    "Recall@5":     8,
-    "Recall@10":    9,
-    "HitRate@5":    9,
-    "MRR":          6,
-    "NDCG@10":      7,
-    "Latency(ms)": 11,
-}
-_COLS = list(_COL_WIDTHS.keys())
+_COLS = ["Config", "Recall@5", "Recall@10", "HitRate@5", "MRR", "NDCG@10", "Latency(ms)"]
 
 
-def _fmt_row(values: Dict[str, Any]) -> str:
-    parts = []
-    for col, w in _COL_WIDTHS.items():
-        v = values[col]
-        if col == "Config":
-            parts.append(f"{str(v):<{w}}")
-        elif col == "Latency(ms)":
-            parts.append(f"{v:>{w}.1f}")
-        else:
-            parts.append(f"{v:>{w}.3f}")
-    return " | ".join(parts)
+def run_retrieval_benchmark(configs, eval_queries, n_queries=500, seed=42, *, output_path=None):
+    """Return summaries plus df.attrs['records']; retain every frozen query.
 
-
-def _print_table(df: pd.DataFrame) -> None:
-    header = " | ".join(
-        f"{col:<{w}}" if col == "Config" else f"{col:>{w}}"
-        for col, w in _COL_WIDTHS.items()
-    )
-    sep = "-+-".join("-" * w for w in _COL_WIDTHS.values())
-    print()
-    print(header)
-    print(sep)
-    for _, row in df.iterrows():
-        print(_fmt_row(row.to_dict()))
-    print(sep)
-
-
-# ---------------------------------------------------------------------------
-# Core benchmark function
-# ---------------------------------------------------------------------------
-
-def run_retrieval_benchmark(
-    configs: List[Dict],
-    eval_queries: List[Dict],
-    n_queries: int = 500,
-    seed: int = 42,
-) -> pd.DataFrame:
-    """Evaluate multiple retrieval configurations on a sample of eval queries.
-
-    Parameters
-    ----------
-    configs:
-        List of config dicts.  Each must include ``name``, ``retriever`` (or
-        ``retriever_class`` + ``retriever_kwargs``), ``use_reranker``, and
-        optionally ``reranker``.
-    eval_queries:
-        List of query dicts with keys ``question`` and ``gold_doc_id``.
-    n_queries:
-        Number of queries to sample (uses all if smaller than dataset).
-    seed:
-        Random seed for reproducible sampling.
-
-    Returns
-    -------
-    pd.DataFrame
-        One row per config, columns: Config, Recall@5, Recall@10,
-        HitRate@5, MRR, NDCG@10, Latency(ms).
+    k denotes returned chunks; duplicate documents never earn repeated relevance.
+    Reranking retrieves 50 candidates and returns 10 by default. Failures score
+    zero and stay in n_total, including all-failed configurations.
     """
-    random.seed(seed)
-    sampled = (
-        random.sample(eval_queries, n_queries)
-        if len(eval_queries) > n_queries
-        else eval_queries
-    )
-    logger.info(f"Benchmark: {len(configs)} configs × {len(sampled)} queries")
-
-    rows: List[Dict] = []
-
-    for cfg in configs:
-        name = cfg["name"]
-
-        # Instantiate retriever (pre-built or lazy)
-        if "retriever" in cfg:
-            retriever = cfg["retriever"]
-        else:
-            retriever = cfg["retriever_class"](**cfg.get("retriever_kwargs", {}))
-
-        use_reranker: bool = cfg.get("use_reranker", False)
-        reranker     = cfg.get("reranker") if use_reranker else None
-
-        per_query: List[Dict] = []
-        latencies: List[float] = []
-        errors = 0
-
-        for q in tqdm(sampled, desc=f"  {name}", unit="q", leave=False):
-            question    = q["question"]
-            gold_doc_id = q["gold_doc_id"]
-
+    import pandas as pd
+    if n_queries < 0:
+        raise ValueError("n_queries must be nonnegative")
+    rng = random.Random(seed)
+    sampled = rng.sample(eval_queries, min(n_queries, len(eval_queries)))
+    records, rows = [], []
+    output = None
+    if output_path:
+        Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+        output = Path(output_path).open("x", encoding="utf-8")
+    try:
+        for cfg in configs:
+            name = cfg["name"]
+            init_error = None
             try:
-                t0 = time.perf_counter()
-                retrieved = retriever.retrieve(question, k=10)
-                if reranker and retrieved:
-                    retrieved = reranker.rerank(question, retrieved, top_k=10)
-                latency_ms = (time.perf_counter() - t0) * 1000
+                retriever = cfg["retriever"] if "retriever" in cfg else cfg["retriever_class"](**cfg.get("retriever_kwargs", {}))
+                reranker = cfg.get("reranker") if cfg.get("use_reranker") else None
+                if cfg.get("use_reranker") and reranker is None:
+                    raise ValueError("use_reranker requires a ready reranker")
             except Exception as exc:
-                logger.warning(f"[{name}] query failed: {exc}")
-                errors += 1
-                continue
-
-            doc_ids     = [r["doc_id"] for r in retrieved]
-            relevant    = {gold_doc_id}
-            latencies.append(latency_ms)
-
-            per_query.append(
-                {
-                    "recall@5":  recall_at_k(doc_ids, relevant, k=5),
-                    "recall@10": recall_at_k(doc_ids, relevant, k=10),
-                    "hitrate@5": hit_rate_at_k(doc_ids, relevant, k=5),
-                    "mrr":       mrr(doc_ids, relevant),
-                    "ndcg@10":   ndcg_at_k(doc_ids, relevant, k=10),
-                }
-            )
-
-        if not per_query:
-            logger.error(f"[{name}] no successful queries — skipping")
-            continue
-
-        if errors:
-            logger.warning(f"[{name}] {errors}/{len(sampled)} queries failed")
-
-        avg = {k: float(np.mean([m[k] for m in per_query])) for k in per_query[0]}
-        rows.append(
-            {
-                "Config":      name,
-                "Recall@5":    avg["recall@5"],
-                "Recall@10":   avg["recall@10"],
-                "HitRate@5":   avg["hitrate@5"],
-                "MRR":         avg["mrr"],
-                "NDCG@10":     avg["ndcg@10"],
-                "Latency(ms)": float(np.mean(latencies)),
-            }
-        )
-        logger.info(
-            f"[{name}] Recall@5={avg['recall@5']:.3f} Recall@10={avg['recall@10']:.3f} "
-            f"HitRate@5={avg['hitrate@5']:.3f} MRR={avg['mrr']:.3f} "
-            f"NDCG@10={avg['ndcg@10']:.3f} Latency={np.mean(latencies):.1f}ms"
-        )
-
-    df = pd.DataFrame(rows, columns=_COLS)
-    _print_table(df)
-    return df
+                init_error = {"kind": "initialization_error", "message": str(exc)}
+            per_query = []
+            for position, query in enumerate(sampled):
+                started, error, retrieved = time.perf_counter(), init_error, []
+                if error is None:
+                    try:
+                        depth = cfg.get("candidate_k", 50) if reranker else 10
+                        retrieved = retriever.retrieve(query["question"], k=depth)
+                        if reranker and retrieved:
+                            retrieved = reranker.rerank(query["question"], retrieved, top_k=10)
+                    except Exception as exc:
+                        error = {"kind": "retrieval_error", "message": str(exc)}
+                        retrieved = []
+                latency = (time.perf_counter()-started)*1000
+                docs = [chunk["doc_id"] for chunk in retrieved]
+                relevant = set(query.get("relevant_doc_ids") or [query["gold_doc_id"]])
+                scores = {"Recall@5": recall_at_k(docs, relevant, 5), "Recall@10": recall_at_k(docs, relevant, 10),
+                          "HitRate@5": hit_rate_at_k(docs, relevant, 5), "MRR": mrr(docs, relevant),
+                          "NDCG@10": ndcg_at_k(docs, relevant, 10)}
+                record = {"config": name, "query_id": query.get("query_id", str(position)),
+                          "question": query["question"], "retrieved_ids": docs, "error": error,
+                          "latency_ms": latency, "scores": scores}
+                per_query.append(record)
+                records.append(record)
+                if output:
+                    output.write(json.dumps(record, ensure_ascii=False, allow_nan=False)+"\n")
+                    output.flush()
+            success = [r for r in per_query if r["error"] is None]
+            summary = {"Config": name, **{metric: mean(r["scores"][metric] for r in per_query) if per_query else None
+                                           for metric in _COLS[1:-1]},
+                       "Latency(ms)": mean(r["latency_ms"] for r in per_query) if per_query else None,
+                       "n_total": len(per_query), "n_success": len(success), "n_failed": len(per_query)-len(success),
+                       "Recall@10_success_conditional": mean(r["scores"]["Recall@10"] for r in success) if success else None}
+            rows.append(summary)
+    finally:
+        if output:
+            output.close()
+    frame = pd.DataFrame(rows)
+    frame.attrs["records"] = records
+    return frame

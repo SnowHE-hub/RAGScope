@@ -1,0 +1,20 @@
+{
+  "version": "e1_matrix_v1",
+  "tokenizer_id": "Qwen/Qwen3-Embedding-0.6B",
+  "tokenizer_revision": "97b0c614be4d77ee51c0cef4e5f07c00f9eb65b3",
+  "tokenizer_file_sha256": "def76fb086971c7867b829c23a26261e38d9d74e02139253b38aeb9df8b4b50a",
+  "max_cumulative_chunks": 180000,
+  "groups": [
+    {"id": "F256_O0", "method": "fixed", "chunk_size": 256, "overlap": 0},
+    {"id": "F256_O32", "method": "fixed", "chunk_size": 256, "overlap": 32},
+    {"id": "F512_O0", "method": "fixed", "chunk_size": 512, "overlap": 0},
+    {"id": "F512_O64", "method": "fixed", "chunk_size": 512, "overlap": 64},
+    {"id": "F1024_O0", "method": "fixed", "chunk_size": 1024, "overlap": 0},
+    {"id": "F1024_O128", "method": "fixed", "chunk_size": 1024, "overlap": 128},
+    {"id": "S512", "method": "sentence", "max_tokens": 512, "overlap_sentences": 1},
+    {"id": "R512", "method": "structure_recursive", "max_tokens": 512},
+    {"id": "R1024", "method": "structure_recursive", "max_tokens": 1024},
+    {"id": "P256_1024", "method": "parent_child", "child_tokens": 256, "child_overlap": 32, "parent_tokens": 1024},
+    {"id": "P256_1536", "method": "parent_child", "child_tokens": 256, "child_overlap": 32, "parent_tokens": 1536}
+  ]
+}

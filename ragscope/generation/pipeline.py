@@ -1,234 +1,175 @@
-"""
-RAGPipeline — retrieval-augmented generation end-to-end:
-    question → retrieve → format context → LLM → parse → cache → RAGResult
-"""
-
+"""RAG pipeline with frozen visible context and explicit non-answer failures."""
 from __future__ import annotations
 
-# Allow `python ragscope/generation/pipeline.py` as well as `python -m`
-import sys as _sys
-from pathlib import Path as _Path
-if str((_Path(__file__).resolve().parent.parent.parent)) not in _sys.path:
-    _sys.path.insert(0, str(_Path(__file__).resolve().parent.parent.parent))
-
-import hashlib
+import copy
 import json
-import os
+import math
 import time
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple
-
-import tiktoken
-from loguru import logger
 
 from ragscope.generation.cache import RAGCache
-from ragscope.generation.prompts import RAG_SYSTEM_PROMPT, RAG_USER_TEMPLATE, format_context
-from ragscope.retrieval.base import BaseRetriever
+from ragscope.generation.context import (as_mapping, fingerprint, pack_context,
+                                         reference_token_count, render_context, validate_bundle)
+from ragscope.generation.prompts import PROMPT_VERSION, RAG_SYSTEM_PROMPT, RAG_USER_TEMPLATE
 
-_ENC = tiktoken.get_encoding("cl100k_base")
-
-
-# ---------------------------------------------------------------------------
-# Result dataclass
-# ---------------------------------------------------------------------------
 
 @dataclass
 class RAGResult:
-    question:          str
-    answer:            str
-    citations:         List[str]
-    confidence:        float
-    retrieved_chunks:  List[Dict]
-    latency_ms:        float
-    prompt_tokens:     int
+    question: str
+    answer: str
+    citations: list[str]
+    confidence: float
+    retrieved_chunks: list[dict]
+    latency_ms: float
+    prompt_tokens: int
     completion_tokens: int
-    cost_usd:          float
-    cache_hit:         bool
-
-
-# ---------------------------------------------------------------------------
-# Pipeline
-# ---------------------------------------------------------------------------
-
-_DEFAULT_RAG_CACHE = os.path.join(os.path.expanduser("~"), ".cache", "ragscope", "rag")
+    cost_usd: float
+    cache_hit: bool
+    abstain: bool = False
+    raw_output: str = ""
+    parsed_output: dict = field(default_factory=dict)
+    error: dict | None = None
+    transport_error: str | None = None
+    timeout: str | None = None
+    oom: str | None = None
+    parse_error: str | None = None
+    context_bundle: dict = field(default_factory=dict)
+    prompt: list[dict] = field(default_factory=list)
+    prompt_hash: str = ""
+    model_identity: dict = field(default_factory=dict)
+    real_model: bool = False
+    invalid_citations: list[str] = field(default_factory=list)
+    timings: dict = field(default_factory=dict)
+    backend_metadata: dict = field(default_factory=dict)
+    config_hash: str = ""
 
 
 class RAGPipeline:
-    def __init__(
-        self,
-        retriever:  BaseRetriever,
-        llm_client,
-        use_cache:  bool = True,
-        cache_dir:  str  = _DEFAULT_RAG_CACHE,
-    ) -> None:
-        self.retriever  = retriever
-        self.llm_client = llm_client
-        self.use_cache  = use_cache
-        self.cache: Optional[RAGCache] = RAGCache(cache_dir=cache_dir) if use_cache else None
+    def __init__(self, retriever, llm_client, use_cache=True, cache_dir=None, *,
+                 context_config=None, index_identity=None, config=None,
+                 token_counter=None, system_prompt=RAG_SYSTEM_PROMPT,
+                 user_template=RAG_USER_TEMPLATE):
+        self.retriever, self.llm_client = retriever, llm_client
+        self.use_cache = use_cache
+        self.cache = RAGCache(cache_dir=cache_dir) if use_cache else None
+        self.context_config = dict(context_config or {})
+        self.index_identity = index_identity or getattr(retriever, "identity", {})
+        self.config = {"max_tokens": 512, "temperature": 0.0, **(config or {})}
+        self.token_counter = token_counter or reference_token_count
+        self.system_prompt, self.user_template = system_prompt, user_template
 
-    # ------------------------------------------------------------------
-    # Public
-    # ------------------------------------------------------------------
-
-    def answer(self, question: str, k: int = 5) -> RAGResult:
-        t0 = time.perf_counter()
-        cache_key = self._make_key(question, k)
-
-        # ── 1. Cache lookup ───────────────────────────────────────────
-        if self.cache is not None:
-            cached: Optional[RAGResult] = self.cache.get(cache_key)
-            if cached is not None:
-                cached.cache_hit  = True
-                cached.latency_ms = (time.perf_counter() - t0) * 1000
-                logger.debug(f"Cache hit — {question[:60]!r}")
-                return cached
-
-        # ── 2. Retrieve ───────────────────────────────────────────────
-        chunks = self.retriever.retrieve(question, k=k)
-
-        # ── 3. Format context ─────────────────────────────────────────
-        context = format_context(chunks)
-
-        # ── 4. Build messages ─────────────────────────────────────────
-        user_content = RAG_USER_TEMPLATE.format(
-            question=question,
-            context=context,
-        )
-        messages = [
-            {"role": "system", "content": RAG_SYSTEM_PROMPT},
-            {"role": "user",   "content": user_content},
-        ]
-        prompt_tokens = sum(len(_ENC.encode(m["content"])) for m in messages)
-
-        # ── 5. LLM call ───────────────────────────────────────────────
+    def answer(self, question, k=5, *, context_bundle=None, scope=None, formal_evaluation=False):
+        start = time.perf_counter()
+        identity = getattr(self.llm_client, "identity", {"model": getattr(self.llm_client, "model", "unknown"),
+                                                        "provider": getattr(self.llm_client, "provider", "unknown")})
+        real = getattr(self.llm_client, "real_model", False)
+        if formal_evaluation and not real:
+            raise ValueError("Mock/unidentified client cannot produce formal generation results")
+        if formal_evaluation:
+            if not all(identity.get(key) for key in ("model", "revision", "weight_sha256", "backend_version")):
+                raise ValueError("Formal evaluation requires pinned weight and backend identity")
+            if not callable(getattr(self.llm_client, "prompt_token_counter", None)):
+                raise ValueError("Formal evaluation requires real chat-template token budget validation")
+        chunks, timings, error, raw, parsed, invalid = [], {}, None, "", {}, []
+        bundle, messages = None, []
+        key, prompt_hash = "", ""
+        phase = "retrieval_error"
         try:
-            raw_output = self.llm_client.chat(messages)
+            if context_bundle is None:
+                retrieval_start = time.perf_counter()
+                chunks = [as_mapping(c) for c in self.retriever.retrieve(question, k=k)]
+                timings["retrieval_ms"] = (time.perf_counter() - retrieval_start) * 1000
+                packing_start = time.perf_counter()
+                phase = "context_error"
+                bundle = pack_context(chunks, scope=scope, token_counter=self.token_counter, **self.context_config)
+                timings["context_ms"] = (time.perf_counter() - packing_start) * 1000
+            else:
+                phase = "context_error"
+                bundle = validate_bundle(context_bundle, scope=scope)
+                chunks = copy.deepcopy(as_mapping(bundle)["pieces"])
+                timings.update(retrieval_ms=0.0, context_ms=0.0, frozen_context=True)
+            messages = [{"role": "system", "content": self.system_prompt},
+                        {"role": "user", "content": self.user_template.format(question=question, context=render_context(bundle))}]
+            prompt_hash = fingerprint(messages)
+            key = self._make_key(question, k, context_hash=as_mapping(bundle)["context_hash"],
+                                 prompt_hash=prompt_hash, scope=scope)
+            if self.cache is not None and not formal_evaluation:
+                cached = self.cache.get(key)
+                if cached is not None and not cached.error:
+                    cached = copy.deepcopy(cached)
+                    cached.cache_hit = True
+                    cached.latency_ms = (time.perf_counter() - start) * 1000
+                    return cached
+            generation_start = time.perf_counter()
+            phase = "transport_error"
+            try:
+                raw = self.llm_client.chat(messages, max_tokens=self.config["max_tokens"],
+                                            temperature=self.config["temperature"])
+            finally:
+                timings["generation_ms"] = (time.perf_counter() - generation_start) * 1000
+            phase = "parse_error"
+            parsed = self.parse_output(raw)
+            visible = {p["chunk_id"] for p in as_mapping(bundle)["pieces"]}
+            invalid = [cid for cid in parsed["citations"] if cid not in visible]
         except Exception as exc:
-            logger.error(f"LLM call failed: {exc}")
-            raw_output = json.dumps(
-                {"answer": f"LLM error: {exc}", "citations": [], "confidence": 0.0}
-            )
-
-        # ── 6. Parse JSON ─────────────────────────────────────────────
-        answer, citations, confidence = self._parse_output(raw_output, chunks)
-
-        # ── 7. Validate citations ─────────────────────────────────────
-        valid_ids = {c["chunk_id"] for c in chunks}
-        citations = [cid for cid in citations if cid in valid_ids]
-
-        completion_tokens = len(_ENC.encode(raw_output))
-        cost_usd          = self.llm_client.estimate_cost(prompt_tokens, completion_tokens)
-
-        result = RAGResult(
-            question          = question,
-            answer            = answer,
-            citations         = citations,
-            confidence        = confidence,
-            retrieved_chunks  = chunks,
-            latency_ms        = (time.perf_counter() - t0) * 1000,
-            prompt_tokens     = prompt_tokens,
-            completion_tokens = completion_tokens,
-            cost_usd          = cost_usd,
-            cache_hit         = False,
-        )
-
-        # ── 8. Cache ──────────────────────────────────────────────────
-        if self.cache is not None:
-            self.cache.set(cache_key, result)
-
+            kind = getattr(exc, "kind", None)
+            if kind is None:
+                kind = "timeout" if isinstance(exc, TimeoutError) else phase
+            error = {"kind": kind, "message": str(exc), "exception": type(exc).__name__}
+        timings["total_ms"] = (time.perf_counter() - start) * 1000
+        timings["first_token_ms"] = None  # Never estimate first-token timing from a nonstreaming total.
+        prompt_tokens = sum(self.token_counter(m["content"]) for m in messages)
+        completion_tokens = self.token_counter(raw)
+        flags = {kind: error["message"] if error and error["kind"] == kind else None
+                 for kind in ("transport_error", "timeout", "oom", "parse_error")}
+        result = RAGResult(question=question, answer=parsed.get("answer", "") if not error else "",
+                           citations=[c for c in parsed.get("citations", []) if c not in invalid] if not error else [],
+                           confidence=parsed.get("confidence", 0.0), retrieved_chunks=chunks,
+                           latency_ms=timings["total_ms"], prompt_tokens=prompt_tokens,
+                           completion_tokens=completion_tokens, cost_usd=0.0, cache_hit=False,
+                           abstain=parsed.get("abstain", False) if not error else False,
+                           raw_output=raw, parsed_output=parsed, error=error, **flags,
+                           context_bundle=as_mapping(bundle) if bundle is not None else {},
+                           prompt=messages, prompt_hash=prompt_hash, model_identity=identity, real_model=real,
+                           invalid_citations=invalid, timings=timings,
+                           backend_metadata=copy.deepcopy(getattr(self.llm_client, "last_metadata", {})),
+                           config_hash=fingerprint({"generation": self.config, "index": self.index_identity,
+                                                    "model": identity, "prompt_version": PROMPT_VERSION}))
+        if self.cache is not None and not formal_evaluation and not error and not invalid:
+            self.cache.set(key, result)
         return result
 
-    # ------------------------------------------------------------------
-    # Internal helpers
-    # ------------------------------------------------------------------
-
-    def _make_key(self, question: str, k: int) -> str:
-        retriever_tag = type(self.retriever).__name__
-        raw = f"{question}|{retriever_tag}|{k}"
-        return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+    def _make_key(self, question, k, *, context_hash="", prompt_hash="", scope=None):
+        # Resolved context and prompt hashes guard even legacy retrievers with no manifest.
+        return fingerprint({"version": "rag-cache-v2", "question": question, "k": k, "scope": scope,
+                            "retriever": type(self.retriever).__name__, "index": self.index_identity,
+                            "context_hash": context_hash, "prompt_hash": prompt_hash,
+                            "model": getattr(self.llm_client, "identity", {"model": getattr(self.llm_client, "model", "unknown")}),
+                            "config": self.config, "prompt_version": PROMPT_VERSION})
 
     @staticmethod
-    def _parse_output(
-        raw: str,
-        chunks: List[Dict],
-    ) -> Tuple[str, List[str], float]:
-        """Parse JSON from LLM output.  Falls back gracefully on bad output."""
+    def parse_output(raw):
         try:
-            data       = json.loads(raw)
-            answer     = str(data.get("answer", raw))
-            citations  = data.get("citations", [])
-            confidence = float(data.get("confidence", 0.5))
+            data = json.loads(raw)
+        except (json.JSONDecodeError, TypeError) as exc:
+            raise ValueError("Model output is not valid JSON") from exc
+        if not isinstance(data, dict) or not isinstance(data.get("answer"), str):
+            raise ValueError("JSON output must contain a string answer")
+        if not isinstance(data.get("citations"), list) or not all(isinstance(c, str) for c in data["citations"]):
+            raise ValueError("JSON citations must be a list of strings")
+        if not isinstance(data.get("abstain"), bool):
+            raise ValueError("JSON output must declare boolean abstain")
+        confidence = data.get("confidence", 0.0)
+        if not isinstance(confidence, (float, int)) or not math.isfinite(confidence) or not 0 <= confidence <= 1:
+            raise ValueError("Invalid confidence")
+        return {**data, "citations": list(dict.fromkeys(data["citations"])), "confidence": float(confidence)}
 
-            if not isinstance(citations, list):
-                citations = [citations] if citations else []
-            confidence = max(0.0, min(1.0, confidence))
-            return answer, citations, confidence
-
-        except (json.JSONDecodeError, ValueError, TypeError):
-            logger.warning("LLM output was not valid JSON — returning raw text as answer")
-            first_id = chunks[0]["chunk_id"] if chunks else ""
-            return raw, ([first_id] if first_id else []), 0.0
-
-
-# ---------------------------------------------------------------------------
-# Quick smoke test
-# ---------------------------------------------------------------------------
-
-if __name__ == "__main__":
-    import shutil
-    from ragscope.generation.llm_client import MockLLMClient
-
-    class _MockRetriever:
-        """Minimal fake retriever for local testing."""
-        def retrieve(self, query: str, k: int = 5) -> List[Dict]:
-            return [
-                {
-                    "chunk_id": f"squad_42_chunk_{i}",
-                    "doc_id":   "squad_42",
-                    "text": (
-                        "Machine learning is a field of artificial intelligence that "
-                        "uses statistical techniques to give computer systems the ability "
-                        f"to learn from data. (passage {i})"
-                    ),
-                    "score":    round(1.0 - i * 0.15, 3),
-                    "metadata": {"source": "squad"},
-                }
-                for i in range(min(k, 3))
-            ]
-
-    _TMP_CACHE = ".cache/rag_smoke_test"
-    retriever  = _MockRetriever()
-    llm        = MockLLMClient()
-    pipeline   = RAGPipeline(retriever, llm, use_cache=True, cache_dir=_TMP_CACHE)
-
-    QUESTION = "What is machine learning?"
-
-    # ── First call (cache miss) ────────────────────────────────────────────
-    r1 = pipeline.answer(QUESTION, k=3)
-    print("\n=== RAGPipeline smoke test ===")
-    print(f"Question         : {r1.question}")
-    print(f"Answer           : {r1.answer}")
-    print(f"Citations        : {r1.citations}")
-    print(f"Confidence       : {r1.confidence}")
-    print(f"Cache hit        : {r1.cache_hit}")
-    print(f"Latency          : {r1.latency_ms:.1f} ms")
-    print(f"Prompt tokens    : {r1.prompt_tokens}")
-    print(f"Completion tokens: {r1.completion_tokens}")
-    print(f"Cost             : ${r1.cost_usd:.8f}")
-    print(f"Retrieved chunks : {len(r1.retrieved_chunks)}")
-
-    assert not r1.cache_hit
-    assert r1.answer
-    assert r1.citations[0].startswith("squad_42_chunk_")
-    assert 0.0 <= r1.confidence <= 1.0
-    assert r1.prompt_tokens > 0
-
-    # ── Second call (cache hit) ────────────────────────────────────────────
-    r2 = pipeline.answer(QUESTION, k=3)
-    assert r2.cache_hit, "Second call should be a cache hit"
-    print(f"\nSecond call cache_hit: {r2.cache_hit}")
-    print(f"Cache stats      : {pipeline.cache.stats()}")
-
-    # ── Cleanup ────────────────────────────────────────────────────────────
-    shutil.rmtree(_TMP_CACHE, ignore_errors=True)
-    print("\nAll pipeline checks: PASS")
+    @staticmethod
+    def _parse_output(raw, chunks):
+        """Legacy tuple interface; malformed output yields no answer or citations."""
+        try:
+            data = RAGPipeline.parse_output(raw)
+            visible = {c["chunk_id"] for c in chunks}
+            return data["answer"], [c for c in data["citations"] if c in visible], data["confidence"]
+        except ValueError:
+            return "", [], 0.0

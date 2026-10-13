@@ -1,0 +1,19 @@
+{
+  "version": "scoped_e1_v1",
+  "split": "dev",
+  "scope": "specified_paper",
+  "candidate_depth": 50,
+  "final_k": 10,
+  "bm25": {"implementation": "rank_bm25.BM25Okapi", "tokenizer": "alnum-cjk-v1", "k1": 1.5, "b": 0.75, "epsilon": 0.25, "idf_scope": "frozen_dev_corpus"},
+  "hybrid": {"fusion": "RRF", "alpha": 0.5, "rank_base": 1, "constant": 60, "merged_depth": 50},
+  "context": {"reference_tokenizer": "cl100k_base", "max_tokens": 2048, "include_title_and_labels_in_budget": true, "default_parent_expansion": true, "whole_fragments_only": true},
+  "embedding_body_token_limit": 1024,
+  "embedding_total_token_limit": 1100,
+  "embedding_input": "chunk_body_without_repeated_title",
+  "query_instruction": "Instruct: Given a question about a scientific paper, retrieve relevant passages that answer the query\nQuery:",
+  "quality_selection": "actual_context_full_reference_then_continuous_then_smaller_index",
+  "selection_tolerance": 0.01,
+  "warmup_queries": 3,
+  "seed": 42,
+  "cpu_only": true
+}

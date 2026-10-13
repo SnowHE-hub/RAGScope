@@ -29,4 +29,4 @@ class DenseRetriever(BaseRetriever):
 
     def retrieve(self, query: str, k: int = 5) -> List[Dict]:
         query_emb = self.embedding_service.embed_query(query)
-        return self.index.search(query_emb, k=k)
+        return self.index.search(query_emb, k=k, embedding_identity=self.embedding_service.identity)

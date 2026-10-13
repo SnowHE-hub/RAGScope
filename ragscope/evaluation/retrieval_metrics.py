@@ -23,7 +23,7 @@ def recall_at_k(retrieved_ids: _IDs, relevant_ids: _Set, k: int) -> float:
 
     Returns 0.0 when *relevant_ids* is empty.
     """
-    if not relevant_ids:
+    if not relevant_ids or k <= 0:
         return 0.0
     rel_set = set(relevant_ids)
     top_k   = set(retrieved_ids[:k])
@@ -39,11 +39,11 @@ def precision_at_k(retrieved_ids: _IDs, relevant_ids: _Set, k: int) -> float:
 
     Returns 0.0 when k == 0 or *retrieved_ids* is empty.
     """
-    if k == 0 or not retrieved_ids:
+    if k <= 0 or not retrieved_ids:
         return 0.0
     rel_set  = set(relevant_ids)
     top_k    = retrieved_ids[:k]
-    n_rel    = sum(1 for r in top_k if r in rel_set)
+    n_rel    = len(set(top_k) & rel_set)
     return n_rel / k
 
 
@@ -54,8 +54,10 @@ def hit_rate_at_k(retrieved_ids: _IDs, relevant_ids: _Set, k: int) -> float:
 
         HitRate@k = 1  if |relevant ∩ retrieved[:k]| > 0  else 0
 
-    Also known as Recall@k with binary aggregation across queries.
+    Equal to Recall@k only when there is one relevant item per query.
     """
+    if k <= 0:
+        return 0.0
     rel_set = set(relevant_ids)
     top_k   = set(retrieved_ids[:k])
     return 1.0 if top_k & rel_set else 0.0
@@ -89,16 +91,16 @@ def ndcg_at_k(retrieved_ids: _IDs, relevant_ids: _Set, k: int) -> float:
     *rel_i* is 1 if retrieved_ids[i-1] ∈ relevant_ids else 0.
     Returns 0.0 when IDCG is 0 (no relevant items or k == 0).
     """
-    if k == 0 or not relevant_ids:
+    if k <= 0 or not relevant_ids:
         return 0.0
 
     rel_set = set(relevant_ids)
 
-    dcg = sum(
-        1.0 / math.log2(rank + 1)
-        for rank, rid in enumerate(retrieved_ids[:k], start=1)
-        if rid in rel_set
-    )
+    seen, dcg = set(), 0.0
+    for rank, rid in enumerate(retrieved_ids[:k], start=1):
+        if rid in rel_set and rid not in seen:
+            dcg += 1.0 / math.log2(rank + 1)
+        seen.add(rid)
 
     ideal_len = min(k, len(rel_set))
     idcg = sum(1.0 / math.log2(rank + 1) for rank in range(1, ideal_len + 1))
