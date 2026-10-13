@@ -95,7 +95,7 @@ def decisions_to_protocol(raw_directory, protocol, output):
     return body
 
 
-def run_raw(home,campaign):
+def run_raw(home,campaign, *, supervision=None):
     """CPU only, bounded and resumable. Resource coordination is external."""
     import psutil
     if os.environ.get("CUDA_VISIBLE_DEVICES")!="":raise ValueError("CPU-only runtime environment required")
@@ -106,7 +106,9 @@ def run_raw(home,campaign):
         if summary.get("status")=="COMPLETE" and summary.get("input_hash")==inputs["input_hash"]:
             if not verify_artifacts(summary["artifacts"]):raise ValueError("Completed Laya output changed")
             return summary
-    if psutil.virtual_memory().available<5*1024**3:raise MemoryError("Laya pre-load requires5GiB available")
+    minimum=(4.5 if supervision is not None else 5)*1024**3
+    if psutil.virtual_memory().available<minimum:raise MemoryError("Laya pre-load RAM requirement is not met")
+    if supervision is not None:supervision.checkpoint("LOADING")
     model=Path(home)/"models/laya"/LAYA_MODEL_REVISION
     manifest=read(model/"model_manifest.json")
     if manifest.get("status")!="VERIFIED" or manifest.get("revision")!=LAYA_MODEL_REVISION or not verify_artifacts(manifest["artifacts"]):
@@ -141,6 +143,8 @@ def run_raw(home,campaign):
                 raise
             load.update(status="LOADED",load_seconds=time.perf_counter()-tick)
             atomic_json(load_path,load)
+            if psutil.virtual_memory().available<1280*1024**2:raise MemoryError("Laya reserve after model load")
+            if supervision is not None:supervision.wait("LOADED_WAITING_PERMISSION","WARMUP")
             if str(router.agent.device)!="cpu":raise ValueError("Laya device differs from declared CPU")
             router.identity.update(torch_version=torch.__version__,cpu_threads=4,
                                    dtype=str(next(router.agent.model.parameters()).dtype),compile=False,backend="eager")
@@ -152,10 +156,16 @@ def run_raw(home,campaign):
             warm=RecordStore(directory/"warmups.jsonl",{**config,"purpose":"excluded_warmup"},real_only=True,max_records=3)
             for query in inputs["populations"]["dev"]["visible_queries"][:3]:
                 if query["query_id"] in warm.ids:continue
+                if supervision is not None:supervision.checkpoint("WARMUP_RUNNING")
+                if psutil.virtual_memory().available<1280*1024**2:raise MemoryError("Laya reserve before warmup")
                 decision=router.choose(RoutingRequest.from_query(query))
                 warm.add(query["query_id"],{"real_model":True,"model_identity":router.identity,"decision":decision.to_dict()})
+                if supervision is not None:supervision.checkpoint("WARMUP_COMMITTED")
+                if psutil.virtual_memory().available<1280*1024**2:raise MemoryError("Laya reserve after committed warmup")
             if any(row["decision"]["metadata"].get("error") for row in warm.records):
                 raise RuntimeError("Real Laya dev preflight failed; raw failures retained")
+            if supervision is not None:
+                supervision.wait("PREFLIGHT_PASSED","CONTINUE",warmup_count=len(warm.records),warmup_errors=0)
             failures=0
             for previous in reversed(store.records):
                 if not previous["decision"]["metadata"].get("error"):break
@@ -165,6 +175,7 @@ def run_raw(home,campaign):
                     for index,order in enumerate(PERMUTATIONS):
                         record_id=f"{split}:{query['query_id']}:{index}"
                         if record_id in store.ids:continue
+                        if supervision is not None:supervision.checkpoint("FORMAL")
                         if failures>=3:raise RuntimeError("Three consecutive stored Laya failures require diagnosis")
                         if psutil.virtual_memory().available<1280*1024**2:raise MemoryError("Laya runtime RAM reserve")
                         request=RoutingRequest.from_query(query)
@@ -172,6 +183,7 @@ def run_raw(home,campaign):
                         store.add(record_id,{"query_id":query["query_id"],"split":split,"order_index":index,"order":list(order),
                             "visible_input_hash":signature(asdict(request)),"decision":decision,"real_model":True,
                             "model_identity":router.identity,"actual_process_rss":process.memory_info().rss})
+                        if supervision is not None:supervision.checkpoint("FORMAL_COMMITTED")
                         failures=failures+1 if decision["metadata"].get("error") else 0
                     if len(store.ids)%30==0:print(json.dumps({"laya_decisions":len(store.ids),"expected":1080}),flush=True)
             summary={"status":"COMPLETE","n_decisions":len(store.ids),"n_queries":360,"input_hash":inputs["input_hash"],
@@ -191,6 +203,8 @@ def run_raw(home,campaign):
         finally:
             stop.set();monitor.join(timeout=2)
             worker=read(directory/"worker.json");worker["status"]="EXITING";atomic_json(directory/"worker.json",worker)
+            if supervision is not None:
+                supervision.close()
 
 
 def main():
@@ -198,8 +212,16 @@ def main():
     parser.add_argument("--home",default="D:/RAGScope_Runtime")
     parser.add_argument("--campaign",default="20261014_v2")
     parser.add_argument("--run",action="store_true")
+    parser.add_argument("--supervised-worker",help=argparse.SUPPRESS)
     args=parser.parse_args()
-    result=run_raw(args.home,args.campaign) if args.run else freeze_visible_inputs(args.home,args.campaign)
+    if args.supervised_worker and not args.run:raise ValueError("Supervised worker requires actual run mode")
+    if args.run:
+        from .laya_supervision import ChildControl, conditional_run
+        if args.supervised_worker:
+            control=ChildControl(args.supervised_worker,args.home,args.campaign)
+            result=run_raw(args.home,args.campaign,supervision=control)
+        else:result=conditional_run(args.home,args.campaign)
+    else:result=freeze_visible_inputs(args.home,args.campaign)
     print(json.dumps({k:v for k,v in result.items() if k not in {'populations','sources','artifacts'}},ensure_ascii=False),flush=True)
     return 0
 

@@ -2,7 +2,7 @@
 
 本项目的输入是一篇完整论文，而不是一条已经切好的问答段落。清洗后的全文称为规范文本：统一Unicode表示，保留标题、章节、段落边界，再给证据段落建立稳定坐标。原始QASPER标注另外保留，所以可以追查清洗前后的区别。
 
-`ragscope/ingestion/qasper.py`负责官方论文结构，`ragscope/ingestion/cleaner.py`负责清洗与重复段落别名，`ragscope/ingestion/schema.py`定义Document、EvidenceUnit和Chunk。证据坐标采用Python字符串的Unicode字符位置，区间为左闭右开。例如`[10, 20)`对应`text[10:20]`，长度10；它不是UTF-8字节偏移，也不是模型token编号。混淆三者会使中文、多字节字符和引用回跳出错。
+`ragscope/ingestion/qasper.py`负责官方论文结构，`ragscope/ingestion/cleaner.py`负责清洗与重复段落别名，`ragscope/schema.py`定义Document、EvidenceUnit和Chunk。证据坐标采用Python字符串的Unicode字符位置，区间为左闭右开。例如`[10, 20)`对应`text[10:20]`，长度10；它不是UTF-8字节偏移，也不是模型token编号。混淆三者会使中文、多字节字符和引用回跳出错。
 
 切块是在这份规范全文上取片段。`ragscope/ingestion/chunkers.py`提供固定长度、句子边界、章节结构和父子块。每个块保留原文起止位置、文档ID、证据单元交集、切块配置签名和实际tokenizer身份。实验中的长度用固定版本Qwen embedding tokenizer计数；默认Unicode计数器只用于明确的功能测试，不能当作模型token实验。
 
@@ -12,6 +12,6 @@
 
 真实边界检查不靠目测猜测：`tests/unit/test_chunking_v2.py`验证每个块的文字等于规范全文切片、相邻覆盖没有空洞、重叠真实存在、预算不越界、父块确实包含子块，以及中文、超长句和无标点文本仍能完成。`docs/execution/CHUNKING_AUDIT.md`记录127项性质/单元测试和98%确定性核心覆盖。实际QASPER的34615个证据单元也逐个做了坐标往返验证，见`DATA_REPORT.md`。
 
-结构切块更复杂不代表一定更好。BM25初筛中R512的92个可回答dev问题整组证据覆盖为69/92；这只是固定检索器下的观测。Dense、Hybrid和生成结果必须分别实际完成后才能比较，不能把初筛赢家提前写成整个系统的赢家。
+结构切块更复杂不代表一定更好。BM25初筛中R512的92个可回答dev问题整组证据覆盖为69/92；这只是固定检索器下的观测。后续11组切块×3种检索已完整运行同100个dev问题，见`reports/v2/retrieval_interim/DEV_RESULTS.md`。按预声明Hybrid选择规则固定R512与F512_O0，并使用neighbor扩展；R512完整覆盖净增1/92，但连续覆盖下降，不能说扩展改善了所有指标。生成质量仍需等待相同输入预算下的正式问答实验，不能把检索赢家写成整个系统的赢家。
 
 检查一个可疑答案时，先从逐行结果找到`context_bundle.pieces`，再查看`canonical_start/end`和`unit_spans`。如果原文证据存在但不在实际发送的上下文中，应先排查检索和打包；只有确实发送了所需证据，才有依据讨论生成模型是否理解错了。
