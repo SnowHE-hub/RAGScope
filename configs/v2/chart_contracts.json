@@ -1,0 +1,14 @@
+{
+  "delivery": "Local reproducible PNG and SVG inside Chinese Markdown technical report; no hosting or upload",
+  "renderer": "Matplotlib 3.11.2 isolated reports environment",
+  "palette": {"policy": "single-root preferred", "blue": "#3878A8", "ink": "#22313B", "grid": "#E4E8EB", "background": "#FFFFFF"},
+  "non_color_encoding": "direct labels, route marker shapes, model facets; white marker fill where needed",
+  "branding": "Third-party RAGScope research figures: no OpenAI branding/blossom",
+  "charts": [
+    {"id": "pilot_memory", "question": "What resource peak was actually sampled in each final compatibility pilot?", "family": "categorical bars", "n": "4 models x20 dev requests", "limit": "Device-total sampled VRAM, not allocated memory or formal quality comparison"},
+    {"id": "main_quality", "question": "How does answer overlap vary across model and retrieval method?", "family": "faceted dot and95%interval", "n": "3 models x4 methods x200test, answerable denominator shown", "limit": "Only complete E2groups; paper-cluster2,000resamples; exploratory intervals"},
+    {"id": "quality_latency", "question": "What is the observed quality/time/memory tradeoff?", "family": "scatter,12 labelled model-method points", "n": "3models x4methods", "limit": "Generation with frozen contexts only; VRAM maxima labelled, no causal hardware speed claim"},
+    {"id": "evidence_answer", "question": "How do final answers differ when actual context fully covers reference evidence?", "family": "faceted grouped bars", "n": "complete E2groups, conditional Nshown", "limit": "Association only; annotated evidence and textual overlap are proxies"}
+  ],
+  "qa": "Inspect exported PNGs, verifysourcehash and numerical sidecar, no incomplete groups plotted as final; exact scales0to1for quality"
+}

@@ -1,0 +1,136 @@
+"""Reproducible local report figures; do not turn partial groups into conclusions."""
+from pathlib import Path
+import sys
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+import argparse
+import json
+
+from ragscope.experiments.runtime import configure
+configure(cpu_only=True)
+import matplotlib
+matplotlib.use('Agg')
+from matplotlib import pyplot as plt
+from matplotlib import font_manager
+import numpy as np
+
+from ragscope.indexing.identity import artifact, atomic_json
+
+BLUE, INK, GRID = '#3878A8', '#22313B', '#E4E8EB'
+FONT = Path('C:/Windows/Fonts/msyh.ttc')
+if FONT.is_file():
+    font_manager.fontManager.addfont(FONT)
+    plt.rcParams['font.family'] = font_manager.FontProperties(fname=FONT).get_name()
+plt.rcParams.update({'font.size': 10, 'text.color': INK, 'axes.labelcolor': INK,
+    'xtick.color': INK, 'ytick.color': INK, 'axes.spines.top': False, 'axes.spines.right': False,
+    'axes.edgecolor': INK, 'grid.color': GRID, 'axes.axisbelow': True, 'svg.fonttype': 'path'})
+
+
+def save(fig, output, name, data, source):
+    output.mkdir(parents=True, exist_ok=True)
+    paths = []
+    for suffix in ('png', 'svg'):
+        path = output/f'{name}.{suffix}'
+        fig.savefig(path, dpi=160, facecolor='white', bbox_inches='tight')
+        paths.append(artifact(path))
+    atomic_json(output/f'{name}.data.json', {'source': artifact(source), 'plotted_data': data,
+        'files': paths, 'matplotlib': matplotlib.__version__, 'cache': matplotlib.get_cachedir()})
+    plt.close(fig)
+
+
+def pilot(source, output):
+    report = json.loads(source.read_text(encoding='utf-8'))
+    if report['status'] != 'PASS_COMPATIBILITY_NOT_QUALITY':
+        raise ValueError('Completed compatibility audit required')
+    groups = report['groups']
+    if len(groups) != 4 or any(g['n_dev'] != 20 or g['resource_measured_rows'] != 20 for g in groups):
+        raise ValueError('Expected all four measured final-setting pilots')
+    labels = ['Qwen3.5 2B', 'Qwen3.5 4B', 'Qwen3.5 9B', 'LFM2.5 1.2B']
+    values = [g['peak_sampled_device_total_used_bytes']/2**30 for g in groups]
+    fig, ax = plt.subplots(figsize=(9, 4.8), layout='constrained')
+    y = np.arange(4)
+    ax.barh(y, values, color=BLUE, edgecolor=INK, linewidth=.7, height=.55)
+    ax.set_yticks(y, labels); ax.invert_yaxis(); ax.set_xlim(0, 8)
+    ax.set_xlabel('采样到的全设备显存峰值（GiB）'); ax.grid(axis='x')
+    for i, (v, group) in enumerate(zip(values, groups)):
+        ax.text(v+.12, i, f"{v:.2f} GiB · 解析成功 {20-group['parse_or_transport_errors']}/20", va='center', fontsize=9)
+    fig.suptitle('最终模型兼容预检：显存观测', x=.01, ha='left', fontsize=15, fontweight='bold')
+    ax.set_title('相同 20 个 dev 问题 / 模型 · Q4_K_M · 4096 上下文 · 512 输出上限\n仅兼容性预检；设备总量含其他进程，采样可能漏掉瞬时峰值', loc='left', fontsize=10, pad=15)
+    save(fig, output, 'pilot_memory', groups, source)
+
+
+def main_figures(source, output):
+    report = json.loads(source.read_text(encoding='utf-8'))
+    groups = [g for g in report['groups'] if g['experiment_id'] == 'E2']
+    models, methods = ('qwen_2b', 'qwen_4b', 'qwen_9b'), ('R0', 'R1', 'R2', 'R3')
+    lookup = {(g['model_id'], g['method']): g for g in groups}
+    if set(lookup) != {(model, method) for model in models for method in methods} or any(g['status'] != 'COMPLETE' for g in groups):
+        raise ValueError('Full3x4 E2matrix must be complete before final figures')
+    if any(g['n_expected'] != 200 for g in groups):
+        raise ValueError('Main figure population differs from frozen200test design')
+    fig, axes = plt.subplots(1, 3, figsize=(11.5, 5), layout='constrained', sharex=True, sharey=True)
+    for ax, model in zip(axes, models):
+        for i, method in enumerate(methods):
+            group = lookup[model, method]; stats = group['estimates']['token_f1']; mean = stats['mean']
+            ax.errorbar(mean, i, xerr=[[mean-stats['low']], [stats['high']-mean]], fmt='o', color=BLUE, capsize=4)
+            ax.text(mean+.015, i-.17, f"{mean:.3f} (N={stats['n_rows']})", fontsize=9)
+        ax.set_title(model.replace('qwen_', 'Qwen3.5 ').upper()); ax.set_xlim(0, 1)
+        ax.set_yticks(range(4), ['BM25', 'Dense', 'Hybrid', 'Hybrid+重排']); ax.invert_yaxis(); ax.grid(axis='x')
+        ax.set_xlabel('答案 token F1（文字重合代理）')
+    fig.suptitle('模型规模与检索方法：答案 F1', x=.01, ha='left', fontsize=15, fontweight='bold')
+    fig.supxlabel('每条件 200 test，F1仅对可答题适用、失败记零；论文聚类 2,000 次重采样的探索性 95% 区间', fontsize=9)
+    save(fig, output, 'main_quality', groups, source)
+    fig, ax = plt.subplots(figsize=(10, 6), layout='constrained')
+    markers = dict(zip(methods, ['o', 's', '^', 'D']))
+    plotted = []
+    for mi, model in enumerate(models):
+        for method in methods:
+            g = lookup[model, method]; latency = g['observed_summary']['latency_ms']['p50']/1000
+            f1 = g['estimates']['token_f1']['mean']
+            memory = g['performance'].get('peak_sampled_device_total_used_bytes')
+            ax.scatter(latency, f1, marker=markers[method], edgecolor=BLUE, facecolor=BLUE if mi != 1 else 'white', s=50+mi*22)
+            label = model.removeprefix('qwen_').upper()+'/'+method
+            if memory is not None: label += f' / {memory/2**30:.1f} GiB'
+            ax.annotate(label, (latency, f1), xytext=(5, 6 if mi%2 else -12), textcoords='offset points', fontsize=8)
+            plotted.append({'model': model, 'method': method, 'generation_p50_s': latency, 'token_f1': f1, 'sampled_device_peak_bytes': memory})
+    ax.set_xlim(left=0); ax.set_ylim(0, 1); ax.grid()
+    ax.set_xlabel('冻结上下文后的生成 P50（秒；不含检索）'); ax.set_ylabel('答案 token F1')
+    fig.suptitle('答案质量、生成耗时与显存', x=.01, ha='left', fontsize=15, fontweight='bold')
+    ax.set_title('12 个模型×检索条件；每条件 200 test · 标签显存为采样设备总量\n模型驻留、统一预算；不推断首 token 延迟或纯硬件速度', loc='left', fontsize=10, pad=14)
+    save(fig, output, 'quality_latency', plotted, source)
+    fig, axes = plt.subplots(1, 3, figsize=(12, 5), layout='constrained', sharey=True)
+    plotted = []
+    for ax, model in zip(axes, models):
+        for i, method in enumerate(methods):
+            g = lookup[model, method]
+            for j, label in enumerate(('fully_covered', 'not_fully_covered')):
+                conditional = next(r for r in g['evidence_answer_relationship'] if r['context_group'] == label)
+                metric = conditional['token_f1']; value, n = metric['overall'], metric['n_applicable']
+                x = i+(j-.5)*.36
+                if value is not None:
+                    ax.bar(x, value, width=.34, color=BLUE if j == 0 else 'white', edgecolor=BLUE,
+                           hatch=None if j == 0 else '//', linewidth=1,
+                           label=('完整证据', '证据不完整')[j] if i == 0 else None)
+                    ax.text(x, value+.018, f'n={n}', ha='center', fontsize=7)
+                else:
+                    ax.text(x, .02, 'N/A', rotation=90, ha='center', fontsize=7)
+                plotted.append({'model': model, 'method': method, 'context_group': label, 'f1': value, 'n_applicable': n})
+        ax.set_title(model.replace('qwen_', 'Qwen3.5 ').upper()); ax.set_ylim(0, 1)
+        ax.set_xticks(range(4), methods); ax.grid(axis='y'); ax.set_xlabel('检索条件')
+    axes[0].set_ylabel('答案 token F1'); axes[-1].legend(loc='upper right', fontsize=9)
+    fig.suptitle('实际上下文证据覆盖与答案 F1', x=.01, ha='left', fontsize=15, fontweight='bold')
+    fig.supxlabel('每条件 200 test，按实际证据覆盖分组、可答失败记零；条件样本数标在柱上。关联不等于因果或完整答案正确性。', fontsize=9)
+    save(fig, output, 'evidence_answer', plotted, source)
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--pilot', type=Path); parser.add_argument('--analysis', type=Path)
+    parser.add_argument('--output', required=True, type=Path)
+    args = parser.parse_args()
+    if not args.pilot and not args.analysis: parser.error('A verified source is required')
+    if args.pilot: pilot(args.pilot, args.output)
+    if args.analysis: main_figures(args.analysis, args.output)
+
+
+if __name__ == '__main__':
+    main()

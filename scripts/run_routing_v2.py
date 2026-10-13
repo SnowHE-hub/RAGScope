@@ -15,7 +15,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--campaign', required=True, type=Path)
     parser.add_argument('--output', required=True, type=Path)
-    parser.add_argument('--mode', choices=['freeze', 'labels', 'replay'], required=True)
+    parser.add_argument('--mode', choices=['freeze', 'labels', 'decisions', 'replay'], required=True)
     parser.add_argument('--router', choices=['fixed_bm25', 'fixed_hybrid', 'fixed_hybrid_rerank', 'rules', 'linear', 'mlp', 'lstm', 'laya'])
     parser.add_argument('--router-artifact', type=Path)
     args = parser.parse_args()
@@ -26,7 +26,7 @@ def main():
     protocol = freeze_routing(args.campaign, args.output)
     if args.mode == 'labels':
         prepare_labels(args.campaign, args.output)
-    if args.mode == 'replay':
+    if args.mode in ('decisions', 'replay'):
         name = args.router
         if not name:
             parser.error('--router is required for replay')
@@ -44,8 +44,9 @@ def main():
             parser.error('Laya requires its separately audited local SDK command; no implicit download/load')
         # This write happens before generation scores are loaded for evaluation.
         decisions = freeze_decisions(router, protocol, args.output, name)
-        result = evaluate_decisions(args.campaign, protocol, decisions, args.output)
-        print(json.dumps({split: group['summary'] for split, group in result['groups'].items()}))
+        if args.mode == 'replay':
+            result = evaluate_decisions(args.campaign, protocol, decisions, args.output)
+            print(json.dumps({split: group['summary'] for split, group in result['groups'].items()}))
     return 0
 
 

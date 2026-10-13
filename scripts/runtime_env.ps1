@@ -8,6 +8,7 @@ $paths = @{
  TIKTOKEN_CACHE_DIR='cache/tiktoken'; NLTK_DATA='cache/nltk'; XDG_CACHE_HOME='cache';
  TRITON_CACHE_DIR='cache/triton'; CUDA_CACHE_PATH='cache/cuda'; RAGSCOPE_CACHE_DIR='cache/ragscope';
  TORCH_EXTENSIONS_DIR='cache/torch_extensions'; TORCHINDUCTOR_CACHE_DIR='cache/torchinductor';
+ MPLCONFIGDIR='cache/matplotlib';
  TEMP='tmp'; TMP='tmp'; TMPDIR='tmp'
 }
 foreach ($entry in $paths.GetEnumerator()) {

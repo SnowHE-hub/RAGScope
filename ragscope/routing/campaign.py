@@ -13,6 +13,7 @@ from .core import ROUTES, RoutingRequest, build_proxy_labels, proxy_quality
 from .evaluate import summarize
 
 METHODS = {'R0': 'bm25', 'R2': 'hybrid', 'R3': 'hybrid_rerank'}
+REQUIRED_ROUTERS = ('fixed_bm25', 'fixed_hybrid', 'fixed_hybrid_rerank', 'rules', 'linear', 'mlp', 'lstm')
 
 
 def immutable_json(path, body):
@@ -168,6 +169,16 @@ def freeze_decisions(router, protocol, output, name):
 
 
 def evaluate_decisions(campaign, protocol, decisions, output):
+    # Freeze every mandatory policy's test choices before looking at test route
+    # scores; freezing only the current policy is insufficient for blind analysis.
+    for name in REQUIRED_ROUTERS:
+        path = Path(output)/f'DECISIONS_{name}.json'
+        if not path.exists():
+            raise ValueError(f'All mandatory policy decisions must be frozen before test analysis: {name}')
+        saved = json.loads(path.read_text(encoding='utf-8'))
+        expected = saved.pop('decision_hash')
+        if signature(saved) != expected or saved['protocol_hash'] != protocol['protocol_hash']:
+            raise ValueError('A mandatory policy decision changed')
     records, sources = load_route_records(campaign, protocol, ('dev', 'test'))
     by_key = {(r['query_id'], r['path']): r for r in records}
     groups = {}

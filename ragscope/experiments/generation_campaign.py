@@ -292,6 +292,7 @@ def run_model(directory, model_id, client, budget, *, evidence_units, warmups=3,
                       'resources':resources, "split": query["split"],
                       "scope": query.get("scope"), "answerability": query["answerability"], "scores": scores,
                       "raw_retrieval": source.get("raw_retrieval", []), "context_config": source.get("context_config", {}),
+                      "selected_retrieval": source.get('selected_retrieval'),
                       "call_ticket": counted.last_ticket, "seed": manifest["seed"], "timing_mode": "generation_with_frozen_context"}
             stores[task["experiment_id"]].add(task["task_id"], record)
             completed += 1

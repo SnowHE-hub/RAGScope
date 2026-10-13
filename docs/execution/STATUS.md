@@ -45,3 +45,7 @@
 - 本地新增提交af94414（真实逐行分析与失败分母/聚类统计）；尚未最终验收。
 
 下一条准确命令：`. ./scripts/runtime_env.ps1; & D:/RAGScope_Runtime/envs/core/Scripts/python.exe scripts/audit_model_pilots.py`（只读实际结果汇总，无GPU调用）。训练代理持有当前session33605，完成prep后自行顺序执行2B BF1610步/断点恢复，详见TRAINING_REPORT.md。检索worker37932继续运行；禁止重复启动。
+
+2026-10-14 03:12恢复点追加：CPU Dense worker43932已SUSPENDED，CPU服务39808已安全退出，2404缓存向量保留；勿沿用上文RUNNING描述。旧2B LoRA10步真实成功且5→10精确恢复，因发现PEFT初始化前seed未设而保留为可行性证据，正式同路径seed42修复新run正在训练代理手中重做预检并续122步（不增加模型/超参选择）。原任务手动恢复约束不变。本地提交3b49ac4。下一准确命令：`Get-Content -LiteralPath D:/RAGScope_Runtime/runs/20261014_v2_retrieval/PLANNED_TRAINING_RAM_PAUSE.json -Raw`；恢复CPU服务前必须与训练RAM状态协调。
+
+2026-10-14 03:24追加：正式seed42 LoRA运行中（session72907，最近确认step44/122、全部finite）；E0固定revision重建CPU进程42092（session54394）已实际编码2304/22254条，RSS约658MiB，hostfree约2.56GiB，4threads/1.25GiB安全暂停阈值。大CPUembedding仍停、worker43932暂停，不可重复启动。最新core统一372 PASS、1项Torch隔离测试skip；后续反向数字审计2项fixture测试PASS。ROUTING_QUERY_MANIFEST.json冻结train200/dev60/test100，SHA身份f1b6ae1ef21a44b720b53e1a6fffe6600a12d16d51e4b88aefe26a69c0ff952b；dataagent补BM25/Hybrid源，chunkagent补R3源。

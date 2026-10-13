@@ -191,6 +191,7 @@ def verified_context_rows(path, queries):
             raise ValueError('Retrieval has failed rows; preserve and explicitly block this condition until resolved')
         validate_bundle(row['context_bundle'], scope=query['scope'])
         result.append({'query': query, 'context_bundle': row['context_bundle'], 'raw_retrieval': row['raw_retrieval'],
+            'selected_retrieval': row.get('selected_retrieval'),
             'retrieval_timings': row.get('timings', {}), 'retrieval_source': str(path),
             'context_config': {'source_config_hash': row['config_hash'], 'index_signature': row.get('index_signature'),
                                'retrieval_record_id': row['record_id']}})

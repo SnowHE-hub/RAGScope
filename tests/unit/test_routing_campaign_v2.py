@@ -6,7 +6,7 @@ import pytest
 
 from ragscope.routing.core import ROUTES, FixedRouter, build_proxy_labels, proxy_quality
 from ragscope.routing.evaluate import summarize
-from ragscope.routing.campaign import freeze_routing, normalized_record, freeze_decisions
+from ragscope.routing.campaign import freeze_routing, normalized_record, freeze_decisions, evaluate_decisions
 from ragscope.experiments.generation_campaign import freeze_campaign
 from test_generation_campaign_v2 import sample, IDENTITY
 
@@ -49,6 +49,8 @@ def test_frozen_router_ids_follow_manifest_and_decisions_ignore_gold(tmp_path):
     assert 'gold' not in json.dumps(protocol['populations']) and 'secret' not in json.dumps(protocol['populations'])
     decision = freeze_decisions(FixedRouter(), protocol, tmp_path/'route', 'fixed_hybrid')
     assert freeze_decisions(FixedRouter(), protocol, tmp_path/'route', 'fixed_hybrid') == decision
+    with pytest.raises(ValueError, match='All mandatory'):
+        evaluate_decisions(tmp_path/'campaign', protocol, decision, tmp_path/'route')
     path = tmp_path/'route/DECISIONS_fixed_hybrid.json'
     body = json.loads(path.read_text()); body['decisions']['test'][0]['decision']['route'] = 'bm25'
     path.write_text(json.dumps(body))

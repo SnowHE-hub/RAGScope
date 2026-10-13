@@ -29,3 +29,7 @@
 - 最终LFM预检20次真实完成且token一致，1次done_reason=length在统一512输出上限截断JSON。兼容状态单列PASS_WITH_OUTPUT_FAILURES，质量失败19/20有效输出如实保留，不因输出质量更换模型、提高上限或重试挑答案。冻结器仅接受有确切length证据的此类输出失败，传输/OOM/token或schema差异仍阻止冻结。
 
 - 路由正式接线固定读取生成manifest内ROUTE_TRAIN200/ROUTE_DEV60；test100在看路径结果前seed42冻结，避免旧辅助hash采样选成另一批题。可答质量仍为token F1；不可答的F1保留N/A、标签使用明确correct_abstention代理，单列拒答率，不把两者混称平均F1。所有回放成本为实际检索与生成计时之和，尚不是在线耗时。26项路由测试PASS，1项Torch专属测试另环境。
+
+- 报告独立reports环境使用Matplotlib3.11.2与11项hash锁依赖，未改变core/train/models环境；实际缓存D:/RAGScope_Runtime/cache/matplotlib，PNG/SVG落盘D:/RAGScope_Runtime/runs/20261014_v2/figures。官方savefig接口核验：https://matplotlib.org/stable/api/_as_gen/matplotlib.figure.Figure.savefig.html 。最终预检显存图已实际导出并目视核验；主矩阵图在3×4完整200test结果之前拒绝生成。
+
+- 调度偏离显式记录：所有S1/S2计算与HTTP embedding始终CPU-only；为并行推进，S3真实模型预检与S4训练准备在S2完整Dense矩阵尚未结束时执行。不能将这描述为严格完成全部阶段二后才进入阶段三。资源控制采用用户随后“可随时终止CPU/GPU，本任务优先”和最新“训练/定时检查已停、结束后用户手动续跑”的直接授权；原断点校验/精确PID控制证据保留。阶段二最终非干扰报告应按这条实际时间线写明，而不是虚构当时原训练仍在运行。
