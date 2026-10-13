@@ -2,13 +2,13 @@
 
 本文件是数据/检索子任务的当前准确恢复点；主STATUS/RECOVERY由root维护。不要根据下述旧PID操作其他进程，不自动恢复用户原任务。
 
-## 正在运行（不要启动第二个worker）
+## 当前低RAM受控暂停（不要启动第二个worker）
 
-正式QASPER结构候选R512全509篇索引正在CPU编码。终端session60616；实际worker PID24020/create_time1791913376.0555313，launcher8052。当前主循环最近输出2168/6551，18:26:42Z逐块凭据已2192/6551；逐块首次观察和文本向量均落D盘，可恢复。实时身份在`D:/RAGScope_Runtime/runs/20261014_v2_retrieval/worker.json`，RUNNING/stage=final_structured_qasper。
+正式QASPER结构候选R512全509篇索引因持续低RAM受控暂停；精确worker还在内存中，不是已退出，也不是实验完成。终端session60616；实际worker PID24020/create_time1791913376.0555313，launcher8052。暂停后逐块凭据5088/6551，下一批前2条cache已完整并验hash，在途HTTP结果未知；逐块首次观察和文本向量均落D盘，可恢复。实时身份在`D:/RAGScope_Runtime/runs/20261014_v2_retrieval/worker.json`，SUSPENDED_LOW_RAM/stage=final_structured_qasper。
 
-当前自有CPU服务PID36892/create_time1791909754.8890424，loopback11436，12线程/12batch线程，CPU二进制、-ngl0/--no-op-offload、pooling last、L2、单slot。准确完整命令/模型和二进制SHA在`runs/20261014_v2/embedding_service.json`。它仍驻留，未向R3/Laya或其他模型宣告权重已释放。
+当前自有CPU服务PID36892/create_time1791909754.8890424，loopback11436，12线程/12batch线程，CPU二进制、-ngl0/--no-op-offload、pooling last、L2、单slot。准确完整命令/模型和二进制SHA在`runs/20261014_v2/embedding_service.json`。该服务已在单slot drain barrier成功后精确停止，11436已关闭；worker仍暂停并持有campaign锁。尚未完成TEST/global/ROUTE来源，不向R3交接。
 
-先确认该worker确已退出并读取退出状态。只有确有运行失败、服务仍READY且有界恢复次数允许时，才用**相同准确命令**恢复；不可并行执行两个相同campaign：
+当前先执行专用恢复流程，不能直接重放命令：先观察host可用RAM达到原3GiB guard，再运行 `. ./scripts/runtime_env.ps1` 和 `& 'D:/RAGScope_Runtime/envs/core/Scripts/python.exe' -u scripts/resume_structured_after_low_ram.py`。准确脚本artifact/hash与旧worker/server命令在STRUCTURED_LOW_RAM_PAUSE.json。新服务健康/真实1024维通过后该脚本只resume同一暂停worker；若出现可辨认连接reset并确认worker退出，才按剩余1次预算重放以下相同配置命令，并记录新启动源码实际hash。不可启动两个同campaign：
 
 ```powershell
 . ./scripts/runtime_env.ps1
@@ -17,7 +17,7 @@
 
 完整索引目标6551 children；路径`indexes/20261014_v2/all_chunks/ba23a7f21f5bc3ed9fccb5778163c07a6b2fda530c769ff235e15d44dd5238f6/dense_397d90b3f4fbe03e`。`embedding_first_observations.jsonl`和content-addressed cache均按已完成观察落盘。不能把cache向量数量当作最终manifest已完成。
 
-最近18:26:42Z盘点：2192条durable observations、2601所需chunk已有cache、3950个独立文本/1676459正文tokens尚需编码；最近100次冷调用369.61 tokens/s，剩余约1.3–1.6h只作当时编码估算，不包含查询物化；host可用2365521920 bytes（2.20 GiB）。最新状态文件`STRUCTURED_ENCODING_WORK_REMAINING.json`。
+最近19:21:47Z盘点：4880条durable observations、5293所需chunk已有cache、1258个独立文本/533192正文tokens尚需编码；最近100次冷调用341.17 tokens/s，剩余约24–30分钟只作当时编码估算，不包含查询物化；host可用1444884480 bytes（1.35 GiB）。最新状态文件`STRUCTURED_ENCODING_WORK_REMAINING.json`。
 
 ## 已完成并冻结
 
@@ -71,3 +71,15 @@ R3由chunking_core处理，同retrieval Campaign单写锁。交接给其以下�
 
 旧索引部分首次cold成本没完整保存，必须保留不可得，不能用warm/resumed成功时长冒充全cold。未来全库build_performance.json记录实际成功尝试及first observations。
 历史两个all509 BM25 chunkmanifest的preflight.split误写dev，其identity/数据/hash正确；CHUNK_PREFLIGHT_SCOPE_AUDIT明确PASS_WITH_METADATA_LIMITATION，旧manifest未改写，新构块用真实范围/样本文档ID。SQuAD沿用scientific-paper query指令且领域/长度不同，只作独立回归，不作长度因果解释。
+
+当前structured进程的源码来源：ACTIVE_WORKER_CODE_PROVENANCE.json明确未记录启动时source SHA、没有热重载或因scoped补丁重启。旧实现git16d49f8归档SHA0565384e214b563c27782af0cea862e186ee4ec2d767a511be40d5022f19b691为事后重建，当前磁盘新版SHA只适用于后续启动；不得混称。
+
+运行时内存边界：当前补丁前worker只有开始时768MiB guard，没有每请求自动内存检查或自动暂停机制；运行中由外部持续观察，不得称自动保护。19:02:03Z available942284800 bytes（约0.88GiB），worker RSS325033984、CPU service RSS1387638784；前一分钟也曾回升，实际波动保存structured_resource_observations.jsonl。保持现有进程且不增加负载。若持续极低RAM或请求错误需要干预，先保存原因、已落盘进度、准确自身PID/create/argv，再按有界恢复处理；不操作其他进程，不重启用户原服务、WSL或安全/维护进程。
+
+19:26附近低RAM事件：先保存身份/缓存/5088条observations，暂停自身worker，单slot真实drain barrier通过后停止仅PID36892 CPU服务。STRUCTURED_LOW_RAM_PAUSE.json、STRUCTURED_PAUSED_BATCH_CACHE.json保留完整证据。未计划连接恢复仍2/3，尚未恢复所以不能预记消耗第三次。最近暂停worker RSS164515840 bytes、host可用2772496384 bytes（2.58GiB），仍低于3GiB恢复guard。恢复script经AST语法检查，尚无模型加载调用；原training恢复脚本的一次性main不可重跑。
+
+恢复脚本现已修正resume前/后的异常所有权边界并通过2个离线行为fixture（无模型）：resume前失败仅清理身份匹配自有service，resume后写receipt失败保留service和worker_resumed=True。最新源码SHA f856b5d4b7fc126bcaae0f786abb3be7798d59f42928c36fd6a0a0c6b14d0039，以pause receipt的artifact为准。只读确认已运行Ubuntu内部MemAvailable约10.05GiB，但不能据此断言Windows物理可用或降低3GiB guard；原始数字/命令在WSL_READONLY_MEMORY_EVIDENCE.json。未改WSL、内存回收或其他程序。
+
+2026-10-13 19:45Z：已核验 guard 来源，3 GiB 是此前 agent 恢复脚本的保守门槛，不是任务书固定数值；原服务 requested 1 GiB + reserve .5 GiB。历史加载峰值 N/A，稳态 RSS 1.28–1.31 GiB。root 明确授权一次受监督备选：连续两次相隔至少30秒的2.5–3 GiB观察，加载期间每.25秒检查、低于1 GiB只停止精确自有stateless服务，worker保持暂停；健康60秒/真实1024维验证30秒；监控必须停止并join，再核身份及1 GiB后才resume。恢复后异常保留service。>=3 GiB优先原路径，不消费备选。5个离线行为测试PASS，无模型加载。此次脚本SHA 8f99d1a35eda13703fe4d3e5574aeec174779a7754fe20f2d1b32e2a3a53610b；下一准确命令为原resume命令附 --supervised-fallback，实际路径由fresh RAM决定；最多一次备选凭据以x独占创建，不能反复尝试或再降门槛。
+
+19:46Z实际受监督恢复PASS：唯一备选已消费，加载前available2716409856 bytes；9个.25秒采样最低1744457728 bytes，采样最高service RSS/Windows peak_wset948436992 bytes（只涵盖本次加载到控制请求结束，不能冒充后续运行峰值）。真实1024维控制请求通过，监测线程已join后resume旧worker。CPU新PID19112/create1791920756.4124439。旧worker24020在历史socket收到WinError10054并exit1，finally保留5088→5090条first observations；主服务没有再重启。第三/最后一次缓存重放已登记，new worker20816/create1791920803.708412/session22849真实运行并逐条读取既有缓存。重放控制台位置从8重新计数仅表示缓存读取位置，不代表丢失5090条已完成编码。启动源码SHA现已真实测量，见STRUCTURED_THIRD_REPLAY_STARTUP.json。恢复预算3/3已消费，不能继续无限失败重试。下一条命令仍为待本structured进程正常完成后运行materialize_routing_contexts_v2.py，不能并写。
