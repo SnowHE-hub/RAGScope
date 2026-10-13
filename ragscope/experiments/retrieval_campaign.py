@@ -521,13 +521,13 @@ def run_test_contexts(home: Path, data_campaign="20261014_v2"):
         return result
 
 
-def verified_dense_index(chunks, sparse_identity, directory, config, embedding):
+def verified_dense_index(chunks, sparse_identity, directory, config, embedding, *, index_type=ArrayIndex):
     """Reuse only matching persisted arrays; each completed text is checkpointed."""
     operation_started = time.perf_counter()
     identity = {**sparse_identity, "embedding": embedding.identity, "embedding_input": config["embedding_input"]}
     destination = directory / ("dense_" + signature(embedding.identity)[:16])
     if (destination / "manifest.json").exists():
-        return ArrayIndex.load(destination, identity), destination
+        return index_type.load(destination, identity), destination
     destination.mkdir(parents=True, exist_ok=True)
     metric_store = RecordStore(destination / "embedding_first_observations.jsonl",
                               {"embedding_identity": embedding.identity, "index_identity": identity,
@@ -555,7 +555,7 @@ def verified_dense_index(chunks, sparse_identity, directory, config, embedding):
             print(f"Final corpus embedding: {min(offset+8, len(chunks))}/{len(chunks)}", flush=True)
     encoding_seconds = time.perf_counter() - encoding_started
     construction_started = time.perf_counter()
-    index = ArrayIndex(chunks, identity, np.stack(vectors))
+    index = index_type(chunks, identity, np.stack(vectors))
     construction_seconds = time.perf_counter() - construction_started
     save_started = time.perf_counter()
     index.save(destination)
@@ -585,8 +585,10 @@ def run_final_contexts(home: Path, data_campaign="20261014_v2", dataset="qasper"
                        family=None):
     """Evaluate frozen dev-selected candidates without using test to select.
 
-    QASPER uses the identical all-509-paper corpus for every method. SQuAD uses
-    all official dev paragraphs and its separately frozen 100 short questions.
+    QASPER structured uses the all-509-paper corpus for every method. The simple
+    comparator encodes only the frozen test paper union and retains all-509
+    sparse statistics; it rejects global retrieval. SQuAD uses all official dev
+    paragraphs and its separately frozen 100 short questions.
     Neural reranking is owned by the subsequent experiment and remains pending.
     """
     import psutil
@@ -664,22 +666,41 @@ def run_final_contexts(home: Path, data_campaign="20261014_v2", dataset="qasper"
             if dataset == "squad" and group["id"] != selected["selected"]["structured"]:
                 continue
             print(f"Final {dataset} corpus: {group['id']}", flush=True)
-            chunks, parents, chunk_manifest, directory = build_group(documents, group, tokenizer,
-                home / "indexes" / data_campaign / ("all_chunks" if dataset == "qasper" else "squad_chunks"), base_identity)
+            group_documents, group_identity, index_type = documents, base_identity, ArrayIndex
+            index_area = "all_chunks" if dataset == "qasper" else "squad_chunks"
+            simple_scope = None
+            if dataset == "qasper" and group["id"] == selected["selected"]["simple"]:
+                from ragscope.experiments.simple_scope import prepare_simple_scope
+                from ragscope.indexing.scoped_index import ScopedArrayIndex
+                simple_scope = prepare_simple_scope(home, data_campaign)
+                if simple_scope["group"] != group or simple_scope["query_ids"] != [q["query_id"] for q in queries]:
+                    raise ValueError("Simple paper-scope preflight differs from requested frozen comparator")
+                selected_ids = set(simple_scope["selected_doc_ids"])
+                group_documents = [d for d in documents if d["doc_id"] in selected_ids]
+                group_identity, index_type = simple_scope["scoped_base_identity"], ScopedArrayIndex
+                index_area = "scoped_chunks"
+            chunks, parents, chunk_manifest, directory = build_group(group_documents, group, tokenizer,
+                home / "indexes" / data_campaign / index_area, group_identity)
             count = sum((manifest := json.loads(p.read_text(encoding="utf-8")))["count"] + manifest["parent_count"]
                         for p in (home / "indexes" / data_campaign).rglob("chunk_manifest.json"))
+            if simple_scope is not None:
+                count += simple_scope["full_reference_chunks"]
             if count > chunking["max_cumulative_chunks"]:
                 raise RuntimeError("Campaign cumulative chunk budget exceeded")
             sparse_identity = {**chunk_manifest["identity"], "engine": "ArrayIndex-v2", "bm25": config["bm25"], "embedding": None}
+            if simple_scope is not None:
+                from ragscope.indexing.scoped_index import ENGINE
+                sparse_identity["engine"] = ENGINE
             sparse_directory = directory / "sparse"
             sparse = None
             if "bm25" in methods:
                 if (sparse_directory / "manifest.json").exists():
-                    sparse = ArrayIndex.load(sparse_directory, sparse_identity)
+                    sparse = index_type.load(sparse_directory, sparse_identity)
                 else:
-                    sparse = ArrayIndex(chunks, sparse_identity)
+                    sparse = index_type(chunks, sparse_identity)
                     sparse.save(sparse_directory)
-            dense, dense_directory = verified_dense_index(chunks, sparse_identity, directory, config, embedding) if embedding else (None, None)
+            dense, dense_directory = verified_dense_index(chunks, sparse_identity, directory, config, embedding,
+                index_type=index_type) if embedding else (None, None)
             expansion = context_selection["selected"][group["id"]]
             for method in methods:
                 index = sparse if method == "bm25" else dense
@@ -688,6 +709,10 @@ def run_final_contexts(home: Path, data_campaign="20261014_v2", dataset="qasper"
                 summary = run_queries(index, chunks, parents, queries, units, config, group, method, expansion, campaign,
                                       active_embedding, experiment_id="TEST_CONTEXT" if dataset == "qasper" else "E4_CONTEXT")
                 summary.update(chunk_count=len(chunks), parent_count=len(parents), index_manifest=str(index_directory / "manifest.json"))
+                if simple_scope is not None:
+                    summary.update(scoped_only=True, scoped_documents=len(group_documents),
+                        sparse_reference_documents=simple_scope["full_reference_documents"],
+                        simple_scope_plan=artifact(home / "runs" / (data_campaign + "_simple_scope_preflight") / "SIMPLE_SCOPE_PLAN.json"))
                 summaries.append(summary)
                 if global_queries and group["id"] == selected["selected"]["structured"]:
                     summary = run_queries(index, chunks, parents, global_queries, units, config, group, method, expansion, campaign,

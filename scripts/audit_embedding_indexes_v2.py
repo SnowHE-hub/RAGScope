@@ -44,6 +44,19 @@ def audit(home, campaign):
             assert path.resolve().parent == directory.resolve()
             assert path.stat().st_size == item["bytes"] and sha(path) == item["sha256"]
         chunks = json.loads((directory / "chunks.json").read_text(encoding="utf-8"))
+        if identity.get("engine") == "ScopedArrayIndex-v1-full-reference-bm25":
+            assert identity["scope"] == "explicit_paper_only" and manifest["scoped_only"] is True
+            selected = identity["selected_doc_ids"]
+            assert selected == sorted(set(selected)) and signature(selected) == identity["selected_doc_ids_sha256"]
+            reference = identity["sparse_reference"]
+            for source in (reference["chunks"], reference["chunk_manifest"]):
+                path = Path(source["path"])
+                assert path.stat().st_size == source["bytes"] and sha(path) == source["sha256"]
+            full = [json.loads(line) for line in Path(reference["chunks"]["path"]).read_text(encoding="utf-8").splitlines() if line.strip()]
+            assert len(full) == reference["count"] and signature(full) == reference["chunks_content_sha256"]
+            assert chunks == [row for row in full if row["doc_id"] in set(selected)]
+            assert manifest["neural_vector_count"] == len(chunks)
+            del full
         vectors = np.load(directory / "vectors.npy", allow_pickle=False, mmap_mode="r")
         assert vectors.shape == (manifest["count"], model["dimensions"])
         assert len(chunks) == len(vectors) and vectors.dtype == np.float32

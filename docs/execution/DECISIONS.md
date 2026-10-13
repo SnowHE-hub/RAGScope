@@ -55,3 +55,9 @@ E3三模型1200条全部完成、0请求失败，完整分析写入新的analysi
 `reports/v2/resource_interim/RESOURCE_REPORT.md`从1200封存行重算P50与显存/RSS峰值，另列9次预热。设备总显存采样不当作模型独占或硬件最低需求；非流式首token保持N/A。首次报表脚本假定warmup行有model_id，实际该字段在其config中，工程错误日志保留后已修并完成；不修改任何实验行或统计协议。
 
 E3错误报告明确全部200题75论文、可答182题72论文，修正副报告的原措辞并保留旧报告/收据。53条缺引用候选中49条上下文为空，仅此指标N/A且不删行；Oracle226条非拒答低F1不等于226条已确认事实错误。代理核对不是人类审核，人工字段始终NOT_REVIEWED。
+
+### 2026-10-14：simple正式索引缩减编码范围，保留全库稀疏统计
+
+按任务书379行，E6 simple仅需冻结test200所选75论文；E8/ROUTE/UI继续用structured全509论文。直接按75篇重建BM25会改变IDF及平均长度，不采用。新显式scoped-only索引仅编码该75篇全部777个相同chunk，BM25仍按509篇5710chunks计算，固定外部参考的文件/内容/配置hash，拒绝global和未知paper。实际200题top50 ID、顺序、分数与全509 sparse参考完全一致，无神经调用；Dense/Hybrid同向量和scope的等价性另用功能夹具核验，不冒称已实测完整simple神经索引。
+
+避免4933个多余向量行，但其中有已有缓存；预检时实际尚未缓存4566个文本、2,230,720正文tokens，不把gross数量全部当冷编码，也不承诺节省固定时长。神经实跑尚待交接。冻结源位于`runs/20261014_v2_simple_scope_preflight`。root额外36项冻结/读取/统计接口测试PASS，日志`simple_scope_integration_contracts.log`。不更改当前structured进程、问题数、切块选型、扩展、模型或评价规则。

@@ -223,3 +223,13 @@ SQuAD E4将复用已冻结的Qwen查询指令（含scientific paper措辞），�
 两组最终均选择neighbor；所有正式test/global/SQuAD/ROUTE上下文沿用此冻结结果。早期BM25筛选阶段的none test结果保留为探索性历史，不能替代正式neighbor结果。完整证据为`E1_dense_SUMMARY.json`、`CANDIDATE_SELECTION.json`和`CONTEXT_SELECTION.json`。
 
 当前11个已完成神经索引共5292个向量全部通过独立维度、float32、finite/L2及真实正文token检查；每索引seed42抽20个向量与内容寻址缓存逐项对齐，共220次。3098个去重文本具备实际backend usage；1639个历史文本无此观察，继续保留N/A。证据`EMBEDDING_INDEX_AUDIT.json`。
+
+## 正式 simple 对照的限定论文索引（神经编码前冻结）
+
+主任务书允许完整 dev 矩阵后只构建最终候选所需索引。E6 simple 只请求冻结 test200 的明确论文 scope；E8、ROUTE 与 UI 均使用 structured。因此后续 simple F512_O0 保留完整 509 篇的稀疏统计，但只为全部 test200 覆盖的 75 篇论文保存神经向量。不能直接按75篇重算 BM25：IDF 和平均长度变化会改变 Hybrid 排名。新 ScopedArrayIndex 使用固定 full reference，拒绝 global 与未支持的 paper scope；原 ArrayIndex、当前 structured worker 与全部问题、算法、模型、扩展选择均未改变。
+
+实际 CPU 预检已通过：509篇共5710 chunks；75篇共777 chunks。全部200道真实 test 问题的 BM25 top50 chunk ID、顺序和分数与完整509篇 sparse 参考逐题完全一致。此预检没有读取答案评价来选择方法，没有神经调用。21项针对性测试还覆盖 Dense/Hybrid 同scope相同向量与排序、特殊loader断点复用、参考改写/缺chunk拒绝和global拒绝；数字fixture只验证软件语义。
+
+相对于为全509篇构建simple神经数组，省去4933个向量行与2409543正文tokens对应的索引条目；这包含可复用cache，不能直接冒称4933次冷编码或固定小时数。预检时额外缓存盘点见 CACHE_AVOIDANCE_SNAPSHOT.json；实际耗时仍以未来777行构建日志为准。simple只可报告 scoped-only test 结果，不能称simple全库检索已完成。
+
+冻结证据：D:/RAGScope_Runtime/runs/20261014_v2_simple_scope_preflight/SIMPLE_SCOPE_PLAN.json、BM25_TEST200_PARITY.json；scope plan包含75 doc IDs/hash、原SPLIT/queries/selection/config hashes、full sparse reference文件/hash。外部参考构块预算在新simple执行器中计入累计预算。后续仍以原命令 --final-contexts --dataset qasper --family simple 运行，输出TEST_CONTEXT_F512_O0_*_neighbor不变；index目录明确scoped_chunks，manifest引擎为ScopedArrayIndex-v1-full-reference-bm25。

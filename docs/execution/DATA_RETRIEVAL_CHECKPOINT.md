@@ -4,7 +4,7 @@
 
 ## 正在运行（不要启动第二个worker）
 
-正式QASPER结构候选R512全509篇索引正在CPU编码。终端session60616；实际worker PID24020/create_time1791913376.0555313，launcher8052。当前主循环最近输出1368/6551；逐块首次观察和文本向量均落D盘，可恢复。实时身份在`D:/RAGScope_Runtime/runs/20261014_v2_retrieval/worker.json`，RUNNING/stage=final_structured_qasper。
+正式QASPER结构候选R512全509篇索引正在CPU编码。终端session60616；实际worker PID24020/create_time1791913376.0555313，launcher8052。当前主循环最近输出2168/6551，18:26:42Z逐块凭据已2192/6551；逐块首次观察和文本向量均落D盘，可恢复。实时身份在`D:/RAGScope_Runtime/runs/20261014_v2_retrieval/worker.json`，RUNNING/stage=final_structured_qasper。
 
 当前自有CPU服务PID36892/create_time1791909754.8890424，loopback11436，12线程/12batch线程，CPU二进制、-ngl0/--no-op-offload、pooling last、L2、单slot。准确完整命令/模型和二进制SHA在`runs/20261014_v2/embedding_service.json`。它仍驻留，未向R3/Laya或其他模型宣告权重已释放。
 
@@ -17,7 +17,7 @@
 
 完整索引目标6551 children；路径`indexes/20261014_v2/all_chunks/ba23a7f21f5bc3ed9fccb5778163c07a6b2fda530c769ff235e15d44dd5238f6/dense_397d90b3f4fbe03e`。`embedding_first_observations.jsonl`和content-addressed cache均按已完成观察落盘。不能把cache向量数量当作最终manifest已完成。
 
-最近18:01:28Z盘点：904条durable observations、1311所需chunk已有cache、5240个独立文本/2223347正文tokens尚需编码；最近100次冷调用366.43 tokens/s，剩余约1.69h只作当时估算，不包含查询物化。最新状态文件`STRUCTURED_ENCODING_WORK_REMAINING.json`。
+最近18:26:42Z盘点：2192条durable observations、2601所需chunk已有cache、3950个独立文本/1676459正文tokens尚需编码；最近100次冷调用369.61 tokens/s，剩余约1.3–1.6h只作当时编码估算，不包含查询物化；host可用2365521920 bytes（2.20 GiB）。最新状态文件`STRUCTURED_ENCODING_WORK_REMAINING.json`。
 
 ## 已完成并冻结
 
@@ -49,7 +49,7 @@ R3由chunking_core处理，同retrieval Campaign单写锁。交接给其以下�
 - ROUTE_CONTEXT_TRAIN_R512_hybrid_neighbor.jsonl：train200，待物化。
 - ROUTE_CONTEXT_DEV_R512_hybrid_neighbor.jsonl：dev60，待物化。
 
-必须保留raw50与真正selected10；历史缺selected字段的误差类型保持不确定。root最新冻结资源顺序：structured+ROUTE完成/停止embedding → R3五组完成退出 → generation_evaluation的22-call 2B 4K/8K诊断完成退出GPU → Laya正常5GiB门槛或有证据的一次4.5–5GiB预检备选 → 归还本子任务CPU槽。不要自行并载；压力诊断有效guard为3GiB，由root与generation协调。等待实际资源归还后，核验同一CPU12服务可靠恢复，再继续下列两个命令，不改冻结实验身份：
+必须保留raw50与真正selected10；历史缺selected字段的误差类型保持不确定。root最新冻结资源顺序：structured+ROUTE完成/停止embedding → R3五组完成退出 → generation_evaluation的22-call 2B 4K/8K诊断完成退出GPU → Laya正常5GiB门槛或有证据的一次4.5–5GiB预检备选 → 归还本子任务CPU槽。不要自行并载；压力诊断有效guard为3GiB，由root与generation协调。等待实际资源归还后，核验同一CPU12服务可靠恢复，再继续下列两个命令，不改冻结问题/算法/模型/扩展。simple已通过独立SIMPLE_SCOPE_PLAN预检：75篇/777chunks，保留509篇/5710chunks的BM25参考统计，test200的top50排名与分数全相等；省去4933个额外向量行（含cache复用，不是4933次冷调用）。后续simple使用scoped_chunks，明确拒绝global；准确证据位于runs/20261014_v2_simple_scope_preflight/。不再执行simple全509神经编码：
 
 ```powershell
 . ./scripts/runtime_env.ps1

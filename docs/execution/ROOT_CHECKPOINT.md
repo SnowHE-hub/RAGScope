@@ -9,6 +9,7 @@
 - chunking_core现在idle，data已知需用collaboration.followup_task唤醒原代理执行R3。R3实际单论文候选5–28、均11.57，不冒称实际每题50；global才可完整50。R3源码/16测试与CPU采样、有界加载失败已就绪。
 - generation_evaluation现在idle；R3退出后root用followup_task唤醒它执行既定22调用stress。E3服务已退出，原11434未动；无root常驻模型或测试进程。
 - data正在落实计划379允许的simple范围优化：E6仅scoped test200覆盖75篇，E8/ROUTE/UI均structured。直接缩BM25语料会改变IDF/平均长度，禁止；候选实现只缩simple神经编码至75篇，仍用全509同配置chunk sparse统计，manifest记录scoped_only、75doc hash、all509 sparse reference hash且global拒绝。需逐题实测200个BM25排序/分数等价，再采用；若不等价保留原方案。不修改正在运行的structured/原ArrayIndex。
+- 05:46该优化真实200题BM25 top50完整ID/顺序/分数全部相等，计划SHA2f69eebd56caaccdcf027ff41dfbb6a89bcdd6de42f1ca26130020b45d90b26d，在独立20261014_v2_simple_scope_preflight。5710→777神经向量行；4933gross避免，其中4566文本/2230720tokens在预检时尚未缓存。21定向测试+root36冻结/loader/aux契约PASS。主worker同时3168/6551，3582vectors缓存，剩2969unique/1257911tokens，encoding ETA .95–1.16h，RAM1.89GiB。新simple分支尚未实跑。
 
 ## 最新代码与验证
 

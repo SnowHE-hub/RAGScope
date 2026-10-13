@@ -78,7 +78,7 @@ def report(home, campaign):
     manifests = {}
     for path in (home / "indexes" / campaign).rglob("manifest.json"):
         manifest = json.loads(path.read_text(encoding="utf-8"))
-        if manifest.get("identity", {}).get("engine") == "ArrayIndex-v2":
+        if manifest.get("identity", {}).get("engine") in {"ArrayIndex-v2", "ScopedArrayIndex-v1-full-reference-bm25"}:
             if manifest["identity"].get("data_manifest_sha256") not in known_data_manifests:
                 raise ValueError("Index points to a different data split manifest")
             if manifest["signature"] in manifests:
