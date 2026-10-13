@@ -350,3 +350,9 @@ def test_reranker_tight_budget_reduces_overlap_and_checks_tokenizer_limit():
 def test_reranker_invalid_parameters(kwargs):
     with pytest.raises(ValueError):
         reranker(**kwargs)
+def test_importing_reranker_does_not_load_unselected_backends():
+    import subprocess
+    import sys
+    code = "from ragscope.retrieval import Reranker; import sys; assert not {'pandas','torch','sentence_transformers'} & sys.modules.keys()"
+    result = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=30)
+    assert result.returncode == 0, result.stderr

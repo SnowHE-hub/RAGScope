@@ -1,4 +1,1267 @@
-{"tasks": [
-  {"id": "S1.1", "command": ["{python}", "scripts/audit_environment.py"], "input_files": ["scripts/audit_environment.py", "requirements-v2.lock"], "outputs": ["{runtime}/runs/{campaign}/environment.json"], "timeout_seconds": 120},
-  {"id": "S1.5", "command": ["{python}", "scripts/prepare_v2_data.py"], "outputs": ["{runtime}/corpora/{campaign}/SPLIT_MANIFEST.json"], "input_files": ["configs/v2/data.json"], "timeout_seconds": 1200}
-]}
+{
+  "schema_version": "task_catalog_v2",
+  "resource_policy": {
+    "original_task_restore": "manual_user_only",
+    "automatic_process_control": false,
+    "gpu_models": "single_serial_owned_service_with_verified_lease"
+  },
+  "tasks": [
+    {
+      "id": "S1.1",
+      "title": "只读环境体检",
+      "kind": "engineering",
+      "dependencies": [],
+      "completion_requirements": [
+        "project_and_environment_audited"
+      ],
+      "commands": [
+        {
+          "argv": [
+            "{python}",
+            "scripts/audit_environment.py"
+          ],
+          "purpose": "actual_task_action",
+          "requires": [
+            "{project}/requirements-v2.lock"
+          ],
+          "campaign_scope": "20261014_v2"
+        }
+      ],
+      "legacy_execution": {
+        "id": "S1.1",
+        "command": [
+          "{python}",
+          "scripts/audit_environment.py"
+        ],
+        "input_files": [
+          "scripts/audit_environment.py",
+          "requirements-v2.lock"
+        ],
+        "outputs": [
+          "{runtime}/runs/{campaign}/environment.json"
+        ],
+        "timeout_seconds": 120
+      },
+      "execution_completes_task": true,
+      "outputs": [
+        "{runtime}/runs/{campaign}/environment.json"
+      ]
+    },
+    {
+      "id": "S1.2",
+      "title": "代码事实、测试与修改清单",
+      "kind": "engineering",
+      "dependencies": [
+        "S1.1"
+      ],
+      "completion_requirements": [
+        "all_15_findings_audited"
+      ],
+      "commands": [
+        {
+          "argv": [
+            "{python}",
+            "-m",
+            "ragscope.experiments.task_catalog",
+            "--check-audit"
+          ],
+          "purpose": "actual_task_action",
+          "requires": []
+        }
+      ],
+      "input_files": [
+        "docs/execution/CODE_AUDIT.md"
+      ],
+      "execution_completes_task": true
+    },
+    {
+      "id": "S1.3",
+      "title": "统一数据结构和配置",
+      "kind": "engineering",
+      "dependencies": [
+        "S1.2"
+      ],
+      "completion_requirements": [
+        "schema_roundtrip_and_identity_tests"
+      ],
+      "commands": [
+        {
+          "argv": [
+            "{python}",
+            "-m",
+            "pytest",
+            "tests/unit/test_chunking_v2.py",
+            "-q",
+            "-p",
+            "no:cacheprovider"
+          ],
+          "purpose": "offline_functional_verification",
+          "requires": []
+        }
+      ],
+      "input_files": [
+        "ragscope/schema.py",
+        "configs/v2/chunking.json"
+      ],
+      "execution_completes_task": true
+    },
+    {
+      "id": "S1.4",
+      "title": "清洗和切块正确性",
+      "kind": "engineering",
+      "dependencies": [
+        "S1.3"
+      ],
+      "completion_requirements": [
+        "unicode_coverage_strict_budget_and_scope_tests"
+      ],
+      "commands": [
+        {
+          "argv": [
+            "{python}",
+            "-m",
+            "pytest",
+            "tests/unit/test_chunking_v2.py",
+            "-q",
+            "-p",
+            "no:cacheprovider"
+          ],
+          "purpose": "offline_functional_verification",
+          "requires": []
+        }
+      ],
+      "input_files": [
+        "ragscope/ingestion/cleaner.py",
+        "ragscope/ingestion/chunkers.py"
+      ],
+      "execution_completes_task": true
+    },
+    {
+      "id": "S1.5",
+      "title": "官方数据、划分与隔离记录",
+      "kind": "engineering",
+      "dependencies": [
+        "S1.4"
+      ],
+      "completion_requirements": [
+        "frozen_corpus_and_legacy_preserved"
+      ],
+      "commands": [
+        {
+          "argv": [
+            "{python}",
+            "scripts/prepare_v2_data.py",
+            "--campaign",
+            "{campaign}"
+          ],
+          "purpose": "actual_task_action",
+          "requires": []
+        }
+      ],
+      "legacy_execution": {
+        "id": "S1.5",
+        "command": [
+          "{python}",
+          "scripts/prepare_v2_data.py"
+        ],
+        "outputs": [
+          "{runtime}/corpora/{campaign}/SPLIT_MANIFEST.json"
+        ],
+        "input_files": [
+          "configs/v2/data.json"
+        ],
+        "timeout_seconds": 1200
+      },
+      "outputs": [
+        "{runtime}/corpora/{campaign}/SPLIT_MANIFEST.json"
+      ],
+      "input_files": [
+        "configs/v2/data.json"
+      ],
+      "execution_completes_task": true
+    },
+    {
+      "id": "S1.6",
+      "title": "CPU测试、依赖和恢复冒烟",
+      "kind": "engineering",
+      "dependencies": [
+        "S1.5"
+      ],
+      "completion_requirements": [
+        "unit_tests_pass",
+        "process_crash_resume_verified",
+        "dependency_lock"
+      ],
+      "commands": [
+        {
+          "argv": [
+            "{python}",
+            "-m",
+            "pytest",
+            "tests/unit",
+            "-q",
+            "-p",
+            "no:cacheprovider"
+          ],
+          "purpose": "offline_functional_verification",
+          "requires": []
+        }
+      ],
+      "input_files": [
+        "requirements-v2.lock",
+        "pytest.ini"
+      ],
+      "execution_completes_task": true,
+      "timeout_seconds": 900
+    },
+    {
+      "id": "S2.1",
+      "title": "索引和缓存身份",
+      "kind": "engineering",
+      "dependencies": [
+        "S1.6"
+      ],
+      "completion_requirements": [
+        "cache_manifest_integrity_and_model_identity_tests"
+      ],
+      "commands": [
+        {
+          "argv": [
+            "{python}",
+            "-m",
+            "pytest",
+            "tests/unit/test_indexing_v2.py",
+            "tests/unit/test_array_index_v2.py",
+            "-q",
+            "-p",
+            "no:cacheprovider"
+          ],
+          "purpose": "offline_functional_verification",
+          "requires": []
+        }
+      ],
+      "input_files": [
+        "ragscope/indexing/array_index.py",
+        "ragscope/indexing/embedding.py"
+      ],
+      "execution_completes_task": true
+    },
+    {
+      "id": "S2.2",
+      "title": "固定真实embedding和tokenizer",
+      "kind": "experiment",
+      "dependencies": [
+        "S2.1"
+      ],
+      "completion_requirements": [
+        "pinned_embedding_identity",
+        "real_cpu_encoding",
+        "token_budget_no_truncation"
+      ],
+      "commands": [
+        {
+          "argv": [
+            "{python}",
+            "scripts/run_retrieval_v2.py",
+            "--campaign",
+            "{campaign}",
+            "--stage",
+            "dense",
+            "--embedding-url",
+            "http://127.0.0.1:11436",
+            "--embedding-identity",
+            "{runtime}/runs/{campaign}/embedding_identity.json"
+          ],
+          "purpose": "actual_task_action",
+          "requires": [
+            "{runtime}/runs/{campaign}/embedding_identity.json"
+          ],
+          "lock_campaigns": [
+            "_retrieval"
+          ],
+          "external_coordination": true
+        }
+      ],
+      "child_sources": [
+        {
+          "suffix": "_retrieval",
+          "patterns": [
+            "E1_*_dense_*"
+          ],
+          "active_when_locked": true
+        }
+      ],
+      "missing_completion": "Actual fixed-model encoding identity and campaign validation are required."
+    },
+    {
+      "id": "S2.3",
+      "title": "11组有界切块dev矩阵",
+      "kind": "experiment",
+      "dependencies": [
+        "S2.2"
+      ],
+      "completion_requirements": [
+        "all_11_chunk_configs",
+        "all_33_real_bm25_dense_hybrid_dev_runs"
+      ],
+      "commands": [
+        {
+          "argv": [
+            "{python}",
+            "scripts/run_retrieval_v2.py",
+            "--campaign",
+            "{campaign}",
+            "--stage",
+            "all",
+            "--embedding-url",
+            "http://127.0.0.1:11436",
+            "--embedding-identity",
+            "{runtime}/runs/{campaign}/embedding_identity.json"
+          ],
+          "purpose": "actual_task_action",
+          "requires": [
+            "{runtime}/runs/{campaign}/embedding_identity.json"
+          ],
+          "lock_campaigns": [
+            "_retrieval"
+          ],
+          "external_coordination": true
+        }
+      ],
+      "child_sources": [
+        {
+          "suffix": "_retrieval",
+          "patterns": [
+            "chunks_*",
+            "E1_*"
+          ],
+          "active_when_locked": true
+        }
+      ],
+      "required_child_task_ids": [
+        "chunks_F256_O0",
+        "chunks_F256_O32",
+        "chunks_F512_O0",
+        "chunks_F512_O64",
+        "chunks_F1024_O0",
+        "chunks_F1024_O128",
+        "chunks_S512",
+        "chunks_R512",
+        "chunks_R1024",
+        "chunks_P256_1024",
+        "chunks_P256_1536",
+        "E1_F256_O0_bm25_none",
+        "E1_F256_O0_dense_none",
+        "E1_F256_O0_hybrid_none",
+        "E1_F256_O32_bm25_none",
+        "E1_F256_O32_dense_none",
+        "E1_F256_O32_hybrid_none",
+        "E1_F512_O0_bm25_none",
+        "E1_F512_O0_dense_none",
+        "E1_F512_O0_hybrid_none",
+        "E1_F512_O64_bm25_none",
+        "E1_F512_O64_dense_none",
+        "E1_F512_O64_hybrid_none",
+        "E1_F1024_O0_bm25_none",
+        "E1_F1024_O0_dense_none",
+        "E1_F1024_O0_hybrid_none",
+        "E1_F1024_O128_bm25_none",
+        "E1_F1024_O128_dense_none",
+        "E1_F1024_O128_hybrid_none",
+        "E1_S512_bm25_none",
+        "E1_S512_dense_none",
+        "E1_S512_hybrid_none",
+        "E1_R512_bm25_none",
+        "E1_R512_dense_none",
+        "E1_R512_hybrid_none",
+        "E1_R1024_bm25_none",
+        "E1_R1024_dense_none",
+        "E1_R1024_hybrid_none",
+        "E1_P256_1024_bm25_parent",
+        "E1_P256_1024_dense_parent",
+        "E1_P256_1024_hybrid_parent",
+        "E1_P256_1536_bm25_parent",
+        "E1_P256_1536_dense_parent",
+        "E1_P256_1536_hybrid_parent"
+      ],
+      "verify_fixed_embedding": true
+    },
+    {
+      "id": "S2.4",
+      "title": "固定上下文、检索和父块扩展",
+      "kind": "experiment",
+      "dependencies": [
+        "S2.3"
+      ],
+      "completion_requirements": [
+        "reference_budget2048",
+        "none_neighbor_parent_comparison",
+        "real_50_to_10_reranker"
+      ],
+      "commands": [
+        {
+          "argv": [
+            "{python}",
+            "scripts/run_retrieval_v2.py",
+            "--campaign",
+            "{campaign}",
+            "--selected-expansions",
+            "--embedding-url",
+            "http://127.0.0.1:11436",
+            "--embedding-identity",
+            "{runtime}/runs/{campaign}/embedding_identity.json"
+          ],
+          "purpose": "actual_task_action",
+          "requires": [
+            "{runtime}/runs/{campaign}/embedding_identity.json",
+            "{runtime}/runs/{campaign}_retrieval/CANDIDATE_SELECTION.json"
+          ],
+          "lock_campaigns": [
+            "_retrieval"
+          ],
+          "external_coordination": true
+        }
+      ],
+      "child_sources": [
+        {
+          "suffix": "_retrieval",
+          "patterns": [
+            "E1_*",
+            "TEST_CONTEXT_*"
+          ]
+        }
+      ],
+      "missing_completion": "Reranker and all context expansion results must be evidenced; partial BM25 runs are insufficient."
+    },
+    {
+      "id": "S2.5",
+      "title": "证据指标和dev预选冻结",
+      "kind": "experiment",
+      "dependencies": [
+        "S2.4"
+      ],
+      "completion_requirements": [
+        "two_candidates_frozen_on_dev",
+        "context_strategy_frozen",
+        "reference_evidence_metrics"
+      ],
+      "commands": [
+        {
+          "argv": [
+            "{python}",
+            "scripts/run_retrieval_v2.py",
+            "--campaign",
+            "{campaign}",
+            "--selected-expansions",
+            "--embedding-url",
+            "http://127.0.0.1:11436",
+            "--embedding-identity",
+            "{runtime}/runs/{campaign}/embedding_identity.json"
+          ],
+          "purpose": "actual_task_action",
+          "requires": [
+            "{runtime}/runs/{campaign}/embedding_identity.json",
+            "{runtime}/runs/{campaign}_retrieval/CANDIDATE_SELECTION.json"
+          ],
+          "lock_campaigns": [
+            "_retrieval"
+          ],
+          "external_coordination": true
+        }
+      ],
+      "child_sources": [
+        {
+          "suffix": "_retrieval",
+          "patterns": [
+            "E1_*"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S2.6",
+      "title": "检索产物和CPU资源审计",
+      "kind": "experiment",
+      "dependencies": [
+        "S2.5"
+      ],
+      "completion_requirements": [
+        "legacy_E0",
+        "E1_and_E8_artifacts",
+        "cpu_only_interference_audit"
+      ],
+      "commands": [
+        {
+          "argv": [
+            "{python}",
+            "scripts/run_legacy_v2.py"
+          ],
+          "purpose": "actual_task_action",
+          "lock_campaigns": [
+            "_legacy"
+          ],
+          "campaign_scope": "20261014_v2",
+          "requires": []
+        }
+      ],
+      "child_sources": [
+        {
+          "suffix": "_retrieval",
+          "patterns": [
+            "E8_*"
+          ]
+        },
+        {
+          "suffix": "_legacy",
+          "patterns": [
+            "E0.*"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S3.1",
+      "title": "统一生成、引用和错误接口",
+      "kind": "engineering",
+      "dependencies": [
+        "S1.6"
+      ],
+      "completion_requirements": [
+        "strict_json_visible_citations_errors_and_cache_tests"
+      ],
+      "commands": [
+        {
+          "argv": [
+            "{python}",
+            "-m",
+            "pytest",
+            "tests/unit/test_generation_v2.py",
+            "tests/unit/test_generation_campaign_v2.py",
+            "-q",
+            "-p",
+            "no:cacheprovider"
+          ],
+          "purpose": "offline_functional_verification",
+          "requires": []
+        }
+      ],
+      "input_files": [
+        "ragscope/generation/pipeline.py",
+        "ragscope/generation/llm_client.py"
+      ],
+      "execution_completes_task": true
+    },
+    {
+      "id": "S3.2",
+      "title": "本地后端与安全资源租约",
+      "kind": "experiment",
+      "dependencies": [
+        "S3.1",
+        "S2.6"
+      ],
+      "completion_requirements": [
+        "owned_loopback_backend",
+        "pinned_model_sources",
+        "safe_lease_and_manual_original_restore_policy"
+      ],
+      "commands": [
+        {
+          "argv": [
+            "{python}",
+            "-m",
+            "ragscope.experiments.task_catalog",
+            "--check-lease",
+            "--campaign",
+            "{campaign}"
+          ],
+          "purpose": "resource_policy_validation_only",
+          "requires": [
+            "{runtime}/runs/{campaign}/gpu_lease.json"
+          ],
+          "pending_exit_codes": [
+            2
+          ]
+        }
+      ],
+      "missing_completion": "No process stop/start/restore action is performed by this runner."
+    },
+    {
+      "id": "S3.3",
+      "title": "三个主模型和异构模型真实预检",
+      "kind": "experiment",
+      "dependencies": [
+        "S3.2"
+      ],
+      "completion_requirements": [
+        "three_main_models_20dev_pilots",
+        "lfm_real_pilot",
+        "common_frozen_budget"
+      ],
+      "commands": [
+        {
+          "argv": [
+            "{python}",
+            "scripts/pilot_generation.py",
+            "--size",
+            "2b",
+            "--limit",
+            "20"
+          ],
+          "purpose": "actual_task_action",
+          "gpu": true,
+          "external_coordination": true,
+          "requires": [
+            "{runtime}/runs/{campaign}/gpu_lease.json"
+          ],
+          "campaign_scope": "20261014_v2"
+        },
+        {
+          "argv": [
+            "{python}",
+            "scripts/pilot_generation.py",
+            "--size",
+            "4b",
+            "--limit",
+            "20"
+          ],
+          "purpose": "actual_task_action",
+          "gpu": true,
+          "external_coordination": true,
+          "requires": [
+            "{runtime}/runs/{campaign}/gpu_lease.json"
+          ],
+          "campaign_scope": "20261014_v2"
+        },
+        {
+          "argv": [
+            "{python}",
+            "scripts/pilot_generation.py",
+            "--size",
+            "9b",
+            "--limit",
+            "20"
+          ],
+          "purpose": "actual_task_action",
+          "gpu": true,
+          "external_coordination": true,
+          "requires": [
+            "{runtime}/runs/{campaign}/gpu_lease.json"
+          ],
+          "campaign_scope": "20261014_v2"
+        },
+        {
+          "argv": [
+            "{python}",
+            "scripts/pilot_generation.py",
+            "--size",
+            "lfm",
+            "--limit",
+            "20"
+          ],
+          "purpose": "actual_task_action",
+          "gpu": true,
+          "external_coordination": true,
+          "requires": [
+            "{runtime}/runs/{campaign}/gpu_lease.json"
+          ],
+          "campaign_scope": "20261014_v2"
+        }
+      ]
+    },
+    {
+      "id": "S3.4",
+      "title": "公平输入和共同预算冻结",
+      "kind": "experiment",
+      "dependencies": [
+        "S3.3"
+      ],
+      "completion_requirements": [
+        "same_context_and_reference_ids",
+        "all_actual_tokenizers_checked",
+        "immutable_experiment_manifest"
+      ],
+      "commands": [
+        {
+          "argv": [
+            "{python}",
+            "scripts/freeze_generation_v2.py",
+            "--campaign",
+            "{campaign}"
+          ],
+          "purpose": "actual_task_action",
+          "requires": [
+            "{runtime}/runs/{campaign}_retrieval/CANDIDATE_SELECTION.json",
+            "{runtime}/runs/{campaign}_retrieval/CONTEXT_SELECTION.json"
+          ],
+          "pending_exit_codes": [
+            2
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S3.5",
+      "title": "E2到E8分层真实实验",
+      "kind": "experiment",
+      "dependencies": [
+        "S3.4"
+      ],
+      "completion_requirements": [
+        "all_frozen_generation_tasks_accounted",
+        "E8_real_retrieval",
+        "10000_call_budget",
+        "failures_retained"
+      ],
+      "commands": [
+        {
+          "argv": [
+            "{python}",
+            "scripts/run_generation_campaign.py",
+            "--campaign-dir",
+            "{runtime}/runs/{campaign}_generation",
+            "--model-id",
+            "qwen_2b"
+          ],
+          "purpose": "actual_task_action",
+          "gpu": true,
+          "external_coordination": true,
+          "requires": [
+            "{runtime}/runs/{campaign}_generation/EXPERIMENT_MANIFEST.json",
+            "{runtime}/runs/{campaign}/generation_service.json",
+            "{runtime}/runs/{campaign}/gpu_lease.json"
+          ]
+        },
+        {
+          "argv": [
+            "{python}",
+            "scripts/run_generation_campaign.py",
+            "--campaign-dir",
+            "{runtime}/runs/{campaign}_generation",
+            "--model-id",
+            "qwen_4b"
+          ],
+          "purpose": "actual_task_action",
+          "gpu": true,
+          "external_coordination": true,
+          "requires": [
+            "{runtime}/runs/{campaign}_generation/EXPERIMENT_MANIFEST.json",
+            "{runtime}/runs/{campaign}/generation_service.json",
+            "{runtime}/runs/{campaign}/gpu_lease.json"
+          ]
+        },
+        {
+          "argv": [
+            "{python}",
+            "scripts/run_generation_campaign.py",
+            "--campaign-dir",
+            "{runtime}/runs/{campaign}_generation",
+            "--model-id",
+            "qwen_9b"
+          ],
+          "purpose": "actual_task_action",
+          "gpu": true,
+          "external_coordination": true,
+          "requires": [
+            "{runtime}/runs/{campaign}_generation/EXPERIMENT_MANIFEST.json",
+            "{runtime}/runs/{campaign}/generation_service.json",
+            "{runtime}/runs/{campaign}/gpu_lease.json"
+          ]
+        },
+        {
+          "argv": [
+            "{python}",
+            "scripts/run_generation_campaign.py",
+            "--campaign-dir",
+            "{runtime}/runs/{campaign}_generation",
+            "--model-id",
+            "lfm"
+          ],
+          "purpose": "actual_task_action",
+          "gpu": true,
+          "external_coordination": true,
+          "requires": [
+            "{runtime}/runs/{campaign}_generation/EXPERIMENT_MANIFEST.json",
+            "{runtime}/runs/{campaign}/generation_service.json",
+            "{runtime}/runs/{campaign}/gpu_lease.json"
+          ]
+        }
+      ],
+      "child_sources": [
+        {
+          "suffix": "_retrieval",
+          "patterns": [
+            "E8_*"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S3.6",
+      "title": "指标、支持性代理和统计",
+      "kind": "experiment",
+      "dependencies": [
+        "S3.5"
+      ],
+      "completion_requirements": [
+        "cluster_bootstrap2000_and_prespecified_contrasts",
+        "support_proxy_max200",
+        "quality_latency_memory_tables"
+      ],
+      "commands": [
+        {
+          "argv": [
+            "{python}",
+            "-m",
+            "pytest",
+            "tests/unit/test_metrics_v2.py",
+            "-q",
+            "-p",
+            "no:cacheprovider"
+          ],
+          "purpose": "offline_functional_verification",
+          "requires": []
+        },
+        {
+          "argv": [
+            "{python}",
+            "scripts/run_support_judge_v2.py",
+            "--campaign-dir",
+            "{runtime}/runs/{campaign}_generation"
+          ],
+          "purpose": "actual_task_action",
+          "requires": [
+            "{runtime}/runs/{campaign}_generation/EXPERIMENT_MANIFEST.json"
+          ],
+          "gpu": false,
+          "external_coordination": false
+        },
+        {
+          "argv": [
+            "{python}",
+            "scripts/run_support_judge_v2.py",
+            "--campaign-dir",
+            "{runtime}/runs/{campaign}_generation",
+            "--run"
+          ],
+          "purpose": "actual_task_action",
+          "requires": [
+            "{runtime}/runs/{campaign}_generation/EXPERIMENT_MANIFEST.json"
+          ],
+          "gpu": true,
+          "external_coordination": true
+        }
+      ],
+      "missing_completion": "Metric unit tests do not substitute for final real-data analysis and support judging."
+    },
+    {
+      "id": "S3.7",
+      "title": "逐行结果和错误分析",
+      "kind": "experiment",
+      "dependencies": [
+        "S3.5"
+      ],
+      "completion_requirements": [
+        "complete_row_provenance",
+        "failure_denominator",
+        "error_categories_and_uncertain_examples"
+      ],
+      "commands": [
+        {
+          "argv": [
+            "{python}",
+            "-m",
+            "pytest",
+            "tests/unit/test_generation_campaign_v2.py",
+            "-q",
+            "-p",
+            "no:cacheprovider"
+          ],
+          "purpose": "offline_functional_verification",
+          "requires": []
+        }
+      ],
+      "missing_completion": "Final persisted experiment rows and classified examples are required."
+    },
+    {
+      "id": "S4.1",
+      "title": "固定路径和规则路由",
+      "kind": "experiment",
+      "dependencies": [
+        "S3.5"
+      ],
+      "completion_requirements": [
+        "three_fixed_path_results",
+        "rule_final_answer_quality_same_configuration"
+      ],
+      "commands": [
+        {
+          "argv": [
+            "{python}",
+            "-m",
+            "pytest",
+            "tests/unit/test_routing_v2.py",
+            "-q",
+            "-p",
+            "no:cacheprovider"
+          ],
+          "purpose": "offline_functional_verification",
+          "requires": []
+        }
+      ],
+      "missing_completion": "Real same-generator three-path records required; functional fixtures are not route quality."
+    },
+    {
+      "id": "S4.2",
+      "title": "线性、MLP和LSTM路由",
+      "kind": "experiment",
+      "dependencies": [
+        "S4.1"
+      ],
+      "completion_requirements": [
+        "real_train200_dev60_proxy_labels",
+        "three_bounded_trainers",
+        "label_distribution_and_overfit_report"
+      ],
+      "commands": [
+        {
+          "argv": [
+            "{python}",
+            "-m",
+            "ragscope.routing.train",
+            "--labels",
+            "{runtime}/runs/{campaign}_routing/proxy_labels.jsonl",
+            "--output",
+            "{runtime}/runs/{campaign}_routing/linear",
+            "--kind",
+            "linear"
+          ],
+          "purpose": "actual_task_action",
+          "requires": [
+            "{runtime}/runs/{campaign}_routing/proxy_labels.jsonl"
+          ],
+          "external_coordination": true
+        },
+        {
+          "argv": [
+            "{python}",
+            "-m",
+            "ragscope.routing.train",
+            "--labels",
+            "{runtime}/runs/{campaign}_routing/proxy_labels.jsonl",
+            "--output",
+            "{runtime}/runs/{campaign}_routing/mlp",
+            "--kind",
+            "mlp"
+          ],
+          "purpose": "actual_task_action",
+          "requires": [
+            "{runtime}/runs/{campaign}_routing/proxy_labels.jsonl"
+          ],
+          "external_coordination": true
+        },
+        {
+          "argv": [
+            "{models_python}",
+            "-m",
+            "ragscope.routing.train",
+            "--labels",
+            "{runtime}/runs/{campaign}_routing/proxy_labels.jsonl",
+            "--output",
+            "{runtime}/runs/{campaign}_routing/lstm",
+            "--kind",
+            "lstm"
+          ],
+          "purpose": "actual_task_action",
+          "requires": [
+            "{runtime}/runs/{campaign}_routing/proxy_labels.jsonl"
+          ],
+          "external_coordination": true
+        }
+      ]
+    },
+    {
+      "id": "S4.3",
+      "title": "官方Laya真实结构化决策",
+      "kind": "experiment",
+      "dependencies": [
+        "S4.2"
+      ],
+      "completion_requirements": [
+        "official_pinned_checkpoint_real_inference",
+        "three_order_permutations",
+        "proxy_calibration_and_fallback"
+      ],
+      "commands": [
+        {
+          "argv": [
+            "{python}",
+            "-m",
+            "pytest",
+            "tests/unit/test_routing_v2.py",
+            "-q",
+            "-p",
+            "no:cacheprovider"
+          ],
+          "purpose": "offline_functional_verification",
+          "requires": []
+        }
+      ],
+      "missing_completion": "Laya model inference CLI/evidence is pending; adapter tests are implementation checks only."
+    },
+    {
+      "id": "S4.4",
+      "title": "路由质量和实际在线门槛",
+      "kind": "experiment",
+      "dependencies": [
+        "S4.3"
+      ],
+      "completion_requirements": [
+        "frozen100_test_replay",
+        "at_least30_real_online_rows",
+        "dev_deployment_gate"
+      ],
+      "commands": [
+        {
+          "argv": [
+            "{python}",
+            "-m",
+            "pytest",
+            "tests/unit/test_routing_v2.py",
+            "-q",
+            "-p",
+            "no:cacheprovider"
+          ],
+          "purpose": "offline_functional_verification",
+          "requires": []
+        }
+      ],
+      "missing_completion": "Real online callback campaign remains required; replay time cannot count as online time."
+    },
+    {
+      "id": "S4.5",
+      "title": "有限BF16 LoRA、恢复和同精度对照",
+      "kind": "experiment",
+      "dependencies": [
+        "S3.5"
+      ],
+      "completion_requirements": [
+        "ten_step_finite_gradient_preflight",
+        "stop_resume_complete_checkpoint",
+        "bounded_real_training",
+        "same_precision100_test_before_after"
+      ],
+      "commands": [
+        {
+          "argv": [
+            "{train_python}",
+            "-m",
+            "ragscope.training.prepare",
+            "--corpus-dir",
+            "{runtime}/corpora/{campaign}",
+            "--tokenizer-dir",
+            "{runtime}/models/tokenizers/Qwen3.5-2B",
+            "--output-dir",
+            "{runtime}/runs/{campaign}_lora/prepared_2b_1024_v2",
+            "--split",
+            "train",
+            "--max-seq-len",
+            "1024"
+          ],
+          "purpose": "actual_task_action",
+          "requires": [
+            "{runtime}/corpora/{campaign}/SPLIT_MANIFEST.json",
+            "{runtime}/models/tokenizers/Qwen3.5-2B/tokenizer.json"
+          ],
+          "environment": {
+            "USE_TORCH": "0"
+          },
+          "external_coordination": true
+        },
+        {
+          "argv": [
+            "{train_python}",
+            "-m",
+            "ragscope.training.prepare",
+            "--corpus-dir",
+            "{runtime}/corpora/{campaign}",
+            "--tokenizer-dir",
+            "{runtime}/models/tokenizers/Qwen3.5-2B",
+            "--output-dir",
+            "{runtime}/runs/{campaign}_lora/prepared_2b_1024_v2",
+            "--split",
+            "dev",
+            "--max-seq-len",
+            "1024"
+          ],
+          "purpose": "actual_task_action",
+          "requires": [
+            "{runtime}/corpora/{campaign}/SPLIT_MANIFEST.json",
+            "{runtime}/models/tokenizers/Qwen3.5-2B/tokenizer.json"
+          ],
+          "environment": {
+            "USE_TORCH": "0"
+          },
+          "external_coordination": true
+        },
+        {
+          "argv": [
+            "{train_python}",
+            "-m",
+            "ragscope.training.run",
+            "--config",
+            "configs/v2/lora.json",
+            "--path-index",
+            "0",
+            "--max-seq-len",
+            "1024",
+            "--model-dir",
+            "{runtime}/models/Qwen3.5-2B/15852e8c16360a2fea060d615a32b45270f8a8fc",
+            "--examples",
+            "{runtime}/runs/{campaign}_lora/prepared_2b_1024_v2/train_examples.jsonl",
+            "--dev-examples",
+            "{runtime}/runs/{campaign}_lora/prepared_2b_1024_v2/dev_examples.jsonl",
+            "--lease",
+            "{runtime}/runs/{campaign}/gpu_lease.json",
+            "--run-dir",
+            "{runtime}/runs/{campaign}_lora/train_2b_1024",
+            "--mode",
+            "preflight",
+            "--stop-after",
+            "5"
+          ],
+          "purpose": "actual_task_action",
+          "gpu": true,
+          "external_coordination": true,
+          "requires": [
+            "{runtime}/runs/{campaign}_lora/prepared_2b_1024_v2/train_examples.jsonl",
+            "{runtime}/runs/{campaign}_lora/prepared_2b_1024_v2/dev_examples.jsonl",
+            "{runtime}/runs/{campaign}/gpu_lease.json"
+          ]
+        },
+        {
+          "argv": [
+            "{train_python}",
+            "-m",
+            "ragscope.training.run",
+            "--config",
+            "configs/v2/lora.json",
+            "--path-index",
+            "0",
+            "--max-seq-len",
+            "1024",
+            "--model-dir",
+            "{runtime}/models/Qwen3.5-2B/15852e8c16360a2fea060d615a32b45270f8a8fc",
+            "--examples",
+            "{runtime}/runs/{campaign}_lora/prepared_2b_1024_v2/train_examples.jsonl",
+            "--dev-examples",
+            "{runtime}/runs/{campaign}_lora/prepared_2b_1024_v2/dev_examples.jsonl",
+            "--lease",
+            "{runtime}/runs/{campaign}/gpu_lease.json",
+            "--run-dir",
+            "{runtime}/runs/{campaign}_lora/train_2b_1024",
+            "--mode",
+            "preflight",
+            "--resume",
+            "--stop-after",
+            "10"
+          ],
+          "purpose": "actual_task_action",
+          "gpu": true,
+          "external_coordination": true,
+          "requires": [
+            "{runtime}/runs/{campaign}_lora/prepared_2b_1024_v2/train_examples.jsonl",
+            "{runtime}/runs/{campaign}_lora/prepared_2b_1024_v2/dev_examples.jsonl",
+            "{runtime}/runs/{campaign}/gpu_lease.json"
+          ]
+        },
+        {
+          "argv": [
+            "{train_python}",
+            "-m",
+            "ragscope.training.run",
+            "--config",
+            "configs/v2/lora.json",
+            "--path-index",
+            "0",
+            "--max-seq-len",
+            "1024",
+            "--model-dir",
+            "{runtime}/models/Qwen3.5-2B/15852e8c16360a2fea060d615a32b45270f8a8fc",
+            "--examples",
+            "{runtime}/runs/{campaign}_lora/prepared_2b_1024_v2/train_examples.jsonl",
+            "--dev-examples",
+            "{runtime}/runs/{campaign}_lora/prepared_2b_1024_v2/dev_examples.jsonl",
+            "--lease",
+            "{runtime}/runs/{campaign}/gpu_lease.json",
+            "--run-dir",
+            "{runtime}/runs/{campaign}_lora/train_2b_1024",
+            "--mode",
+            "train",
+            "--resume"
+          ],
+          "purpose": "actual_task_action",
+          "gpu": true,
+          "external_coordination": true,
+          "requires": [
+            "{runtime}/runs/{campaign}_lora/prepared_2b_1024_v2/train_examples.jsonl",
+            "{runtime}/runs/{campaign}_lora/prepared_2b_1024_v2/dev_examples.jsonl",
+            "{runtime}/runs/{campaign}/gpu_lease.json"
+          ]
+        },
+        {
+          "argv": [
+            "{train_python}",
+            "scripts/evaluate_lora_v2.py",
+            "--training-run",
+            "{runtime}/runs/{campaign}_lora/train_2b_1024",
+            "--campaign-dir",
+            "{runtime}/runs/{campaign}_generation",
+            "--model-dir",
+            "{runtime}/models/Qwen3.5-2B/15852e8c16360a2fea060d615a32b45270f8a8fc"
+          ],
+          "purpose": "actual_task_action",
+          "gpu": true,
+          "external_coordination": true,
+          "requires": [
+            "{runtime}/runs/{campaign}_lora/train_2b_1024/training_result.json",
+            "{runtime}/runs/{campaign}_generation/EXPERIMENT_MANIFEST.json",
+            "{runtime}/runs/{campaign}/gpu_lease.json"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "S4.6",
+      "title": "UI和中文学习交付",
+      "kind": "delivery",
+      "dependencies": [
+        "S3.6",
+        "S3.7",
+        "S4.4",
+        "S4.5"
+      ],
+      "completion_requirements": [
+        "real_ready_ui_no_default_mock",
+        "loopback_ui_smoke",
+        "all_learning_documents",
+        "honest_result_browser"
+      ],
+      "commands": [
+        {
+          "argv": [
+            "{python}",
+            "-m",
+            "pytest",
+            "tests/unit/test_ui_v2.py",
+            "-q",
+            "-p",
+            "no:cacheprovider"
+          ],
+          "purpose": "offline_functional_verification",
+          "requires": []
+        }
+      ],
+      "missing_completion": "Actual loopback UI smoke and complete learning delivery require final evidence."
+    }
+  ]
+}

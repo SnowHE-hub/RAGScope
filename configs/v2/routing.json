@@ -1,0 +1,21 @@
+{
+  "version": "routing_v1",
+  "paths": ["bm25", "hybrid", "hybrid_rerank"],
+  "generator": "smallest_frozen_main_model",
+  "train_n": 200,
+  "dev_n": 60,
+  "test_n": 100,
+  "online_n": 30,
+  "seed": 42,
+  "label_f1_tolerance": 0.01,
+  "label_tiebreak": ["lower_total_latency", "higher_evidence_coverage", "fixed_path_order"],
+  "max_epochs": 20,
+  "patience": 3,
+  "max_tfidf_features": 2048,
+  "svd_components": 64,
+  "mlp_hidden_units": 32,
+  "lstm": {"max_vocabulary": 8000, "embedding_size": 64, "hidden_size": 64, "max_tokens": 128, "parameter_limit": 2000000, "device": "cpu"},
+  "laya": {"repo": "convaiinnovations/laya", "revision": "7b928d828b7b0e022f929d9bd2e44165aa270148", "sdk_revision": "c73908d96ff73c0062c340a11bf7c54ec7d8bc4d", "sdk_version": "0.4.6", "device": "cpu", "checkpoint": "english_root_only", "backend": "eager", "max_len": 512, "min_confidence": 0.5, "fallback": "hybrid", "permutations": 3},
+  "deployment": {"dev_quality_tolerance": 0.01, "minimum_p50_latency_reduction": 0.1, "minimum_actual_online_n": 30, "default_until_validated": "fixed_hybrid"},
+  "jev": {"status": "NOT_APPLICABLE", "reason": "Optional paid external API excluded from this campaign"}
+}

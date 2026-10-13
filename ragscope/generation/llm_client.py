@@ -46,12 +46,13 @@ class LocalLLMClient:
     Identity fields describe pinned weights/backend, not just a mutable tag.
     """
     real_model = True
+    supports_output_schema = True
 
     def __init__(self, model, *, provider="ollama", base_url="http://127.0.0.1:11435",
                  revision="", weight_sha256="", quantization="", backend_version="",
                  chat_template_hash="", timeout=180, seed=42, num_ctx=4096,
                  num_gpu=0, think=False, json_constraint=True, keep_alive="5m",
-                 prompt_token_counter=None, service_device_verified=None):
+                 prompt_token_counter=None, service_device_verified=None, backend_runtime_config=None):
         if provider not in {"ollama", "llama.cpp"}:
             raise ValueError("Only local ollama and llama.cpp backends are enabled")
         if timeout <= 0 or num_ctx <= 0 or num_gpu < 0:
@@ -68,6 +69,8 @@ class LocalLLMClient:
                              base_url=self.base_url, timeout=timeout, seed=seed, num_ctx=num_ctx,
                              num_gpu=num_gpu, think=think, json_constraint=json_constraint,
                              service_device_verified=service_device_verified)
+        if backend_runtime_config is not None:
+            self.identity['backend_runtime_config'] = dict(backend_runtime_config)
         self.last_metadata = {}
 
     def _request(self, path, payload):
@@ -99,7 +102,7 @@ class LocalLLMClient:
         except (ValueError, TypeError) as exc:
             raise GenerationError("transport_error", "Invalid local server response") from exc
 
-    def chat(self, messages, max_tokens=512, temperature=0.0):
+    def chat(self, messages, max_tokens=512, temperature=0.0, output_schema=None):
         self.last_metadata = {}
         actual_input = self.prompt_token_counter(messages) if self.prompt_token_counter else None
         if actual_input is not None and actual_input + max_tokens > self.num_ctx:
@@ -110,7 +113,7 @@ class LocalLLMClient:
                            options=dict(num_predict=max_tokens, temperature=temperature,
                                         seed=self.seed, num_ctx=self.num_ctx, num_gpu=self.num_gpu))
             if self.json_constraint:
-                payload["format"] = OUTPUT_SCHEMA
+                payload["format"] = OUTPUT_SCHEMA if output_schema is None else output_schema
             data = self._request("/api/chat", payload)
             self.last_metadata = {key: data.get(key) for key in (
                 "model", "done_reason", "prompt_eval_count", "eval_count", "total_duration",
@@ -121,7 +124,7 @@ class LocalLLMClient:
                            temperature=temperature, seed=self.seed,
                            chat_template_kwargs={"enable_thinking": self.think})
             if self.json_constraint:
-                payload["response_format"] = {"type": "json_object", "schema": OUTPUT_SCHEMA}
+                payload["response_format"] = {"type": "json_object", "schema": OUTPUT_SCHEMA if output_schema is None else output_schema}
             data = self._request("/v1/chat/completions", payload)
             self.last_metadata = {"usage": data.get("usage"), "timings": data.get("timings"),
                                   "model": data.get("model"), "system_fingerprint": data.get("system_fingerprint")}

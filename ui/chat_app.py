@@ -1,496 +1,323 @@
-"""
-RAGScope Chat Demo — Streamlit single-page application.
+"""RAGScope v2 local Streamlit workbench. Importing never loads a model.
 
-Run from the project root:
-    streamlit run ui/chat_app.py
+Run: python -m streamlit run ui/chat_app.py --server.address 127.0.0.1
 """
-
 from __future__ import annotations
 
+import json
+import os
 import sys
 import time
+import urllib.request
+from dataclasses import asdict
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
-import plotly.graph_objects as go
-import streamlit as st
-
-# ── Path bootstrap ────────────────────────────────────────────────────────
 _ROOT = Path(__file__).resolve().parent.parent
 if str(_ROOT) not in sys.path:
     sys.path.insert(0, str(_ROOT))
 
-# ── Page config (MUST be the first Streamlit call) ────────────────────────
-st.set_page_config(
-    page_title="RAGScope",
-    page_icon="🔍",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
 
-# ── Late imports (after path is set) ─────────────────────────────────────
-from ragscope.generation.llm_client import MockLLMClient, OllamaLLMClient  # noqa: E402
-from ragscope.generation.pipeline import RAGPipeline, RAGResult   # noqa: E402
-from ragscope.indexing.embedding import EmbeddingService           # noqa: E402
-from ragscope.retrieval.bm25_retriever import BM25Retriever        # noqa: E402
-from ragscope.retrieval.dense_retriever import DenseRetriever      # noqa: E402
-from ragscope.retrieval.hybrid_retriever import HybridRetriever    # noqa: E402
-from ragscope.retrieval.reranker import Reranker                   # noqa: E402
-
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
-
-PRESET_QUESTIONS: List[str] = [
-    "What is machine learning?",
-    "How does attention mechanism work in transformers?",
-    "What are the applications of reinforcement learning?",
-]
-
-RETRIEVER_OPTIONS = ["Dense", "BM25", "Hybrid", "Hybrid+Rerank"]
-
-_COMPARISON_RETRIEVERS = ["Dense", "BM25", "Hybrid"]
-
-# ---------------------------------------------------------------------------
-# Wrapper: adds reranking transparently inside retrieve()
-# ---------------------------------------------------------------------------
-
-class _RerankedRetriever:
-    """Wraps a base retriever with cross-encoder reranking."""
-
-    def __init__(self, retriever, reranker: Reranker) -> None:
-        self._retriever = retriever
-        self._reranker  = reranker
-
-    def retrieve(self, query: str, k: int = 5) -> List[Dict]:
-        candidates = self._retriever.retrieve(query, k=k * 2)
-        return self._reranker.rerank(query, candidates, top_k=k)
+def read_ui_config(path=None):
+    path = Path(path or os.environ.get("RAGSCOPE_UI_CONFIG", _ROOT / "configs/v2/ui.json"))
+    if not path.exists():
+        return {"models": [], "indexes": [], "result_files": [], "status": "未配置就绪资源"}
+    config = json.loads(path.read_text(encoding="utf-8-sig"))
+    for name in ("models", "indexes", "result_files"):
+        if not isinstance(config.get(name, []), list):
+            raise ValueError(f"UI config {name} must be a list")
+    return config
 
 
-# ---------------------------------------------------------------------------
-# Ollama availability probe (cached 30 s to avoid hammering on every render)
-# ---------------------------------------------------------------------------
+def ready_options(items):
+    return [item for item in items if item.get("ready") is True]
 
-@st.cache_data(ttl=30, show_spinner=False)
-def _ollama_available(base_url: str = "http://localhost:11434") -> bool:
-    import requests
+
+def validate_index_entry(entry):
+    from ragscope.indexing.identity import signature, verify_artifacts
+    path = Path(entry["manifest_path"])
+    manifest = json.loads(path.read_text(encoding="utf-8-sig"))
+    if manifest["signature"] != signature(manifest["identity"]):
+        raise ValueError("索引身份签名不一致")
+    if not manifest.get("artifacts") or not verify_artifacts(manifest["artifacts"]):
+        raise ValueError("索引产物缺失或校验和不一致")
+    return manifest
+
+
+def load_index(entry):
+    from ragscope.indexing.array_index import ArrayIndex
+    manifest = validate_index_entry(entry)
+    return ArrayIndex.load(Path(entry["manifest_path"]).parent, manifest["identity"])
+
+
+def context_options(entry, index, strategy, budget):
+    options = {"max_tokens": budget, "expansion": strategy,
+               "chunk_lookup": {chunk["chunk_id"]: chunk for chunk in index.chunks}}
+    if strategy == "parent":
+        from ragscope.indexing.identity import signature, verify_artifacts
+        manifest = json.loads(Path(entry["chunk_manifest_path"]).read_text(encoding="utf-8-sig"))
+        if manifest["signature"] != signature(manifest["identity"]) or not verify_artifacts(manifest["artifacts"]):
+            raise ValueError("父块来源 manifest 验证失败")
+        parent_artifacts = [item for item in manifest["artifacts"] if Path(item["path"]).name == "parents.jsonl"]
+        if len(parent_artifacts) != 1:
+            raise ValueError("父块来源不明确")
+        parents = [json.loads(line) for line in Path(parent_artifacts[0]["path"]).read_text(encoding="utf-8").splitlines() if line]
+        options["parent_lookup"] = {parent["chunk_id"]: parent for parent in parents}
+    return options
+
+
+def load_result_file(path):
+    """Read only immutable, hash-verified RecordStore files; never repair in UI."""
+    from ragscope.experiments.ledger import read_records
+    from ragscope.indexing.identity import signature
+    path = Path(path)
+    if path.stat().st_size > 128 * 1024**2:
+        raise ValueError("记录超过浏览器单文件 128 MiB 预算，请使用已导出的汇总文件")
+    config_path = path.with_suffix(".config.json")
+    config = json.loads(config_path.read_text(encoding="utf-8-sig"))
+    expected = signature(config)
+    rows = read_records(path, repair_tail=False)
+    ids = set()
+    for row in rows:
+        if not row.get("record_hash") or row.get("config_hash") != expected:
+            raise ValueError("记录缺少校验和或配置身份不一致")
+        if row.get("record_id") in ids:
+            raise ValueError("记录 ID 重复")
+        ids.add(row.get("record_id"))
+    return config, rows
+
+
+def probe_model(entry):
+    """Metadata-only readiness check: no generate/pull/start requests."""
+    from ragscope.generation.llm_client import _local_url, _NoRedirect
+    if entry.get("ready") is not True:
+        return False, entry.get("reason", "未完成真实模型预检")
+    identity = entry.get("identity", {})
+    if not all(identity.get(key) for key in ("revision", "weight_sha256", "backend_version")):
+        return False, "模型身份不完整"
+    base = _local_url(entry["base_url"])
+    route = "/api/tags" if entry["provider"] == "ollama" else "/v1/models"
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), _NoRedirect())
     try:
-        r = requests.get(f"{base_url}/api/tags", timeout=2)
-        return r.status_code == 200
-    except Exception:
-        return False
-
-
-# ---------------------------------------------------------------------------
-# Cached resource loading
-# ---------------------------------------------------------------------------
-
-@st.cache_resource(show_spinner=False)
-def _load_all_resources() -> Dict:
-    """Load every model/index once; cache for the session lifetime."""
-    resources: Dict = {}
-
-    with st.spinner("⏳ 加载 embedding 模型…"):
-        emb = EmbeddingService()
-
-    with st.spinner("⏳ 加载 Dense 索引…"):
-        dense = DenseRetriever(chunking_strategy="fixed", embedding_service=emb)
-
-    with st.spinner("⏳ 加载 BM25 索引…"):
-        bm25 = BM25Retriever(chunking_strategy="fixed")
-
-    hybrid = HybridRetriever(dense_retriever=dense, bm25_retriever=bm25, alpha=0.5)
-
-    with st.spinner("⏳ 加载 Reranker 模型…"):
-        reranker = Reranker()
-
-    reranked_hybrid = _RerankedRetriever(hybrid, reranker)
-    llm = MockLLMClient()
-
-    retriever_map = {
-        "Dense":         dense,
-        "BM25":          bm25,
-        "Hybrid":        hybrid,
-        "Hybrid+Rerank": reranked_hybrid,
-    }
-    pipeline_map = {
-        name: RAGPipeline(ret, llm, use_cache=True)
-        for name, ret in retriever_map.items()
-    }
-
-    resources["retrievers"] = retriever_map
-    resources["pipelines"]  = pipeline_map
-    return resources
-
-
-# ---------------------------------------------------------------------------
-# Plotly helpers
-# ---------------------------------------------------------------------------
-
-def _confidence_gauge(confidence: float) -> go.Figure:
-    color = (
-        "#4CAF50" if confidence >= 0.7
-        else "#FF9800" if confidence >= 0.4
-        else "#F44336"
-    )
-    fig = go.Figure(go.Indicator(
-        mode="gauge+number",
-        value=round(confidence * 100, 1),
-        number={"suffix": "%", "font": {"size": 28}},
-        gauge={
-            "axis":  {"range": [0, 100], "tickwidth": 1},
-            "bar":   {"color": color, "thickness": 0.3},
-            "steps": [
-                {"range": [0,  40], "color": "#ffcdd2"},
-                {"range": [40, 70], "color": "#fff9c4"},
-                {"range": [70, 100], "color": "#c8e6c9"},
-            ],
-            "threshold": {
-                "line": {"color": "black", "width": 2},
-                "thickness": 0.75,
-                "value": confidence * 100,
-            },
-        },
-        title={"text": "Confidence", "font": {"size": 14}},
-    ))
-    fig.update_layout(height=180, margin=dict(t=40, b=5, l=15, r=15))
-    return fig
-
-
-def _latency_chart(retrieve_ms: float, llm_ms: float) -> go.Figure:
-    fig = go.Figure(go.Bar(
-        x=[retrieve_ms, max(llm_ms, 0)],
-        y=["Retrieve", "LLM"],
-        orientation="h",
-        marker_color=["#4C78A8", "#F58518"],
-        text=[f"{retrieve_ms:.0f} ms", f"{max(llm_ms,0):.0f} ms"],
-        textposition="auto",
-    ))
-    fig.update_layout(
-        height=130,
-        margin=dict(t=5, b=5, l=5, r=5),
-        xaxis_title="ms",
-        showlegend=False,
-    )
-    return fig
-
-
-def _token_chart(prompt_tokens: int, completion_tokens: int) -> go.Figure:
-    fig = go.Figure(go.Bar(
-        x=["Prompt", "Completion"],
-        y=[prompt_tokens, completion_tokens],
-        marker_color=["#4C78A8", "#54A24B"],
-        text=[f"{prompt_tokens:,}", f"{completion_tokens:,}"],
-        textposition="outside",
-    ))
-    fig.update_layout(height=180, margin=dict(t=10, b=5, l=5, r=5), showlegend=False)
-    return fig
-
-
-# ---------------------------------------------------------------------------
-# Session state initialisation
-# ---------------------------------------------------------------------------
-
-def _init_state() -> None:
-    defaults = {
-        "history":        [],     # List[Tuple[str, RAGResult, float, float]]
-        "question_input": "",
-        "last_result":    None,
-        "last_retrieve_ms": 0.0,
-        "last_llm_ms":    0.0,
-        "last_question":  "",
-        "last_llm_name":  "Mock",
-    }
-    for k, v in defaults.items():
-        if k not in st.session_state:
-            st.session_state[k] = v
-
-
-# ---------------------------------------------------------------------------
-# Main app
-# ---------------------------------------------------------------------------
-
-def main() -> None:
-    _init_state()
-
-    # ── Load resources ────────────────────────────────────────────────────
-    try:
-        resources = _load_all_resources()
+        with opener.open(base+route, timeout=2) as response:
+            payload = json.load(response)
+        models = payload.get("models", []) if entry["provider"] == "ollama" else payload.get("data", [])
+        names = {model.get("name", model.get("id")) for model in models}
+        return (True, "本地模型已就绪") if entry["model"] in names else (False, "所选模型未在该服务中就绪")
     except Exception as exc:
-        st.error(
-            f"**索引加载失败** — {exc}\n\n"
-            "请先运行：\n```bash\npython scripts/ingest.py\n"
-            "python scripts/build_indexes.py\n```"
-        )
-        st.stop()
+        return False, f"本地服务不可用：{type(exc).__name__}"
 
-    pipelines  = resources["pipelines"]
-    retrievers = resources["retrievers"]
 
-    # ── Sidebar ───────────────────────────────────────────────────────────
+def make_client(entry):
+    from ragscope.generation.llm_client import LocalLLMClient
+    identity = entry["identity"]
+    options = {key: identity[key] for key in ("revision", "weight_sha256", "backend_version", "quantization", "chat_template_hash") if key in identity}
+    options.update({key: entry[key] for key in ("num_ctx", "num_gpu", "service_device_verified", "think", "timeout") if key in entry})
+    client = LocalLLMClient(entry["model"], provider=entry["provider"], base_url=entry["base_url"], **options)
+    if entry["provider"] == "llama.cpp":
+        def count_prompt(messages):
+            rendered = client._request("/apply-template", {"messages": messages,
+                "chat_template_kwargs": {"enable_thinking": client.think}})
+            if not isinstance(rendered.get("prompt"), str):
+                raise ValueError("后端未返回真实 chat template")
+            return len(client._request("/tokenize", {"content": rendered["prompt"], "add_special": True})["tokens"])
+        client.prompt_token_counter = count_prompt
+    elif entry.get('counter_kind') in {'qwen35','lfm25'}:
+        from ragscope.generation.token_budget import Qwen35PromptCounter, LFMPromptCounter
+        cls = Qwen35PromptCounter if entry['counter_kind']=='qwen35' else LFMPromptCounter
+        counter = cls(entry['tokenizer_path'],entry['renderer_source'])
+        if counter.template_hash != identity.get('chat_template_hash'):
+            raise ValueError('已核验 tokenizer/模板身份发生变化')
+        client.prompt_token_counter = counter
+    elif entry.get("tokenizer_path"):
+        from transformers import AutoTokenizer
+        tokenizer = AutoTokenizer.from_pretrained(entry["tokenizer_path"], local_files_only=True, trust_remote_code=False)
+        client.prompt_token_counter = lambda messages: len(tokenizer.apply_chat_template(
+            messages, tokenize=True, add_generation_prompt=True, enable_thinking=client.think, return_dict=False))
+    else:
+        raise ValueError("Ollama 需要已落盘的真实 tokenizer 路径以校验完整输入预算")
+    return client
+
+
+class ScopedRetriever:
+    def __init__(self, index, entry, scope):
+        self.index, self.entry, self.scope = index, entry, scope
+        self.identity = {"index": index.identity, "method": entry.get("method", "bm25"), "scope": scope}
+        self.last_timings = {}
+
+    def retrieve(self, question, k=10):
+        method = self.entry.get("method", "bm25").lower()
+        start, query_vector, embedding_identity = time.perf_counter(), None, None
+        if method != "bm25":
+            from ragscope.indexing.local_embedding import HFJsonTokenizer, LocalEmbeddingService
+            config = self.entry["embedding"]
+            if not config.get("ready") or config.get("service_device_verified") != "cpu":
+                raise ValueError("查询 embedding 必须是已核验的 CPU 本地服务")
+            tokenizer = HFJsonTokenizer(config["tokenizer_path"], config["identity"]["model"], config["identity"]["revision"])
+            service = LocalEmbeddingService(config["base_url"], config["identity"], tokenizer,
+                                            Path(config["cache_dir"]), config.get("max_input_tokens", 1100))
+            query_vector, embedding_identity = service.embed_query(question), service.identity
+        self.last_timings["query_embedding_ms"] = (time.perf_counter()-start)*1000
+        ranking_start = time.perf_counter()
+        matches = self.index.search(question, method="hybrid" if method == "hybrid+rerank" else method,
+            query_vector=query_vector, embedding_identity=embedding_identity, scope=self.scope,
+            k=50 if method == "hybrid+rerank" else k, candidate_depth=50)
+        self.last_timings["ranking_ms"] = (time.perf_counter()-ranking_start)*1000
+        if method == "hybrid+rerank":
+            from ragscope.retrieval.reranker import Reranker
+            config = self.entry["reranker"]
+            if not config.get("ready"):
+                raise ValueError("重排模型未就绪")
+            reranker = Reranker(config["model_path"], revision=config["revision"], device="cpu", local_files_only=True)
+            rerank_start = time.perf_counter()
+            matches = reranker.rerank(question, matches, top_k=k)
+            self.last_timings["rerank_ms"] = (time.perf_counter()-rerank_start)*1000
+        return matches
+
+
+def result_view(st, record):
+    result = record.get("result", record)
+    if result.get("error"):
+        st.error(f"执行错误：{result['error']}")
+    elif result.get("abstain"):
+        st.warning("模型拒答：现有上下文不足以支持答案。")
+        st.write(result.get("answer", ""))
+    elif "answer" in result:
+        st.markdown(result["answer"])
+    if (result.get("real_model") is False and result.get("experiment_type") != "retrieval"
+            and any(key in result for key in ("answer", "raw_output"))):
+        st.warning("此记录使用 Mock，仅用于软件功能测试，不代表真实问答质量。")
+    if result.get("invalid_citations"):
+        st.error("不可见引用：" + ", ".join(result["invalid_citations"]))
+    bundle = result.get("context_bundle", record.get("context_bundle", {}))
+    citations = set(result.get("citations", []))
+    st.caption("下面展示模型实际收到的片段；检索但未发送的片段单独列出。")
+    for position, piece in enumerate(bundle.get("pieces", []), 1):
+        label = f"{position}. {piece['chunk_id']}" + (" · 被引用" if piece["chunk_id"] in citations else "")
+        with st.expander(label):
+            st.caption(f"论文：{piece.get('doc_id', '')} · 父块：{piece.get('parent_id') or '无'}")
+            st.text(piece.get("text", ""))
+            st.json(piece.get("unit_spans", []))
+    with st.expander("检索结果、预算与去重记录"):
+        st.json({"retrieved_chunks": result.get("retrieved_chunks", result.get("raw_retrieval", [])),
+                 "budget": bundle.get("budget", {}), "deduplication": bundle.get("deduplication", []),
+                 "truncations": bundle.get("truncations", []), "context_hash": bundle.get("context_hash")})
+    timing = result.get("timings", {})
+    columns = st.columns(3)
+    for column, key, label in zip(columns, ("retrieval_ms", "generation_ms", "total_ms"), ("检索毫秒", "生成毫秒", "总毫秒")):
+        column.metric(label, f"{timing[key]:.1f}" if isinstance(timing.get(key), (int, float)) else "N/A")
+    with st.expander("模型身份、资源、评分与原始输出"):
+        st.json({key: result.get(key) for key in ("model_identity", "backend_metadata", "resources", "scores", "timings", "prompt_hash", "cache_hit")})
+        st.code(result.get("raw_output", ""), language=None)
+    st.caption("非流式请求没有首 token 实测值；引用可见率不等于答案支持性。")
+
+
+def main():
+    import streamlit as st
+    st.set_page_config(page_title="RAGScope v2", page_icon="🔎", layout="wide")
+    try:
+        config = read_ui_config()
+    except Exception as exc:
+        st.error(f"界面配置无法读取：{exc}")
+        return
+    st.title("RAGScope v2 · 技术资料问答与实验台")
+    st.caption("英文公开文本实验 · 中文操作说明 · 本地运行")
+    tabs = st.tabs(["资料问答", "实验记录", "资源状态"])
+    indexes, models = ready_options(config.get("indexes", [])), ready_options(config.get("models", []))
     with st.sidebar:
-        st.title("🔍 RAGScope")
-        st.caption("透明 RAG 问答演示系统")
-
-        retriever_name: str = st.radio(
-            "检索器",
-            RETRIEVER_OPTIONS,
-            index=0,
-            help="选择底层检索策略",
-        )
-
-        _OLLAMA_LABEL = "Ollama (qwen2.5:7b)"
-        llm_name: str = st.radio(
-            "LLM",
-            ["Mock", _OLLAMA_LABEL],
-            index=0,
-            help="Mock 无需 API key；Ollama 需要在 WSL 中运行 `ollama serve`",
-        )
-        if llm_name == _OLLAMA_LABEL and not _ollama_available():
-            st.warning(
-                "⚠️ Ollama 不可用（localhost:11434），已自动降级到 Mock。\n\n"
-                "WSL 中运行：`ollama serve`",
-                icon="🦙",
-            )
-            llm_name = "Mock (fallback)"
-
-        k: int = st.slider("Top-k", min_value=1, max_value=10, value=5,
-                           help="检索返回的 chunk 数量")
-
-        show_chunks: bool = st.toggle("显示检索结果", value=True)
-        show_cost:   bool = st.toggle("显示成本", value=True)
-
-        st.divider()
-        st.markdown("**💡 预设问题**")
-        for pq in PRESET_QUESTIONS:
-            if st.button(pq, use_container_width=True, key=f"preset_{pq}"):
-                st.session_state["question_input"] = pq
-                st.rerun()
-
-        st.divider()
-        if st.session_state["history"]:
-            if st.button("🗑 清空历史", use_container_width=True):
-                st.session_state["history"] = []
-                st.session_state["last_result"] = None
-                st.rerun()
-
-    # ── Top-level columns ─────────────────────────────────────────────────
-    col_qa, col_trans = st.columns([3, 2], gap="large")
-
-    # ── Input area (col_qa top) ───────────────────────────────────────────
-    with col_qa:
-        st.subheader("💬 问答")
-        question: str = st.text_input(
-            "输入问题",
-            key="question_input",
-            placeholder="Ask anything about ML / AI…",
-            label_visibility="collapsed",
-        )
-        submitted: bool = st.button(
-            "Submit", type="primary", use_container_width=True
-        )
-
-    # ── Run pipeline on submission ────────────────────────────────────────
-    error_msg: Optional[str] = None
-
-    if submitted and question.strip():
-        try:
-            with st.spinner("🔍 检索中 + 🤖 生成中…"):
-                retriever_obj = retrievers[retriever_name]
-
-                # Select LLM client based on sidebar choice.
-                # Ollama: disable cache (avoid key collisions with Mock results).
-                # Mock / fallback: use the pre-built cached pipeline.
-                use_ollama = llm_name.startswith("Ollama")
-                if use_ollama:
-                    active_llm      = OllamaLLMClient()
-                    active_pipeline = RAGPipeline(retriever_obj, active_llm, use_cache=False)
-                else:
-                    active_pipeline = pipelines[retriever_name]  # Mock, cached
-
-                # Time retrieve separately for the latency breakdown
-                t0 = time.perf_counter()
-                retriever_obj.retrieve(question, k=k)
-                retrieve_ms = (time.perf_counter() - t0) * 1000
-
-                result: RAGResult = active_pipeline.answer(question, k=k)
-                llm_ms = max(0.0, result.latency_ms - retrieve_ms)
-
-            # Push to history (keep last 5)
-            entry = (question, result, retrieve_ms, llm_ms)
-            st.session_state["history"] = (
-                [entry] + st.session_state["history"]
-            )[:5]
-            st.session_state["last_result"]      = result
-            st.session_state["last_retrieve_ms"] = retrieve_ms
-            st.session_state["last_llm_ms"]      = llm_ms
-            st.session_state["last_question"]    = question
-            st.session_state["last_llm_name"]    = llm_name
-
-        except Exception as exc:
-            error_msg = str(exc)
-
-    # ── Resolve what to display ───────────────────────────────────────────
-    display_result: Optional[RAGResult] = st.session_state["last_result"]
-    display_q:      str  = st.session_state["last_question"]
-    display_r_ms:   float = st.session_state["last_retrieve_ms"]
-    display_l_ms:   float = st.session_state["last_llm_ms"]
-
-    # ── QA column ─────────────────────────────────────────────────────────
-    with col_qa:
-        if error_msg:
-            st.error(f"⚠️ 出错了：{error_msg}")
-
-        elif display_result is not None:
-            res = display_result
-
-            # Answer
-            st.markdown("#### 📝 答案")
-            st.markdown(
-                f"<div style='font-size:1.1rem; line-height:1.7; "
-                f"padding:12px; background:#f8f9fa; border-radius:8px; "
-                f"border-left:4px solid #4C78A8'>{res.answer}</div>",
-                unsafe_allow_html=True,
-            )
-
-            st.write("")
-
-            # Citations
-            if res.citations:
-                st.markdown("**🔖 引用来源**")
-                cols_cit = st.columns(min(len(res.citations), 3))
-                for i, cid in enumerate(res.citations):
-                    cols_cit[i % 3].code(cid, language=None)
-
-            st.write("")
-
-            # Confidence gauge
-            st.plotly_chart(
-                _confidence_gauge(res.confidence),
-                use_container_width=True,
-                config={"displayModeBar": False},
-            )
-
+        st.subheader("运行状态")
+        st.write(config.get("status", "使用已冻结、已验证资源"))
+        st.caption(f"就绪检索配置 {len(indexes)} · 就绪生成模型 {len(models)}")
+        if os.environ.get("CUDA_VISIBLE_DEVICES") == "":
+            st.info("本进程 CPU-only；生成服务的设备状态需单独核验。")
+        st.caption("页面不会自动下载或启动模型。")
+    with tabs[0]:
+        selected_index = None
+        if indexes:
+            ids = [item["id"] for item in indexes]
+            default = ids.index(config["default_retriever"]) if config.get("default_retriever") in ids else 0
+            chosen = st.selectbox("检索配置", ids, index=default)
+            selected_index = indexes[ids.index(chosen)]
         else:
-            st.info("在上方输入问题，点击 **Submit** 开始。")
-
-        # ── Conversation history ──────────────────────────────────────────
-        history = st.session_state["history"]
-        if len(history) > 1:
-            with st.expander(f"🕑 最近对话历史（{len(history) - 1} 条）", expanded=False):
-                for q_h, r_h, _, _ in history[1:]:
-                    st.markdown(f"**Q:** {q_h}")
-                    preview = r_h.answer
-                    if len(preview) > 200:
-                        preview = preview[:200] + "…"
-                    st.markdown(f"**A:** {preview}")
-                    st.caption(
-                        f"Confidence: {r_h.confidence:.0%} | "
-                        f"Cache: {'✅' if r_h.cache_hit else '❌'} | "
-                        f"Latency: {r_h.latency_ms:.0f} ms"
-                    )
-                    st.divider()
-
-    # ── Transparency column ───────────────────────────────────────────────
-    with col_trans:
-        st.subheader("🔬 透明面板")
-
-        if display_result is None:
-            st.info("提交问题后，这里会显示检索细节、延迟和成本。")
+            st.info("没有已验证的就绪索引；仍可查看实验记录与资源状态。")
+        choices = ["仅检索证据"] + [item["id"] for item in models]
+        default = choices.index(config["default_model"]) if config.get("default_model") in choices else 0
+        model_id = st.selectbox("生成模型", choices, index=default)
+        if not models:
+            st.info("真实生成模型尚未就绪；不会自动切换到 Mock。")
+        scope = st.text_input("论文范围（doc_id；留空为全库检索）", value=config.get("default_scope", ""))
+        strategies = ["none", "neighbor"] + (["parent"] if selected_index and selected_index.get("parent_ready") else [])
+        strategy = st.selectbox("上下文策略", strategies,
+            index=strategies.index(selected_index.get("expansion", "none")) if selected_index and selected_index.get("expansion", "none") in strategies else 0,
+            format_func=lambda value: {"none": "直接使用片段", "neighbor": "补相邻片段", "parent": "扩展父块"}[value])
+        k = st.slider("最多返回片段数", 1, 10, 10)
+        question = st.text_input("问题", placeholder="输入关于已选论文的问题")
+        if st.button("运行", type="primary", disabled=selected_index is None):
+            if not question.strip():
+                st.warning("请输入问题。")
+            else:
+                try:
+                    from ragscope.generation.context import pack_context
+                    started = time.perf_counter()
+                    index = load_index(selected_index)
+                    retriever = ScopedRetriever(index, selected_index, scope or None)
+                    packing = context_options(selected_index, index, strategy, config.get("reference_budget", 2048))
+                    if scope and scope not in index.by_doc:
+                        raise ValueError("该论文不在所选索引中")
+                    if model_id == "仅检索证据":
+                        chunks = retriever.retrieve(question, k)
+                        bundle = pack_context(chunks, scope=scope or None, **packing)
+                        record = {"question": question, "retrieved_chunks": chunks, "context_bundle": asdict(bundle),
+                                  "timings": {"retrieval_ms": (time.perf_counter()-started)*1000,
+                                              "total_ms": (time.perf_counter()-started)*1000, **retriever.last_timings}}
+                    else:
+                        from ragscope.generation.pipeline import RAGPipeline
+                        entry = next(model for model in models if model["id"] == model_id)
+                        ready, reason = probe_model(entry)
+                        if not ready:
+                            raise ValueError(reason)
+                        client = make_client(entry)
+                        pipeline = RAGPipeline(retriever, client, use_cache=False, context_config=packing)
+                        record = asdict(pipeline.answer(question, k, scope=scope or None))
+                    st.session_state["live_result"] = record
+                except Exception as exc:
+                    st.error(f"本次执行未完成：{exc}")
+        if "live_result" in st.session_state:
+            result_view(st, st.session_state["live_result"])
+    with tabs[1]:
+        files = config.get("result_files", [])
+        if not files:
+            st.info("尚无已登记实验记录。这里不会将示例数据当作真实实验。")
         else:
-            res = display_result
-
-            # Cache status
-            cache_label = "✅ Cache 命中" if res.cache_hit else "❌ Cache 未命中"
-            cache_color = "#c8e6c9" if res.cache_hit else "#ffcdd2"
-            st.markdown(
-                f"<div style='padding:6px 12px; background:{cache_color}; "
-                f"border-radius:6px; margin-bottom:8px'>{cache_label}</div>",
-                unsafe_allow_html=True,
-            )
-
-            # ── Retrieved chunks ──────────────────────────────────────────
-            if show_chunks and res.retrieved_chunks:
-                st.markdown("##### 📄 检索到的 Chunks")
-                for i, chunk in enumerate(res.retrieved_chunks):
-                    score_val = chunk.get("rerank_score", chunk.get("score", 0.0))
-                    score_label = (
-                        f"rerank_score: {score_val:.4f}"
-                        if "rerank_score" in chunk
-                        else f"score: {score_val:.4f}"
-                    )
-                    with st.expander(
-                        f"#{i+1}  {chunk['chunk_id']}  —  {score_label}",
-                        expanded=(i == 0),
-                    ):
-                        st.caption(f"**doc_id**: {chunk.get('doc_id', '—')}")
-                        st.text(chunk["text"][:500] + ("…" if len(chunk["text"]) > 500 else ""))
-
-            # ── Latency breakdown ─────────────────────────────────────────
-            st.markdown("##### ⏱ 延迟分解")
-            st.plotly_chart(
-                _latency_chart(display_r_ms, display_l_ms),
-                use_container_width=True,
-                config={"displayModeBar": False},
-            )
-            st.caption(f"Total: **{res.latency_ms:.0f} ms**")
-
-            # ── Token usage & cost ────────────────────────────────────────
-            if show_cost:
-                st.markdown("##### 💰 Token 用量与成本")
-                st.plotly_chart(
-                    _token_chart(res.prompt_tokens, res.completion_tokens),
-                    use_container_width=True,
-                    config={"displayModeBar": False},
-                )
-                total_tokens = res.prompt_tokens + res.completion_tokens
-                c1, c2, c3 = st.columns(3)
-                c1.metric("Prompt",     f"{res.prompt_tokens:,}")
-                c2.metric("Completion", f"{res.completion_tokens:,}")
-                c3.metric("Total",      f"{total_tokens:,}")
-                if res.cost_usd > 0:
-                    st.metric("预估费用", f"${res.cost_usd:.6f} USD")
-                elif st.session_state.get("last_llm_name", "Mock").startswith("Ollama"):
-                    st.caption("🦙 Ollama 本地模型 — 免费")
-                else:
-                    st.caption("🤖 MockLLMClient — 无实际费用")
-
-    # ── Bottom: retriever comparison ──────────────────────────────────────
-    if display_result is not None and display_q:
-        st.divider()
-        with st.expander("🆚 检索器横向对比（Dense / BM25 / Hybrid）", expanded=False):
-            comp_cols = st.columns(3)
-            for col, name in zip(comp_cols, _COMPARISON_RETRIEVERS):
-                with col:
-                    st.markdown(f"#### {name}")
-                    try:
-                        with st.spinner(f"{name} 检索中…"):
-                            comp_result: RAGResult = pipelines[name].answer(
-                                display_q, k=5
-                            )
-                        st.markdown(
-                            f"<div style='font-size:0.9rem; padding:8px; "
-                            f"background:#f8f9fa; border-radius:6px; "
-                            f"min-height:80px'>{comp_result.answer}</div>",
-                            unsafe_allow_html=True,
-                        )
-                        st.caption(
-                            f"Confidence: {comp_result.confidence:.0%} | "
-                            f"Latency: {comp_result.latency_ms:.0f} ms"
-                        )
-                        st.markdown("**Top-3 Chunks**")
-                        for chunk in comp_result.retrieved_chunks[:3]:
-                            score = chunk.get("score", 0.0)
-                            st.markdown(
-                                f"<div style='background:#eef2ff; border-radius:4px; "
-                                f"padding:6px; margin-bottom:4px; font-size:0.82rem'>"
-                                f"<code>{chunk['chunk_id']}</code> &nbsp; "
-                                f"<span style='color:#666'>score: {score:.4f}</span><br>"
-                                f"{chunk['text'][:140]}…</div>",
-                                unsafe_allow_html=True,
-                            )
-                    except Exception as exc:
-                        st.error(f"检索失败：{exc}")
+            selected = st.selectbox("运行记录文件", files)
+            if st.button("加载并校验记录"):
+                try:
+                    _, rows = load_result_file(selected)
+                    st.session_state["view_rows"] = rows
+                    st.session_state["view_path"] = selected
+                except Exception as exc:
+                    st.error(f"记录验证失败：{exc}")
+            if st.session_state.get("view_path") == selected:
+                rows = st.session_state.get("view_rows", [])
+                st.caption(f"已验证 {len(rows)} 条记录 · 此处是历史回放")
+                if rows:
+                    row_index = st.number_input("记录序号", min_value=1, max_value=len(rows), value=1)
+                    row = rows[int(row_index)-1]
+                    st.write(row.get("question", row.get("query_id", row.get("record_id", ""))))
+                    result_view(st, row)
+                    with st.expander("完整原始记录"):
+                        st.json(row)
+    with tabs[2]:
+        for label in ("indexes", "models"):
+            st.subheader("索引配置" if label == "indexes" else "模型配置")
+            entries = config.get(label, [])
+            if not entries:
+                st.write("未登记")
+            for entry in entries:
+                st.write(f"{entry['id']}：{'已登记就绪' if entry.get('ready') else '未安装 / 未评测 / 未就绪'}")
+                st.caption(entry.get("reason", ""))
+                with st.expander(f"{entry['id']} · 版本与设备"):
+                    st.json(entry)
+        st.caption("已登记就绪仍会在运行时检查文件校验和、模型服务和输入预算；CPU offload 只按实际记录展示。")
 
 
 if __name__ == "__main__":

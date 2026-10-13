@@ -51,6 +51,8 @@ def _allowed(doc_id, scope):
     if isinstance(scope, str):
         return doc_id == scope
     if isinstance(scope, dict):
+        if scope.get("kind") == "global":
+            return True
         allowed = scope.get("doc_ids", [scope["doc_id"]] if "doc_id" in scope else None)
         if allowed is None:
             raise ValueError("scope must declare doc_id or doc_ids")

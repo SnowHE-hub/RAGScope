@@ -8,3 +8,24 @@
 - 32逻辑核按任务书限制为4线程；初始空闲RAM较低，CPU模型需串行、低内存实现与加载前预算核验。
 - 采用 Windows Python 3.12 隔离环境；现有 uv 可执行文件可用，但尚未发现受管已安装 Python。必要时由 uv 从官方 Python standalone 发行资产安装到 D 盘专用位置。
 - 保留现有模块增量修改，不新建平行项目。Mock仅离线功能验证，正式结果必须有真实模型身份。
+
+## CPU检索、生成与资源交接
+- Qwen3-Embedding-0.6B采用官方Q8_0 GGUF+llama.cpp CPU构建，真实tokenizer计数；三次内存预检拒绝后，在阶段三获追加CPU/GPU终止授权并释放已核验研究任务，重新启动成功。S2计算本身始终CPU。
+- BM25矩阵与E8已实际运行；Dense/Hybrid仍在逐条可恢复运行，不能依据BM25初筛冒充最终dev选择。
+- 主生成模型采用官方Ollama明确2b/4b/9b-q4_K_M标签，避免默认2B Q8_0与其他Q4_K_M混比。自建环回11435服务和独立D盘模型仓库，不重启原服务。
+- Qwen3.5提示词使用固定v0.34.4原生renderer源码审计，完整chat token与真实后端逐条比较。首例1981=1981；冷启动83s、首轮prefill76s单列，不当作稳态延迟。
+- 预检发现模型可能把引用ID外方括号包含进JSON；原始无效引用保留，prompt v2.1明确去掉外括号，后续所有模型同prompt重新预检，不伪造或自动补引用。
+- 原研究队列曾被另一个Cursor会话重启；两轮中断/断点核验历史保留。最新用户确认已停止训练及定时检查，且用户将自行续跑。最终只释放本项目资源并通知，不自动恢复原队列，不触碰日更进程。
+
+### 2026-10-14：定位并关闭本项目后端的历史 prompt RAM 缓存
+2B/4B 连续真实预检中，独立服务多次因可用 RAM 连续低于 512 MiB 退出。4B 日志每次换题保存约121.803 MiB prompt state；这不是权重大小变化。安装的 llama-server --help 实证默认 --cache-ram=8192 MiB，并支持 LLAMA_ARG_CACHE_RAM；Ollama v0.34.4 llm/llama_server.go:417 使用 os.Environ() 传递环境。因此只给本项目服务增加 LLAMA_ARG_CACHE_RAM=0，不改原服务/全局环境，不降低保护线。重启后需由实际日志确认禁用。已失败行保留，重试仅补失败/缺失题；过去的pilot延迟不能与正式禁缓存结果混合。
+官方来源：https://raw.githubusercontent.com/ollama/ollama/v0.34.4/llm/llama_server.go 与 https://raw.githubusercontent.com/ggml-org/llama.cpp/b11429/common/arg.cpp 。上游问题 #18264 作为线索，实际决策以已安装二进制帮助和版本源码为证据。
+
+### 2026-10-14：正式冻结前最后一次引用输出约束修正
+对相同20条dev预检独立汇总发现：2B/4B/9B/LFM分别有10/11/17/20条回答包含不可见引用ID（常见为漏掉qasper前缀），虽然JSON和token预算均有效。保留这些负结果与原始输出，不能称为引用质量通过。
+在正式test生成尚未开始的前提下，统一为全部本地生成模型使用ContextBundle可见chunk_id的JSON schema enum；无上下文只允许空引用数组。该约束只限制合法引用标识，不选择金标准证据、不修改答案事实、不在生成后修补引用。schema/hash/配置写入结果，prompt版本升级rag-json-v2.2并做一次20条×4模型的实际兼容预检；这之后冻结，不继续增加prompt搜索组合。
+引用ID可见性因此成为受输出语法保证的工程性质，正式报告必须明确这一点，不能将100%可见性解释成模型事实支持能力或与旧自由ID条件直接比较。最终引用内容是否覆盖证据、回答是否受所引内容支持仍需真实评测。
+
+- 最终LFM预检20次真实完成且token一致，1次done_reason=length在统一512输出上限截断JSON。兼容状态单列PASS_WITH_OUTPUT_FAILURES，质量失败19/20有效输出如实保留，不因输出质量更换模型、提高上限或重试挑答案。冻结器仅接受有确切length证据的此类输出失败，传输/OOM/token或schema差异仍阻止冻结。
+
+- 路由正式接线固定读取生成manifest内ROUTE_TRAIN200/ROUTE_DEV60；test100在看路径结果前seed42冻结，避免旧辅助hash采样选成另一批题。可答质量仍为token F1；不可答的F1保留N/A、标签使用明确correct_abstention代理，单列拒答率，不把两者混称平均F1。所有回放成本为实际检索与生成计时之和，尚不是在线耗时。26项路由测试PASS，1项Torch专属测试另环境。

@@ -1,11 +1,13 @@
 """Qwen official GGUF CPU embedding adapter; never silently truncates inputs."""
 from __future__ import annotations
 import time
+import json
 import urllib.parse
 from pathlib import Path
 import numpy as np
 import requests
 from ragscope.indexing.array_index import ArrayCache
+from ragscope.indexing.identity import atomic_json
 
 QUERY_INSTRUCTION = "Instruct: Given a question about a scientific paper, retrieve relevant passages that answer the query\nQuery:"
 
@@ -42,18 +44,25 @@ class LocalEmbeddingService:
             started = time.perf_counter()
             vector = self.cache.get(text)
             cached = vector is not None
+            usage_path = self.cache.path / (self.cache.key(text) + '.usage.json')
+            usage = json.loads(usage_path.read_text())['usage'] if usage_path.exists() else None
             if vector is None:
                 response = requests.post(self.base_url + "/v1/embeddings", json={"input": text}, timeout=180)
                 response.raise_for_status()
                 payload = response.json()
+                usage = payload.get('usage')
+                if usage and usage.get('prompt_tokens', 0) > self.max_input_tokens:
+                    raise ValueError('Backend prompt tokens exceed declared embedding budget')
                 vector = np.asarray(payload["data"][0]["embedding"], dtype=np.float32)
                 norm = np.linalg.norm(vector)
                 if not np.isfinite(norm) or norm == 0:
                     raise ValueError("Invalid backend embedding")
                 vector /= norm
                 self.cache.put(text, vector)
+                atomic_json(usage_path, {'key':self.cache.key(text), 'usage':usage, 'body_tokens':tokens})
             rows.append(vector)
-            self.last_metrics.append({"input_tokens": tokens, "cache_hit": cached, "seconds": time.perf_counter() - started})
+            self.last_metrics.append({"input_tokens": tokens, "body_tokens": tokens, "input_tokens_semantics":"body_without_special_tokens",
+                                      "backend_usage":usage, "cache_hit": cached, "seconds": time.perf_counter() - started})
         return np.stack(rows) if rows else np.empty((0, self.identity.get("dimensions", 1024)), dtype=np.float32)
 
     def embed_query(self, text: str):

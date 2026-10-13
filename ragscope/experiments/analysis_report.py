@@ -110,6 +110,13 @@ def build_analysis(directory, config):
         for label in sorted({_length_bin(r, config['reference_context_length_bins']) for r in observed}):
             subset = [r for r in observed if _length_bin(r, config['reference_context_length_bins']) == label]
             item['length_groups'].append({'reference_context_tokens': label, **summarize_records(subset)})
+        item['document_length_groups'] = []
+        for label in ('short', 'medium', 'long', 'unknown'):
+            subset = [r for r in observed if r.get('document_length', {}).get('length_group', 'unknown') == label]
+            if subset:
+                item['document_length_groups'].append({'canonical_document_length_group': label,
+                    'boundaries_reference_tokens': 'short<=512; medium513-4096; long>4096',
+                    **summarize_records(subset)})
         item['evidence_answer_relationship'] = []
         for label, value in [('fully_covered', 1), ('not_fully_covered', 0)]:
             subset = [r for r in observed if r['scores']['context_full_reference_coverage'] == value]
@@ -123,6 +130,15 @@ def build_analysis(directory, config):
             'first_token_limit': 'Nonstreaming calls have no observed first token event',
             'backend_input_tokens_p50': percentile([t for t in tokens if t is not None], .5),
             'decode_tokens_per_second_p50': percentile(speeds, .5), 'decode_measured_n': len(speeds)}
+        measured = [r.get('resources', r.get('backend_metadata', {}).get('resources', {})) for r in observed]
+        for field in ('peak_sampled_device_total_used_bytes', 'peak_sampled_service_tree_rss_bytes'):
+            values = [m[field] for m in measured if m.get(field) is not None]
+            item['performance'][field] = max(values) if values else None
+        for field in ('client_request_wall_ms', 'telemetry_finalize_ms'):
+            values = [r.get('backend_metadata', {}).get(field) for r in observed]
+            item['performance'][field+'_p50'] = percentile([v for v in values if v is not None], .5)
+        item['performance']['resource_measured_n'] = sum(m.get('status') == 'MEASURED_SAMPLED' for m in measured)
+        item['performance']['wrapper_latency_includes_telemetry'] = True
         groups.append(item)
     blocked = [g for g in manifest['groups'] if g.get('status') == 'BLOCKED']
     comparisons = []
@@ -166,7 +182,7 @@ def build_analysis(directory, config):
             'Incomplete estimates are absent; observed summaries cannot replace the frozen denominator.',
             'All multiple contrasts are exploratory; no unadjusted significance claim.',
             'SQuAD clusters use upstream article; QASPER clusters use paper.',
-            'Context-length groups describe supplied evidence length, not full-document length.',
+            'Context-length groups describe supplied evidence; document-length groups separately use canonical source metadata.',
             'Resource peaks sampled on device include other processes; sampling may miss short peaks.']}
 
 

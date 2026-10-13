@@ -69,7 +69,7 @@
 它用于长度分组和统一文本量，不能代替后续embedding或生成模型的真实tokenizer。
 切块前全文长度：medium（513～4096）178篇，long（>4096）331篇，short（≤512）0篇。
 连续长度范围790～34,780 tokens；每篇实际值在Document.metadata中保留。
-本次QASPER子集没有short，不构造假短论文；短文本回归使用独立legacy SQuAD。
+本次QASPER子集没有short，不构造假短论文；E4短文本回归另行冻结官方SQuAD2.0公开dev子集，旧SQuAD仅保留为legacy对照。
 
 技术功能集实际下载3页官方RST：datastructures、errors、inputoutput，合计32条问答。
 每条病例在固定源码内唯一匹配证据，保存unit_id及canonical坐标。
@@ -106,3 +106,24 @@
 数据产物约319MiB，包含legacy副本，全部在D盘；无模型权重下载、无C盘大型数据产物。
 
 数据准备已经完成；后续CPU检索直接使用冻结`documents.jsonl`和`queries_dev.jsonl`，不重新选split。
+
+## E4官方SQuAD短文本回归
+
+实际下载[官方dev-v2.0.json](https://rajpurkar.github.io/SQuAD-explorer/dataset/dev-v2.0.json)，原始文件4,370,528字节，许可CC-BY-SA-4.0；原文件、下载审计及响应来源保存在`D:/RAGScope_Runtime/corpora/20261014_v2/squad_e4/raw`及相邻清单。
+本集合是官方公开dev的预声明评估子集，不是官方隐藏test，也不是原项目训练集派生的legacy E0。
+
+完整语料为1,204个官方源段落，11,873个问题保存在审计文件。源文本使用identity Unicode规范化，原始answer_start逐条校验，0条隔离。
+先以seed42和query_id哈希排序，再选100条可回答、源段落长度不超过512 reference tokens的问题；实际最长409 tokens，涉及29个原始文章簇。
+原SQuAD不可回答标注只对给定段落成立，不能直接宣称全库不可回答，因此这一全库回归子集明确仅包含可回答问题。
+全库检索scope不携带金标准段落ID；gold_doc_id仅放在评估专用metadata。源段落作为稳定证据单元，精确答案span另行保留；“整段覆盖”不等于“最小答案span命中”。
+统计推断应使用29个原始article_cluster_id聚类，不把同一文章的多个段落视为完全独立论文。
+
+配置哈希为`76bc5b933aff8c0a2dc8bb1645cc328a939215e382413a586813785740e1a2d0`；固定问题文件SHA-256为`1d983ca61f4a833c89ebe2124ad843c0d3591f418c58a8909e705f9b3cd0de9b`。
+准备命令实际exit0，3个离线测试通过；此处仅确认数据准备，生成质量须由后续真实模型E4结果确认。
+独立`DATA_VALIDATION.json`核对全部1,204个源段落坐标、100题ID与scope、336个原始参考答案span以及所有冻结文件哈希，全部通过。
+
+```powershell
+. ./scripts/runtime_env.ps1
+& 'D:/RAGScope_Runtime/envs/core/Scripts/python.exe' -u scripts/prepare_squad_v2.py --home 'D:/RAGScope_Runtime' --campaign 20261014_v2
+& 'D:/RAGScope_Runtime/envs/core/Scripts/python.exe' -m pytest tests/unit/test_squad_v2.py -q
+```

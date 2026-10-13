@@ -1,0 +1,41 @@
+{
+  "schema_version": "ragscope-lora-v2",
+  "r": 8,
+  "alpha": 16,
+  "dropout": 0.05,
+  "batch_size": 1,
+  "gradient_accumulation": 8,
+  "max_seq_len": 1024,
+  "gradient_checkpointing": true,
+  "learning_rate": 0.0001,
+  "warmup_ratio": 0.03,
+  "max_steps": 200,
+  "max_epochs": 1,
+  "preflight_steps": 10,
+  "max_checkpoints": 3,
+  "dtype": "bfloat16",
+  "seed": 42,
+  "target_selection": "inspect_actual_language_attention_linear_modules",
+  "assistant_only": true,
+  "drop_over_budget_examples": true,
+  "paths": [
+    {
+      "model": "Qwen/Qwen3.5-2B",
+      "revision": "15852e8c16360a2fea060d615a32b45270f8a8fc",
+      "config_sha256": "ed1c1723241f23f7f4e23430759cbd7dcfb4103cbdfe052bfe7626b57c2615b4",
+      "minimum_host_bytes": 1073741824,
+      "estimated_checkpoint_bytes": 268435456,
+      "upstream_vram_estimate_gib": 5,
+      "status": "PENDING_RESOURCE_AND_GPU_LEASE"
+    },
+    {
+      "model": "Qwen/Qwen3.5-0.8B",
+      "revision": "2fc06364715b967f1860aea9cf38778875588b17",
+      "config_sha256": "b90b86f35c8e6925ef74ee04d0e758f0a845c83a42089ad82bbaa948de9b4204",
+      "minimum_host_bytes": 1073741824,
+      "estimated_checkpoint_bytes": 268435456,
+      "upstream_vram_estimate_gib": 3,
+      "status": "PENDING_FALLBACK_ONLY_AFTER_PRIMARY_FAILURE"
+    }
+  ]
+}

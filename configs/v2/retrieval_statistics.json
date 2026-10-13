@@ -1,0 +1,21 @@
+{
+  "version": "retrieval_statistics_v1",
+  "frozen_before_final_neural_test_contexts": true,
+  "classification": "exploratory",
+  "metrics": ["full_reference_coverage", "continuous_coverage", "full_unit_recall"],
+  "n_resamples": 2000,
+  "seed": 42,
+  "confidence": 0.95,
+  "statistic": "question_weighted_mean_with_entire_source_document_clusters_resampled",
+  "qasper_cluster": "paper_doc_id",
+  "squad_cluster": "article_cluster_id",
+  "failure_policy": "retained_zero_for_answerable_evidence_metrics; unanswerable_not_applicable",
+  "comparisons": [
+    {"id": "paper_hybrid_minus_bm25", "task": "paper", "left": ["structured", "hybrid"], "right": ["structured", "bm25"]},
+    {"id": "paper_hybrid_minus_dense", "task": "paper", "left": ["structured", "hybrid"], "right": ["structured", "dense"]},
+    {"id": "paper_structured_minus_simple_hybrid", "task": "paper", "left": ["structured", "hybrid"], "right": ["simple", "hybrid"]},
+    {"id": "global_hybrid_minus_bm25", "task": "global", "left": ["structured", "hybrid"], "right": ["structured", "bm25"]},
+    {"id": "global_hybrid_minus_dense", "task": "global", "left": ["structured", "hybrid"], "right": ["structured", "dense"]}
+  ],
+  "interpretation": "Unadjusted exploratory percentile intervals; no confirmatory significance or deployment conclusion. Missing runs remain unavailable; no test-based reselection."
+}

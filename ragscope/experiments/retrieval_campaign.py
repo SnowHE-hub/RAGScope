@@ -165,6 +165,57 @@ def select_candidates(summaries, tolerance=.01):
     return chosen
 
 
+def select_context_strategy(summaries, tolerance=.01):
+    """Choose only from actual dev rows; approximate ties prefer less expansion."""
+    if not summaries or any(s.get("split") != "dev" for s in summaries):
+        raise ValueError("Context choice requires actual dev summaries")
+    best = max(s["full_reference_coverage"]["overall"] for s in summaries)
+    eligible = [s for s in summaries if s["full_reference_coverage"]["overall"] >= best-tolerance]
+    continuous = max(s["continuous_coverage"]["overall"] for s in eligible)
+    eligible = [s for s in eligible if s["continuous_coverage"]["overall"] >= continuous-tolerance]
+    return min(eligible, key=lambda s: ({"none": 0, "neighbor": 1, "parent": 2}[s["expansion"]],
+                                      s["latency_ms"]["p50"]))["expansion"]
+
+
+def freeze_context_choices(home: Path, data_campaign="20261014_v2"):
+    project = Path(__file__).resolve().parents[2]
+    chunking = json.loads((project / "configs/v2/chunking.json").read_text(encoding="utf-8"))
+    groups = {g["id"]: g for g in chunking["groups"]}
+    config = json.loads((project / "configs/v2/retrieval.json").read_text(encoding="utf-8"))
+    with Campaign(home, data_campaign + "_retrieval") as campaign:
+        candidate_path = campaign.path / "CANDIDATE_SELECTION.json"
+        candidates = json.loads(candidate_path.read_text(encoding="utf-8"))
+        if candidates.get("split") != "dev" or candidates.get("method") != "hybrid":
+            raise ValueError("Context choices require completed Hybrid dev candidate selection")
+        selected, evidence = {}, {}
+        for group_id in candidates["selected"].values():
+            strategies = ["none", "neighbor"] + (["parent"] if groups[group_id]["method"] == "parent_child" else [])
+            summaries, artifacts = [], []
+            for strategy in strategies:
+                run_id = f"E1_{group_id}_hybrid_{strategy}"
+                task = campaign.state["tasks"].get(run_id)
+                if not task or not verify_artifacts(task.get("outputs", [])) or not task.get("outputs"):
+                    raise ValueError("Missing or unverified completed context comparison: " + run_id)
+                path = campaign.path / "summaries" / (run_id + ".json")
+                summary = json.loads(path.read_text(encoding="utf-8"))
+                if summary["n_total"] != 100 or summary["method"] != "hybrid":
+                    raise ValueError("Context comparison has wrong frozen denominator or method")
+                summaries.append(summary)
+                artifacts.append(artifact(path))
+            selected[group_id] = select_context_strategy(summaries, config["selection_tolerance"])
+            evidence[group_id] = artifacts
+        result = {"selected": selected, "split": "dev", "method": "hybrid", "test_used_for_selection": False,
+                  "candidate_selection_sha256": file_hash(candidate_path), "evidence": evidence,
+                  "tolerance": config["selection_tolerance"],
+                  "rule": "full_reference_then_continuous_with_tolerance_then_none_neighbor_parent"}
+        destination = campaign.path / "CONTEXT_SELECTION.json"
+        if destination.exists() and json.loads(destination.read_text(encoding="utf-8")) != result:
+            raise ValueError("Frozen context selection differs; do not mutate test context choice")
+        atomic_json(destination, result)
+        print(json.dumps({"context_choices": selected, "selection": str(destination)}), flush=True)
+        return result
+
+
 def retrieval_scope(query):
     """Derive legal retrieval input solely from the user's declared scope."""
     scope = query.get("scope", {})
@@ -341,7 +392,7 @@ def run_campaign(home: Path, data_campaign="20261014_v2", stage="bm25", embeddin
                     method = "hybrid" if embedding else "bm25"
                     extra = run_queries(index, chunks, parents, queries, units, config, group, method, strategy, campaign, embedding)
                     extra.update(chunk_count=len(chunks), parent_count=len(parents), build_seconds=chunk_manifest["build_seconds"],
-                                 index_bytes=sum(p.stat().st_size for p in index_directory.rglob("*") if p.is_file())
+                                 index_bytes=sum(p.stat().st_size for p in (dense_directory if embedding else index_directory).rglob("*") if p.is_file())
                                  + (directory / "parents.jsonl").stat().st_size)
                     summaries.append(extra)
         subset_suffix = ("_" + "-".join(g["id"] for g in selected_groups)) if groups_filter else ""
@@ -456,10 +507,26 @@ def verified_dense_index(chunks, sparse_identity, directory, config, embedding):
     destination = directory / ("dense_" + signature(embedding.identity)[:16])
     if (destination / "manifest.json").exists():
         return ArrayIndex.load(destination, identity), destination
+    destination.mkdir(parents=True, exist_ok=True)
+    metric_store = RecordStore(destination / "embedding_first_observations.jsonl",
+                              {"embedding_identity": embedding.identity, "index_identity": identity,
+                               "observation_policy": "first_completed_encoding_or_cache_lookup_per_chunk"},
+                              max_records=len(chunks))
     vectors, metrics = [], []
     for offset in range(0, len(chunks), 8):
         batch = chunks[offset:offset+8]
-        vectors.extend(embedding.embed([c["text"] for c in batch]))
+        # A later request in this batch can fail. Persist already completed
+        # measurements in finally, so a restart cannot relabel their original
+        # cold costs as cache-hit costs. RecordStore retains the first observed
+        # completed call per chunk; no missing historical values are invented.
+        try:
+            vectors.extend(embedding.embed([c["text"] for c in batch]))
+        finally:
+            for chunk, measurement in zip(batch, embedding.last_metrics):
+                if chunk["chunk_id"] not in metric_store.ids:
+                    metric_store.add(chunk["chunk_id"], {"chunk_id": chunk["chunk_id"],
+                        "text_sha256": signature(chunk["text"]), "experiment_type": "embedding_operation",
+                        "real_model": embedding.identity.get("backend") == "llama.cpp", **measurement})
         metrics.extend({"chunk_id": c["chunk_id"], **m} for c, m in zip(batch, embedding.last_metrics))
         if offset % 80 == 0:
             print(f"Final corpus embedding: {min(offset+8, len(chunks))}/{len(chunks)}", flush=True)
@@ -528,6 +595,10 @@ def run_final_contexts(home: Path, data_campaign="20261014_v2", dataset="qasper"
         selected = json.loads(selection_path.read_text(encoding="utf-8"))
         if selected.get("split") != "dev" or selected.get("method") != "hybrid" or set(selected["selected"]) != {"simple", "structured"}:
             raise ValueError("Final retrieval requires both frozen Hybrid dev candidates")
+        context_selection_path = campaign.path / "CONTEXT_SELECTION.json"
+        context_selection = json.loads(context_selection_path.read_text(encoding="utf-8"))
+        if context_selection.get("candidate_selection_sha256") != file_hash(selection_path) or context_selection.get("split") != "dev":
+            raise ValueError("Final context choices must match frozen dev candidate selection")
         for group in chunking["groups"]:
             if group["id"] not in selected["selected"].values():
                 continue
@@ -550,7 +621,7 @@ def run_final_contexts(home: Path, data_campaign="20261014_v2", dataset="qasper"
                     sparse = ArrayIndex(chunks, sparse_identity)
                     sparse.save(sparse_directory)
             dense, dense_directory = verified_dense_index(chunks, sparse_identity, directory, config, embedding) if embedding else (None, None)
-            expansion = "parent" if group["method"] == "parent_child" else "none"
+            expansion = context_selection["selected"][group["id"]]
             for method in methods:
                 index = sparse if method == "bm25" else dense
                 index_directory = sparse_directory if method == "bm25" else dense_directory
@@ -568,6 +639,7 @@ def run_final_contexts(home: Path, data_campaign="20261014_v2", dataset="qasper"
         result = {"status": "PASS" if not sum(s["n_failed"] for s in summaries) else "FAILED", "dataset": dataset,
                   "methods": methods, "groups": summaries, "selection_source": selected,
                   "selection_sha256": file_hash(selection_path), "test_used_for_selection": False,
+                  "context_selection": context_selection, "context_selection_sha256": file_hash(context_selection_path),
                   "cpu_only": True, "reranking_status": "PENDING_SEPARATE_EXPERIMENT"}
         output = campaign.path / f"FINAL_{dataset}_{'-'.join(methods)}_CONTEXT_SUMMARY.json"
         atomic_json(output, result)

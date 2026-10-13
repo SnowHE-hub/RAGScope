@@ -1,0 +1,31 @@
+{
+  "schema_version": "ragscope-ui-v2",
+  "status": "仅 BM25 的 100 题 dev 已验证；生成模型未就绪，Dense/Hybrid 资源受阻记录单列",
+  "default_model": "仅检索证据",
+  "default_retriever": "R512_BM25_dev_selected",
+  "default_scope": "qasper:1503.00841",
+  "reference_budget": 2048,
+  "indexes": [
+    {
+      "id": "F512_O0_BM25_dev_preview",
+      "ready": true,
+      "method": "bm25",
+      "manifest_path": "D:/RAGScope_Runtime/indexes/20261014_v2/dev_chunks/073688445ac5dabef4c5fff8cf69adb5c487aa9d49938b89115471ed41e62680/sparse/manifest.json",
+      "reason": "真实100题dev已完成；暂供工程预览，尚未作为dev全矩阵最优配置发布"
+    },
+    {
+      "id": "R512_BM25_dev_selected",
+      "ready": true,
+      "method": "bm25",
+      "manifest_path": "D:/RAGScope_Runtime/indexes/20261014_v2/all_chunks/ba23a7f21f5bc3ed9fccb5778163c07a6b2fda530c769ff235e15d44dd5238f6/sparse/manifest.json",
+      "reason": "按 dev BM25 初筛选择 R512；当前索引覆盖全部509篇公开论文，未按test调参"
+    }
+  ],
+  "models": [],
+  "result_files": [
+    "D:/RAGScope_Runtime/runs/20261014_v2_retrieval/records/E1_F512_O0_bm25_none.jsonl",
+    "D:/RAGScope_Runtime/runs/20261014_v2_retrieval/records/E1_R512_bm25_none.jsonl",
+    "D:/RAGScope_Runtime/runs/20261014_v2_retrieval/records/TEST_CONTEXT_R512_bm25_none.jsonl",
+    "D:/RAGScope_Runtime/runs/20261014_v2_retrieval/records/E8_R512_bm25_none.jsonl"
+  ]
+}

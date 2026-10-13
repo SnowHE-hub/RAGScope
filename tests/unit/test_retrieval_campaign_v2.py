@@ -8,7 +8,7 @@ from ragscope.experiments import retrieval_campaign as campaign_module
 from ragscope.experiments.ledger import Campaign
 from ragscope.experiments.retrieval_campaign import (build_group, chunker_for, read_jsonl,
     retrieval_scope, run_queries, score_retrieval, select_candidates, summarize_run, validate_chunks,
-    verified_dense_index, run_final_contexts, write_jsonl)
+    verified_dense_index, run_final_contexts, select_context_strategy, write_jsonl)
 from ragscope.generation.context import pack_context
 from ragscope.indexing.array_index import ArrayIndex
 from ragscope.ingestion.chunkers import TokenizerAdapter
@@ -163,8 +163,48 @@ def test_dense_index_resume_reuses_verified_arrays(tmp_path, corpus):
         verified_dense_index(chunks, {"embedding": None}, directory, {"embedding_input": "changed"}, embedding)
 
 
+def test_partial_encoding_metrics_survive_resume_without_cold_cost_relabel(tmp_path, corpus):
+    import numpy as np
+
+    class InterruptedOfflineFixture:
+        identity = {"model": "offline-interruption-only", "revision": "1", "dimensions": 3}
+        fail_once = True
+        last_metrics = []
+
+        def embed(self, texts):
+            self.last_metrics = []
+            if self.fail_once:
+                self.last_metrics.append({"input_tokens": len(texts[0]), "cache_hit": False, "seconds": 2.0})
+                self.fail_once = False
+                raise ConnectionError("offline fixture interrupted after first vector")
+            self.last_metrics = [{"input_tokens": len(t), "cache_hit": True, "seconds": .001} for t in texts]
+            return np.array([[1.0, 0.0, 0.0] for _ in texts], dtype=np.float32)
+
+    group = {"id": "partial", "method": "fixed", "chunk_size": 256, "overlap": 0}
+    chunks, _, _, directory = build_group(corpus, group, TokenizerAdapter(), tmp_path / "indexes", {})
+    embedding = InterruptedOfflineFixture()
+    with pytest.raises(ConnectionError):
+        verified_dense_index(chunks, {"embedding": None}, directory, {"embedding_input": "body"}, embedding)
+    _, destination = verified_dense_index(chunks, {"embedding": None}, directory, {"embedding_input": "body"}, embedding)
+    rows = list(read_jsonl(destination / "embedding_first_observations.jsonl"))
+    assert len(rows) == len(chunks)
+    assert rows[0]["cache_hit"] is False and rows[0]["seconds"] == 2.0
+    assert rows[0]["real_model"] is False  # Never call this numerical fixture a real model.
+    assert all(r["cache_hit"] for r in rows[1:])
+
+
 def test_final_retrieval_rejects_unknown_dataset_or_empty_methods(tmp_path):
     with pytest.raises(ValueError, match="Unsupported"):
         run_final_contexts(tmp_path, dataset="unregistered")
     with pytest.raises(ValueError, match="At least one"):
         run_final_contexts(tmp_path, methods=[])
+
+
+def test_context_strategy_uses_dev_and_prefers_simpler_approximate_tie():
+    def summary(expansion, full, continuous, split="dev"):
+        return {"expansion": expansion, "split": split, "full_reference_coverage": {"overall": full},
+                "continuous_coverage": {"overall": continuous}, "latency_ms": {"p50": 1}}
+    assert select_context_strategy([summary("none", .795, .845), summary("neighbor", .8, .85)]) == "none"
+    assert select_context_strategy([summary("none", .70, .84), summary("parent", .8, .80)]) == "parent"
+    with pytest.raises(ValueError, match="dev"):
+        select_context_strategy([summary("none", .9, .9, "test")])

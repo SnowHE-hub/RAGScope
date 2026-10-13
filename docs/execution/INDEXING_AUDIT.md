@@ -44,3 +44,25 @@ $env:COVERAGE_FILE='D:/RAGScope_Runtime/runs/indexing_unit.coverage'
 ## 官方接口核验
 
 执行时读取了 [SentenceTransformer 官方接口](https://www.sbert.net/docs/package_reference/sentence_transformer/model.html)、[CrossEncoder 官方接口](https://www.sbert.net/docs/package_reference/cross_encoder/model.html) 与 [BAAI/bge-reranker-base 官方模型卡](https://huggingface.co/BAAI/bge-reranker-base)。据其接口使用显式 device、revision、trust_remote_code=False、local_files_only，且将完整输入长度核验放在可能截断的模型调用之前。具体正式模型 revision 由主任务模型 manifest 冻结，此文不虚构已下载权重 hash。
+
+## 独立 CPU 模型环境与真实权重准备（2026-10-14 后续）
+
+主执行器另行授权后，核验 `D:/RAGScope_Runtime/envs/models` 原本不存在，以 D 盘Python3.12.13创建独立环境，`include-system-site-packages=false`，未修改core、旧项目环境或驱动。Python executable/base_prefix、全部模型缓存和临时路径的真实位置已由进程读取并断言在D盘，保存于 `D:/RAGScope_Runtime/envs/models/environment_manifest.json`。仅CPU PyTorch，运行环境 `CUDA_VISIBLE_DEVICES=''`。
+
+固定版本：torch2.9.1+cpu、transformers4.57.6、sentence-transformers5.2.0、huggingface-hub0.36.2、tokenizers0.22.2、safetensors0.8.0、sentencepiece0.2.1、numpy2.5.4、scikit-learn1.9.1。完整38包清单为 `D:/RAGScope_Runtime/envs/models/requirements.lock.txt`，SHA-256 `89ab075116c9fb665d2a847b2f1a9f162b24992e2d66d40797c909de344bf761`；`uv pip check` 实际通过。
+
+执行时通过PyPI官方JSON核验最新版本torch2.14.1、Transformers5.19.0、ST6.1.0；为复用已经审阅的Transformers4 API与Laya ModernBERT加载路径，选用满足其依赖下限的已固定兼容版本。CPU torch从 [PyTorch 官方CPU索引](https://download.pytorch.org/whl/cpu) 安装，其他包从PyPI安装，依据 [PyTorch Windows安装说明](https://docs.pytorch.org/get-started/locally/) 与 [Sentence Transformers安装说明](https://sbert.net/docs/installation.html)。第一次其余依赖解析误用CPU索引优先级，因该索引不存在numpy2.5.4而失败；第二次保留已安装CPU torch、其余包走PyPI成功，未使用不安全跨索引最佳匹配开关。三段安装日志位于 `D:/RAGScope_Runtime/logs/models_*install*.log`。
+
+官方BGE元数据快照 `D:/RAGScope_Runtime/downloads/bge_reranker_base_info.json`；固定revision `2cfc18c9415c912f9d8155881c133215df768a70`，MIT许可。完整安全张量权重已实际下载至 `D:/RAGScope_Runtime/models/bge-reranker-base/2cfc18c9415c912f9d8155881c133215df768a70/model.safetensors`，实测1,112,206,140字节，SHA-256 `ced967c45fd1902eb92716c9ceeca7c95a936770ea9db611f5a841b926e33fbd`，与官方LFS值相符；tokenizer、config、README同目录，逐文件来源/大小/哈希保存在 `download_manifest.json`（VERIFIED）。未下载重复pytorch pickle权重或ONNX副本。
+
+CPU环境已实际通过24项路由功能测试，含小LSTM训练/恢复；完整BGE尚未加载或执行50→10，待正在运行的embedding campaign结束并协调内存后再做串行预检。不能把权重下载完成记作正式rerank实验完成。
+
+## BGE真实CPU权重预检（后续已完成）
+
+主执行器确认LFM GPU预检服务退出后，实际串行加载已固定的BGE权重，FP32共278,044,417参数、CPU设备、CPU Torch的CUDA build为null。英文和中文各50候选返回前10，实际耗时3.04/2.96秒，指定相关候选在两次均排名1。长文本完整覆盖为4个滑窗，包含query和special tokens后每窗最大512。tokenizer为不截断计数打印780>512警告，随后明确切窗；未把780-token输入直接送入模型。
+
+预检权重加载112.97秒，总进程124.33秒；最低主机可用内存3,470,114,816字节，未触发512MiB保护。包装器记录的约5MiB RSS仅为Windows虚拟环境launcher，不能当成实际模型进程峰值。结束后核验launcher24532及实际Python26484均不存在，才交接训练资源。
+
+第一次尝试在加载Torch/模型前遇到`retrieval/__init__.py`提前引入BM25→pandas依赖。保留原失败日志，包公共导出改为惰性加载后第二次成功；新离线测试验证单独导入Reranker不会加载pandas/Torch/ST。没有安装无关依赖掩盖导入问题。
+
+真实预检产物：`D:/RAGScope_Runtime/runs/preflight_bge_cpu.json`；进程执行凭据`bge_cpu_preflight_execution_attempt2.json`；日志`D:/RAGScope_Runtime/logs/bge_real_cpu_preflight_attempt2.log`。样本文本是明确合成夹具，故这是实际权重功能预检，**不属于正式QASPER重排质量成绩**；正式50→10 corpus实验仍待上下文矩阵完成。

@@ -27,3 +27,17 @@ class Qwen35PromptCounter:
 
     def __call__(self,messages):
         return len(self.tokenizer.encode(self.render(messages),add_special_tokens=False).ids)
+
+class LFMPromptCounter(Qwen35PromptCounter):
+    """Plain system+user prefix from the pinned official LiquidAI Ollama template."""
+    def __init__(self,directory,template_source):
+        super().__init__(directory,template_source)
+        self.identity['implementation']='lfm25_two_message_instruct_v1'
+        self.template_hash=signature(self.identity)
+
+    def render(self,messages):
+        if len(messages)!=2 or [m['role'] for m in messages]!=['system','user']:
+            raise ValueError('LFM audit requires exactly system and user')
+        if any(not isinstance(m.get('content'),str) or set(m)-{'role','content'} for m in messages):
+            raise ValueError('Only plain text messages are supported')
+        return '<|startoftext|>'+''.join('<|im_start|>'+m['role']+'\n'+m['content']+'<|im_end|>\n' for m in messages)+'<|im_start|>assistant\n'

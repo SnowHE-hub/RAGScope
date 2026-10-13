@@ -1,6 +1,15 @@
-from ragscope.retrieval.bm25_retriever import BM25Retriever
-from ragscope.retrieval.dense_retriever import DenseRetriever
-from ragscope.retrieval.hybrid_retriever import HybridRetriever
-from ragscope.retrieval.reranker import Reranker
+"""Public retrievers; backend dependencies load only when explicitly selected."""
+from importlib import import_module
 
 __all__ = ["DenseRetriever", "BM25Retriever", "HybridRetriever", "Reranker"]
+
+_MODULES = {"DenseRetriever": "dense_retriever", "BM25Retriever": "bm25_retriever",
+            "HybridRetriever": "hybrid_retriever", "Reranker": "reranker"}
+
+
+def __getattr__(name):
+    if name not in _MODULES:
+        raise AttributeError(name)
+    value = getattr(import_module(f"{__name__}.{_MODULES[name]}"), name)
+    globals()[name] = value
+    return value

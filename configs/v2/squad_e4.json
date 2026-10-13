@@ -1,0 +1,16 @@
+{
+  "version": "squad2_short_regression_v1",
+  "source_url": "https://rajpurkar.github.io/SQuAD-explorer/dataset/dev-v2.0.json",
+  "source_revision": "official-dev-v2.0",
+  "license": "CC-BY-SA-4.0",
+  "seed": 42,
+  "evaluation_partition": "E4_frozen_100",
+  "target_n": 100,
+  "eligibility": "answerable_with_verified_raw_answer_spans_and_reference_document_tokens_le_512",
+  "reference_tokenizer": "cl100k_base",
+  "retrieval_corpus": "all_official_dev_paragraphs",
+  "scope": "global",
+  "cluster_key": "metadata.article_cluster_id",
+  "is_official_hidden_test": false,
+  "official_unanswerable_note": "not selected for global E4; unanswerability is only relative to the supplied original paragraph"
+}

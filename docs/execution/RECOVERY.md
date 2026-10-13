@@ -2,6 +2,8 @@
 
 campaign：`20261014_v2`；runtime：`D:/RAGScope_Runtime`。
 
+**最新用户指示：原训练和定时检查均已停止，日更进程未动。RAGScope结束后释放自己的资源并通知用户，由用户手动续跑。禁止自动执行恢复命令。** 用户确认XGB63已完成6/9折，LGBM63已完成3折；原结果保留。租约`restoration_policy=USER_MANUAL_RESUME`，脚本restore已加拒绝保护。下面的历史恢复命令只作审计记录。
+
 阶段三原任务交接：用户追加明确授权可终止CPU/GPU进程并希望恢复。实际操作状态唯一来源是 `D:/RAGScope_Runtime/runs/20261014_v2/gpu_lease.json`；不要只依据本文推断进程是否仍运行。
 
 已识别Ubuntu中QuantMind的两个T-030研究队列：XGBoost 63d子PID114865（start_ticks10435121），以及LightGBM 63d子PID114866。两者完整父进程身份、cwd、argv、日志、恢复命令和检查点哈希已写入租约。没有修改原项目代码或断点。

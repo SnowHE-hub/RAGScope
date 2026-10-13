@@ -10,7 +10,8 @@ from dataclasses import dataclass, field
 from ragscope.generation.cache import RAGCache
 from ragscope.generation.context import (as_mapping, fingerprint, pack_context,
                                          reference_token_count, render_context, validate_bundle)
-from ragscope.generation.prompts import PROMPT_VERSION, RAG_SYSTEM_PROMPT, RAG_USER_TEMPLATE
+from ragscope.generation.prompts import (PROMPT_VERSION, RAG_SYSTEM_PROMPT, RAG_USER_TEMPLATE,
+    OUTPUT_CONSTRAINT_VERSION, visible_output_schema)
 
 
 @dataclass
@@ -42,6 +43,10 @@ class RAGResult:
     timings: dict = field(default_factory=dict)
     backend_metadata: dict = field(default_factory=dict)
     config_hash: str = ""
+    prompt_version: str = PROMPT_VERSION
+    output_schema: dict = field(default_factory=dict)
+    output_schema_hash: str = ""
+    citation_constraint: dict = field(default_factory=dict)
 
 
 class RAGPipeline:
@@ -54,7 +59,8 @@ class RAGPipeline:
         self.cache = RAGCache(cache_dir=cache_dir) if use_cache else None
         self.context_config = dict(context_config or {})
         self.index_identity = index_identity or getattr(retriever, "identity", {})
-        self.config = {"max_tokens": 512, "temperature": 0.0, **(config or {})}
+        self.config = {"max_tokens": 512, "temperature": 0.0, **(config or {}),
+                       'output_constraint_version':OUTPUT_CONSTRAINT_VERSION}
         self.token_counter = token_counter or reference_token_count
         self.system_prompt, self.user_template = system_prompt, user_template
 
@@ -73,6 +79,8 @@ class RAGPipeline:
         chunks, timings, error, raw, parsed, invalid = [], {}, None, "", {}, []
         bundle, messages = None, []
         key, prompt_hash = "", ""
+        output_schema = {}
+        constrained = bool(getattr(self.llm_client,'supports_output_schema',False) and getattr(self.llm_client,'json_constraint',False))
         phase = "retrieval_error"
         try:
             if context_bundle is None:
@@ -91,6 +99,7 @@ class RAGPipeline:
             messages = [{"role": "system", "content": self.system_prompt},
                         {"role": "user", "content": self.user_template.format(question=question, context=render_context(bundle))}]
             prompt_hash = fingerprint(messages)
+            output_schema=visible_output_schema(as_mapping(bundle)['pieces']) if constrained else {}
             key = self._make_key(question, k, context_hash=as_mapping(bundle)["context_hash"],
                                  prompt_hash=prompt_hash, scope=scope)
             if self.cache is not None and not formal_evaluation:
@@ -103,8 +112,9 @@ class RAGPipeline:
             generation_start = time.perf_counter()
             phase = "transport_error"
             try:
+                schema_options={'output_schema':output_schema} if constrained else {}
                 raw = self.llm_client.chat(messages, max_tokens=self.config["max_tokens"],
-                                            temperature=self.config["temperature"])
+                                            temperature=self.config["temperature"],**schema_options)
             finally:
                 timings["generation_ms"] = (time.perf_counter() - generation_start) * 1000
             phase = "parse_error"
@@ -132,9 +142,13 @@ class RAGPipeline:
                            context_bundle=as_mapping(bundle) if bundle is not None else {},
                            prompt=messages, prompt_hash=prompt_hash, model_identity=identity, real_model=real,
                            invalid_citations=invalid, timings=timings,
+                           output_schema=output_schema,output_schema_hash=fingerprint(output_schema),
+                           citation_constraint={'applied':constrained,'version':OUTPUT_CONSTRAINT_VERSION,
+                               'interpretation':'Visible citation IDs constrained by construction; not evidence-support or faithfulness quality'},
                            backend_metadata=copy.deepcopy(getattr(self.llm_client, "last_metadata", {})),
                            config_hash=fingerprint({"generation": self.config, "index": self.index_identity,
-                                                    "model": identity, "prompt_version": PROMPT_VERSION}))
+                                                    "model": identity, "prompt_version": PROMPT_VERSION,
+                                                    "output_schema_hash":fingerprint(output_schema)}))
         if self.cache is not None and not formal_evaluation and not error and not invalid:
             self.cache.set(key, result)
         return result

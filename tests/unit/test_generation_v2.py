@@ -52,6 +52,23 @@ def test_budget_counts_labels_title_and_separator():
     assert "Title" in render_context(bundle)
 
 
+def test_context_schema_enumerates_only_sent_ids_and_empty_context_allows_only_empty_array(monkeypatch):
+    requests=[]
+    def request(self,path,payload):
+        requests.append(payload)
+        return {'message':{'content':'{"answer":"source","citations":[],"abstain":false}'}}
+    monkeypatch.setattr(LocalLLMClient,'_request',request)
+    client=LocalLLMClient('offline-fixture',prompt_token_counter=lambda m:10)
+    pipe=RAGPipeline(None,client,use_cache=False,token_counter=len)
+    for chunks in [[chunk('sent')],[]]:
+        result=pipe.answer('Question?',context_bundle=asdict(pack_context(chunks,token_counter=len)))
+        schema=requests[-1]['format']['properties']['citations']
+        if chunks: assert schema['items']['enum']==['sent'] and 'unseen' not in schema['items']['enum']
+        else: assert schema['maxItems']==0
+        assert result.citation_constraint['applied'] and result.output_schema_hash
+        assert result.prompt_version=='rag-json-v2.2' and result.output_schema==requests[-1]['format']
+
+
 def test_overlap_dedup_preserves_exact_source_coordinates():
     bundle = pack_context([chunk(), chunk("c2", "efgh", 4)], token_counter=len)
     assert [p["text"] for p in bundle.pieces] == ["abcdef", "gh"]
