@@ -1,34 +1,62 @@
-# Generation / training handover state
+# Current generation / training handover
 
-Last verified software state: generation/evaluation/campaign/freeze/training combined82 tests passed (latest coverage94% including campaign95%); subsequent focused changes33 tests passed. No model generation calls or GPU allocation have been performed by this subagent. Root owns live pilots and GPU lease/service lifecycle.
+Updated after completed E0 CPU handover, 2026-10-14 local date. This file contains current state only; historical measurements remain in TRAINING_REPORT.md and immutable runtime logs.
 
-Completed implementation: generation ContextBundle/JSON/error/cache corrections; evidence metrics and failure denominators; Streamlit retrieval/replay/readiness; BF16 training data/checkpoint/runner/paired evaluation; full-matrix freeze and single-model generation CLI. Actual generator models are not declared complete by these code changes.
+## Active resource ownership
 
-Current dependency hold: root is finishing4B/9B (and planned LFM) pilots; do not load Torch/tokenizer or models concurrently. Trainenv is ready at D:/RAGScope_Runtime/envs/train/Scripts/python.exe. Wait for root's explicit training/preparation handover; original user tasks are now manual resume by latest human instruction, no automatic restoration by this subagent.
-
-Next exact CPU tokenizer command after root handover:
+Owned Ollama11435 lifecycle is exec54636, childPID14564/create1791909897.4709003. It is READY with LLAMA_ARG_CACHE_RAM=0 and owns D:/RAGScope_Runtime/runs/gpu.lock.
+Only **4B E3** is now running, exec78438, log D:/RAGScope_Runtime/logs/generation_e3_qwen_4b.log.
+Command already started; do not duplicate:
 
 ```powershell
 . ./scripts/runtime_env.ps1
-$env:USE_TORCH='0'
-& 'D:/RAGScope_Runtime/envs/train/Scripts/python.exe' -m ragscope.training.prepare --corpus-dir D:/RAGScope_Runtime/corpora/20261014_v2 --tokenizer-dir D:/RAGScope_Runtime/models/tokenizers/Qwen3.5-2B --output-dir D:/RAGScope_Runtime/runs/20261014_v2_lora/prepared_2b_1024 --split train --max-seq-len 1024
-& 'D:/RAGScope_Runtime/envs/train/Scripts/python.exe' -m ragscope.training.prepare --corpus-dir D:/RAGScope_Runtime/corpora/20261014_v2 --tokenizer-dir D:/RAGScope_Runtime/models/tokenizers/Qwen3.5-2B --output-dir D:/RAGScope_Runtime/runs/20261014_v2_lora/prepared_2b_1024 --split dev --max-seq-len 1024
+& D:/RAGScope_Runtime/envs/core/Scripts/python.exe scripts/run_generation_campaign.py --campaign-dir D:/RAGScope_Runtime/runs/20261014_v2_generation_e3 --model-id qwen_4b
 ```
 
-These commands use real official tokenizer and assistant-only labels, no weights/GPU. Check accepted/rejected manifests and exact loss-mask boundary, then run real GPU preflight only after explicit root handover and project service release. BF16 snapshot: D:/RAGScope_Runtime/models/Qwen3.5-2B/15852e8c16360a2fea060d615a32b45270f8a8fc .
+Before4B start: APIps was empty and hostavailable3,255,685,120bytes. The project's CPU embedding11436 and retrieval matrix have resumed under data_preparation ownership. E0 CPU encoding/retrieval is COMPLETE; chunking_core confirmed session37101 exit0 and actualworker37108 absent after full22,254encoding+200Dense+200Hybrid and independent original-index SHA audit. No E0/Laya/BGE-base model remains loaded by that agent.
 
-Generation freeze command: core Python scripts/freeze_generation_v2.py . It must require final CANDIDATE_SELECTION and CONTEXT_SELECTION matching hashes, completed actual source records, current-prompt20dev successful pilots with exact backend token parity. Defaults cover E2/E3/E4/E5/E6/E7 and ROUTE_TRAIN200/ROUTE_DEV60. Missing work stays pending; explicit blocks require evidence. Output D:/RAGScope_Runtime/runs/20261014_v2_generation/FREEZE_READINESS.json is currently pending; no formal EXPERIMENT_MANIFEST should exist yet.
+Next operation: poll exec78438; inspect its retained rows and completion summary. On completion unload only own4B via own11435/api/generate keep_alive0, verify APIps empty and GPU resources released, take freshRAM measurement. Then run the same command with --model-id qwen_9b and log generation_e3_qwen_9b.log. After9B and all GPU work, stop ownservice through generation.stop and verify release. Original user workloads remain **USER_MANUAL_RESUME**; never restart original jobs/daily jobs.
 
-Formal generation command when fully frozen and owned service alreadyREADY: core Python scripts/run_generation_campaign.py --campaign-dir D:/RAGScope_Runtime/runs/20261014_v2_generation --model-id qwen_2b . Other model IDs qwen_4b/qwen_9b/lfm serially. Root-owned service itself holds global GPU lock. Client checks lease/service PID each call and uses one cross-campaign client lock. Exact budget file D:/RAGScope_Runtime/runs/20261014_v2/generation_budget.json includes pilots, warmups, failures, router labels and LoRA comparisons. No infinite retries; transport failures circuit-break after3, OOM after1. Completed marker summaries/MODEL_<id>.json requires n_pending=0 and matching manifest_hash; failure rows remain scored failures, explicit blocked groups remain blocked.
+## E3 actual core experiments
 
-Learning doc06 contains time-stamped actual BM25 dev/test/E8 figures and earlier pilot limitation snapshot, not final results. Root later2BpilotPASS20 message supersedes that snapshot; retain distinction.
+Shard directory D:/RAGScope_Runtime/runs/20261014_v2_generation_e3.
+Manifest_hash 8c6a71031d25f0a0218a85a3abbd9d8dc35d3c0f56dafa046e8249beeffb5599.
+Exactly1200tasks: original200QASPERtest×oracle/no_context×3Qwen. Same final promptv2.2, model identities, reference2048+all3true-template budget and512output reserve as futuremain E3. No retrieval selection or test-output-based protocol change.
 
-Formal resource instrumentation added: `MeasuredClient` wraps each real request withoutTorch, sampling at1s. Fields explicitly mean sampled whole-device VRAM, service-tree aggregateRSS and host-availableRAM; it records raw samples/instrument errors and backend`/api/ps` resident allocation separately. No allocator peak or layer-offload count is invented. `client_request_wall_ms` and `telemetry_finalize_ms` separate post-request monitoring overhead; pipeline generation_ms includes wrapper overhead. Runtime identity now includes `{prompt_ram_cache_mib:0,prompt_cache_policy:backend_history_disabled}`. Freeze requires LLAMA_ARG_CACHE_RAM=0 in actual ownedservice receipt, snapshots receipt, and excludes pilot latencies from formal timing summaries.
+2B COMPLETE400/400 formalrows,0errors; exec81336 exit0,3separatewarmups. Unload confirmed APIpsempty/GPU0MiB in RELEASE_2B_FOR_E0.json. Do not rerun2B.
+For182answerable questions, OracleF1=.5785604023 andNoContextF1=.0414930593;18unanswerable separate. This is a source-context diagnostic, not a retrieval-method gain.
+Root's independent2B numeric audit10/10PASS is in e3/analysis/ANALYSIS.json, GENERATION_TABLES.md, INDEPENDENT_NUMBERS_2B.json. Preserve this snapshot; later completeE3 analysis must use a new analysis_complete directory.
 
-Resource/freeze/campaign/training focused regression37 passed5.16s, still entirely offline. Latest CPU preprocessor data.py additionally rejects any packing that removes a required gold evidence unit. Next actual tokenizer command remains on hold untilroot handover (other modelpilots currentlyrunning).
+Current budget after2B:615total/400core; later4Bcalls increment same D:/RAGScope_Runtime/runs/20261014_v2/generation_budget.json. All pilots,warmups,failures,mainmatrix,routerlabels,judge,LoRAeval count. OOM1/consecutivebackend3 circuitbreak, no silent retries/replacements. Actualprompttokens use backend_metadata.actual_input_tokens/token_count_match; RAGResult.prompt_tokens is legacy reference-token statistics.
 
-当前资源交接更新（2026-10-14）：root已完成所有v2.1+cachepolicy模型20dev预检，随后因opaque引用ID复制失败而固定最终v2.2枚举schema协议；76项离线回归已过。root正在执行唯一一次最终enum预检，GPU未交给本subagent。BGE CPU agent明确其进程24532/26484均已退出。
+Main manifest will explicitly reference the immutable shard via provenance.external_campaigns [{manifest:artifact}]. generation_campaign.iter_record_sources yields {directory,manifest,inputs,owned_task_ids}; it validates all task/input/model/generation/prompt/metric/seed identities, forbids nested/cycles/duplicateownership. Main runner skips every external-owned task, including unfinished ones; external missingrows remain missing. Original records/config/manifest hashes are never rewritten. Root analysis and independent reverse auditor support these sources.
 
-实际训练准备：首次进程因应用依赖diskcache缺失退出；trainenv补装diskcache5.6.3/loguru0.7.3/tiktoken0.14.0。第二次完整1000train处理发现TF5.19 apply_chat_template默认return_dict=True而被严格类型守卫全部拒绝（prepared_2b_1024保留）。显式return_dict=False修复后，官方tokenizer真实单例prefix验证通过，prompt15+assistant4tokens；13项训练契约测试通过。TF5.19实际仍导入Torch，即使USE_TORCH=0；探针退出，CUDA mask为空未初始化模型。现在等待root最终enum pilots结束再串行准备，避免内存叠加。
+## Completed BF16 LoRA training
 
-下一条准确CPU命令：`. ./scripts/runtime_env.ps1; & D:/RAGScope_Runtime/envs/train/Scripts/python.exe -m ragscope.training.prepare --corpus-dir D:/RAGScope_Runtime/corpora/20261014_v2 --tokenizer-dir D:/RAGScope_Runtime/models/tokenizers/Qwen3.5-2B --output-dir D:/RAGScope_Runtime/runs/20261014_v2_lora/prepared_2b_1024_v2 --split train --max-seq-len 1024`（再相同dev）。新目录防止覆盖原拒绝证据。训练尚未加载权重。训练循环已加真实resume adapter/optimizer/scheduler/RNG/data顺序/进度精确核验receipt与每step有限梯度、GPUallocator峰值和每microbatch主机RAM观测；GPU授权交回后做5→10实际恢复。
+D:/RAGScope_Runtime/runs/20261014_v2_lora/train_2b_1024_seed42 has TRAIN_LOOP_COMPLETE and PASS_REAL_TRAINING_AUDIT:
+122steps/972train/1epoch,59dev,allloss/gradientfinite; actual114languageattentionLinear targets,3,691,008LoRAparameters.
+Three independent seed42 initializations have identical adapterSHA c730a4fa702c2a45717a7d810f472fecd2e90a78f4b4f76b7eb4ca93cf5d685f.
+Real5→10 and10→122 recovery verifies adapter/optimizer/scheduler/allRNG/order/progress exactly.
+Best=lateststep122,devloss.1356631101,3completeownedcheckpoints retained.
+FinaladapterSHA a532dc22942d84e4dceabacb64b936c191b37ebdfa9fda092f3f87464d0bbae4.
+Exec72907 exit0,trainingprocess absent,gpu.lock reacquired/released,0MiBGPU confirmed in GPU_RELEASE_RECEIPT.json. Training is finished; do not restart it.
+
+Final data: prepared_2b_1024_v2 train972/1000 (841answerable/131unanswerable),dev59/60 (53/6),whole-length rejects28+1,no evidence/answer truncation. MASK_AND_SPLIT_AUDIT.json verifies actualtokenarrays/masks and paperdisjointness.
+Earlier unseeded-initialization10steps and preload RAM failures are retained diagnostic history only, not part of the final curve. Training resource figures, exactconfig and allhistorical failures are in TRAINING_REPORT.md. No inference that trainingloss meansQA improvement.
+
+## Pending same-precision comparison and online work
+
+Main E2/R2 finalcontexts remain pending completion of the active retrieval matrix and dev selection. Paired100BF16 evaluation has NOT run. RealCPUcheck-only wrote paired_test100/READINESS.json WAITING_FOR_FROZEN_GENERATION,weights_loaded=false,gpu_used=false,generation_calls0.
+When finalcontexts and a newGPUhandover are ready:
+
+```powershell
+& D:/RAGScope_Runtime/envs/train/Scripts/python.exe scripts/evaluate_lora_v2.py --training-run D:/RAGScope_Runtime/runs/20261014_v2_lora/train_2b_1024_seed42 --campaign-dir D:/RAGScope_Runtime/runs/20261014_v2_generation --model-dir D:/RAGScope_Runtime/models/Qwen3.5-2B/15852e8c16360a2fea060d615a32b45270f8a8fc
+```
+
+--check-only uses corePython and neverloadsmodel/GPU. Actualrun has2GiBpreloadRAMguard,3separatewarmups/condition/session,globalcounting,INCOMPLETEsummary on circuitbreak. BothBF16conditions share protocol/precision; their prompt-only JSON differs from Q4schema-constrained mainmatrix, so no precision-isolated crossprotocolclaim.
+
+Online runner: scripts/run_online_routing_v2.py --campaign <main> --routing-dir <routing> --mode freeze|run. All7policies' decisions freeze beforetestscoreaccess; onlyfull60devselectsbestfixed/nonfixed, same30dev onlinepair IDs. Actualchoose→retrieve→2048pack→sharedallQwencounterrepack→2Bgenerate;3warmups eachsession/policy,alternatingpairedorder,resume/globalbudget. Perpolicyactualgeneration_attempted andpregenerationfailures count separately; fewer30actualrequests preventsdeployment. Full60dev quality gate and30onlineP50 gate reported separately. CPU BGE sharedverifiedloader and2GiBRAMguard. Selectedlearnedrouter must use real_generation_proxy andexacttrain/dev IDs. Noactualonline rows yet;9offlinecontracttestsPASS.
+
+Supportjudge implemented,notrun: scripts/run_support_judge_v2.py --campaign-dir <main> freezes≤200stratifiedE2IDs beforejudging; --run requires completeE2 andpinned4B/9B. Rawprompt/outputs/hashes preserved,failuresunknown,selfmodelbiasflagged,humanreviewNOT_REVIEWED.
+
+Currentsoftware verification:36generation-campaign/training/online testsPASS,pluslatest9onlineguardtestsPASS. Root unifiedcore suite414PASS/2explicit skips. Allunitfixtures stay outside actualexperimentrecords.

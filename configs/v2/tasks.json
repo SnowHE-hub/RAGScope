@@ -420,6 +420,27 @@
             "_retrieval"
           ],
           "external_coordination": true
+        },
+        {
+          "argv": [
+            "{models_python}",
+            "scripts/run_rerank_v2.py",
+            "--home",
+            "{runtime}",
+            "--campaign",
+            "{campaign}",
+            "--run"
+          ],
+          "purpose": "actual_task_action",
+          "requires": [
+            "{runtime}/runs/{campaign}_retrieval/CONTEXT_SELECTION.json",
+            "{runtime}/runs/{campaign}/ROUTING_QUERY_MANIFEST.json",
+            "{runtime}/models/bge-reranker-base/2cfc18c9415c912f9d8155881c133215df768a70/download_manifest.json"
+          ],
+          "lock_campaigns": [
+            "_retrieval"
+          ],
+          "external_coordination": true
         }
       ],
       "child_sources": [
@@ -427,7 +448,9 @@
           "suffix": "_retrieval",
           "patterns": [
             "E1_*",
-            "TEST_CONTEXT_*"
+            "TEST_CONTEXT_*",
+            "ROUTE_CONTEXT_*_hybrid_rerank_*",
+            "E8_*_hybrid_rerank_*"
           ]
         }
       ],
@@ -502,6 +525,24 @@
           ],
           "campaign_scope": "20261014_v2",
           "requires": []
+        },
+        {
+          "argv": [
+            "{models_python}",
+            "-m",
+            "ragscope.experiments.legacy_reconstruction",
+            "--home",
+            "{runtime}",
+            "--stage",
+            "all"
+          ],
+          "purpose": "actual_task_action",
+          "external_coordination": true,
+          "campaign_scope": "20261014_v2",
+          "requires": [
+            "{runtime}/runs/{campaign}_legacy/reconstructed/PROVENANCE.json",
+            "{runtime}/models/bge-small-en-v1.5/5c38ec7c405ec4b44b94cc5a9bb96e735b38267a/model_manifest.json"
+          ]
         }
       ],
       "child_sources": [
@@ -516,6 +557,13 @@
           "patterns": [
             "E0.*"
           ]
+        },
+        {
+          "suffix": "_legacy_reconstructed",
+          "patterns": [
+            "E0.*"
+          ],
+          "active_when_locked": true
         }
       ]
     },
@@ -1004,9 +1052,39 @@
           ],
           "purpose": "offline_functional_verification",
           "requires": []
+        },
+        {
+          "argv": [
+            "{models_python}",
+            "scripts/run_laya_v2.py",
+            "--home",
+            "{runtime}",
+            "--campaign",
+            "{campaign}",
+            "--run"
+          ],
+          "purpose": "actual_task_action",
+          "requires": [
+            "{runtime}/runs/{campaign}/ROUTING_QUERY_MANIFEST.json",
+            "{runtime}/models/laya/7b928d828b7b0e022f929d9bd2e44165aa270148/model_manifest.json",
+            "{runtime}/envs/models/laya_sdk_installation.json"
+          ],
+          "lock_campaigns": [
+            "_laya"
+          ],
+          "external_coordination": true
         }
       ],
-      "missing_completion": "Laya model inference CLI/evidence is pending; adapter tests are implementation checks only."
+      "child_sources": [
+        {
+          "suffix": "_laya",
+          "patterns": [
+            "laya.*"
+          ],
+          "active_when_locked": true
+        }
+      ],
+      "missing_completion": "Real Laya probabilities and subsequent dev/test proxy calibration remain required; raw probabilities alone are not route quality."
     },
     {
       "id": "S4.4",
@@ -1033,6 +1111,50 @@
           ],
           "purpose": "offline_functional_verification",
           "requires": []
+        },
+        {
+          "argv": [
+            "{core_python}",
+            "scripts/run_online_routing_v2.py",
+            "--campaign",
+            "{runtime}/runs/{campaign}_generation",
+            "--routing-dir",
+            "{runtime}/runs/{campaign}_routing",
+            "--mode",
+            "freeze"
+          ],
+          "purpose": "freeze_actual_online_inputs",
+          "requires": [
+            "{runtime}/runs/{campaign}_routing/ROUTING_MANIFEST.json",
+            "{runtime}/runs/{campaign}_routing/DECISIONS_fixed_bm25.json",
+            "{runtime}/runs/{campaign}_routing/DECISIONS_fixed_hybrid.json",
+            "{runtime}/runs/{campaign}_routing/DECISIONS_fixed_hybrid_rerank.json",
+            "{runtime}/runs/{campaign}_routing/DECISIONS_rules.json",
+            "{runtime}/runs/{campaign}_routing/DECISIONS_linear.json",
+            "{runtime}/runs/{campaign}_routing/DECISIONS_mlp.json",
+            "{runtime}/runs/{campaign}_routing/DECISIONS_lstm.json"
+          ]
+        },
+        {
+          "argv": [
+            "{models_python}",
+            "scripts/run_online_routing_v2.py",
+            "--campaign",
+            "{runtime}/runs/{campaign}_generation",
+            "--routing-dir",
+            "{runtime}/runs/{campaign}_routing",
+            "--mode",
+            "run"
+          ],
+          "purpose": "actual_task_action",
+          "gpu": true,
+          "external_coordination": true,
+          "requires": [
+            "{runtime}/runs/{campaign}_routing/online/ONLINE_MANIFEST.json",
+            "{runtime}/runs/{campaign}_retrieval/CONTEXT_SELECTION.json",
+            "{runtime}/runs/{campaign}/gpu_lease.json",
+            "{runtime}/runs/{campaign}/generation_service.json"
+          ]
         }
       ],
       "missing_completion": "Real online callback campaign remains required; replay time cannot count as online time."
@@ -1123,11 +1245,12 @@
             "--lease",
             "{runtime}/runs/{campaign}/gpu_lease.json",
             "--run-dir",
-            "{runtime}/runs/{campaign}_lora/train_2b_1024",
+            "{runtime}/runs/{campaign}_lora/train_2b_1024_seed42",
             "--mode",
             "preflight",
             "--stop-after",
-            "5"
+            "5",
+            "--empty-cache-after-microbatch"
           ],
           "purpose": "actual_task_action",
           "gpu": true,
@@ -1158,12 +1281,13 @@
             "--lease",
             "{runtime}/runs/{campaign}/gpu_lease.json",
             "--run-dir",
-            "{runtime}/runs/{campaign}_lora/train_2b_1024",
+            "{runtime}/runs/{campaign}_lora/train_2b_1024_seed42",
             "--mode",
             "preflight",
             "--resume",
             "--stop-after",
-            "10"
+            "10",
+            "--empty-cache-after-microbatch"
           ],
           "purpose": "actual_task_action",
           "gpu": true,
@@ -1194,10 +1318,11 @@
             "--lease",
             "{runtime}/runs/{campaign}/gpu_lease.json",
             "--run-dir",
-            "{runtime}/runs/{campaign}_lora/train_2b_1024",
+            "{runtime}/runs/{campaign}_lora/train_2b_1024_seed42",
             "--mode",
             "train",
-            "--resume"
+            "--resume",
+            "--empty-cache-after-microbatch"
           ],
           "purpose": "actual_task_action",
           "gpu": true,
@@ -1213,7 +1338,7 @@
             "{train_python}",
             "scripts/evaluate_lora_v2.py",
             "--training-run",
-            "{runtime}/runs/{campaign}_lora/train_2b_1024",
+            "{runtime}/runs/{campaign}_lora/train_2b_1024_seed42",
             "--campaign-dir",
             "{runtime}/runs/{campaign}_generation",
             "--model-dir",
@@ -1223,7 +1348,7 @@
           "gpu": true,
           "external_coordination": true,
           "requires": [
-            "{runtime}/runs/{campaign}_lora/train_2b_1024/training_result.json",
+            "{runtime}/runs/{campaign}_lora/train_2b_1024_seed42/training_result.json",
             "{runtime}/runs/{campaign}_generation/EXPERIMENT_MANIFEST.json",
             "{runtime}/runs/{campaign}/gpu_lease.json"
           ]

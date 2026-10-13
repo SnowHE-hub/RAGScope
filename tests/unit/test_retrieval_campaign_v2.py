@@ -89,6 +89,8 @@ def test_real_bm25_query_records_scope_and_idempotence(tmp_path, corpus, monkeyp
         assert first == again and first["n_total"] == 1 and first["n_failed"] == 0
         rows = list(read_jsonl(first["records"]))
         assert len(rows) == 1 and rows[0]["raw_retrieval"]
+        assert rows[0]["selected_retrieval"] == rows[0]["raw_retrieval"][:10]
+        assert rows[0]["retrieval_record_schema_version"] == 2
         assert all(c["doc_id"] == doc["doc_id"] for c in rows[0]["raw_retrieval"])
         assert rows[0]["context_bundle"]["budget"]["reference_tokens"] <= 2048
 
@@ -198,6 +200,10 @@ def test_final_retrieval_rejects_unknown_dataset_or_empty_methods(tmp_path):
         run_final_contexts(tmp_path, dataset="unregistered")
     with pytest.raises(ValueError, match="At least one"):
         run_final_contexts(tmp_path, methods=[])
+    with pytest.raises(ValueError, match="family"):
+        run_final_contexts(tmp_path, family="unfrozen")
+    with pytest.raises(ValueError, match="family"):
+        run_final_contexts(tmp_path, dataset="squad", family="simple")
 
 
 def test_context_strategy_uses_dev_and_prefers_simpler_approximate_tie():

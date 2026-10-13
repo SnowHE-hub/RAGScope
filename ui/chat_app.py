@@ -110,7 +110,7 @@ def probe_model(entry):
 def make_client(entry):
     from ragscope.generation.llm_client import LocalLLMClient
     identity = entry["identity"]
-    options = {key: identity[key] for key in ("revision", "weight_sha256", "backend_version", "quantization", "chat_template_hash") if key in identity}
+    options = {key: identity[key] for key in ("revision", "weight_sha256", "backend_version", "quantization", "chat_template_hash", "backend_runtime_config") if key in identity}
     options.update({key: entry[key] for key in ("num_ctx", "num_gpu", "service_device_verified", "think", "timeout") if key in entry})
     client = LocalLLMClient(entry["model"], provider=entry["provider"], base_url=entry["base_url"], **options)
     if entry["provider"] == "llama.cpp":

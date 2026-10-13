@@ -1,5 +1,42 @@
 # RAGScope
 
+## RAGScope v2 本地执行
+
+v2 使用免费本地模型、可追溯证据坐标和逐条实验账本。当前执行状态以
+[`docs/execution/STATUS.md`](docs/execution/STATUS.md) 为准；预检通过、功能测试通过与正式问答实验完成分别记录。
+原始任务书保存在 [`MASTER_PLAN.md`](docs/execution/MASTER_PLAN.md)，决策和资源恢复记录分别在
+[`DECISIONS.md`](docs/execution/DECISIONS.md) 与 [`RECOVERY.md`](docs/execution/RECOVERY.md)。
+
+Windows 主路径使用项目外的 `D:/RAGScope_Runtime`，模型、环境、数据、索引、日志和断点均放在那里。
+从项目目录执行：
+
+```powershell
+# 新机器首次安装隔离的 core 环境，按哈希锁文件验证依赖
+./scripts/bootstrap_v2.ps1
+
+# 查看/推进 CPU 任务；检测正在运行或暂停的 worker，避免重复启动
+./scripts/run_v2.ps1 -Profile full -CpuOnly -Resume
+
+# 单元测试不下载模型，不触发 GPU 推理
+. ./scripts/runtime_env.ps1
+& "$env:RAGSCOPE_HOME/envs/core/Scripts/python.exe" -m pytest tests/unit -q
+
+# 打开本地 UI；需要已完成并校验的 v2 索引
+& "$env:RAGSCOPE_HOME/envs/core/Scripts/python.exe" -m streamlit run ui/chat_app.py
+```
+
+runner 在任务未齐备时返回退出码 `2` 并留下具体原因；这不表示整套实验已经完成。
+GPU 服务、真实训练和正式生成另有资源交接及冻结清单校验，不会因为打开 UI 而自动下载或训练模型。
+Linux 启动脚本要求单独的 Linux 环境，不能复用 Windows 虚拟环境；本轮未安装 Linux 模型环境。
+
+阅读实现与结果解释可从 [`docs/learning/00_project_map.md`](docs/learning/00_project_map.md) 开始。
+v2 不需要配置云 API 密钥，Mock 仅用于离线功能测试。
+
+## 历史版本说明与结果
+
+以下保留原版本的架构、启动方式和报告数字，**不是本轮 v2 的实测结果**。
+历史 Dense/Hybrid 的原始 embedding revision 不完整；本轮另以固定版本重建并独立记录，不将两者冒充同一个实验。
+
 A modular **Retrieval-Augmented Generation** benchmarking system that lets you compare chunking strategies, retrieval methods, and generation quality side-by-side — with a transparent Streamlit UI.
 
 ---

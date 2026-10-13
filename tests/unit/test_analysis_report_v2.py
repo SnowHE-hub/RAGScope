@@ -6,9 +6,9 @@ from pathlib import Path
 import pytest
 
 from ragscope.experiments.analysis_report import build_analysis, flatten_scores, markdown_table
-from ragscope.experiments.generation_campaign import GenerationBudget, run_model
+from ragscope.experiments.generation_campaign import GenerationBudget, run_model, freeze_campaign, load_campaign
 from ragscope.experiments.ledger import read_records
-from ragscope.indexing.identity import signature
+from ragscope.indexing.identity import signature, artifact
 from test_generation_campaign_v2 import campaign, OfflineContractClient, UNIT
 
 
@@ -69,3 +69,21 @@ def test_article_cluster_and_impossible_failure_score():
     assert flatten_scores(row)['cluster_id'] == 'article'
     changed = copy.deepcopy(row); changed['scores']['token_f1'] = 1
     with pytest.raises(ValueError, match='zero'): flatten_scores(changed)
+
+
+@pytest.mark.parametrize('max_tasks', [None, 1])
+def test_external_rows_stay_at_original_source_and_missing_stays_missing(tmp_path, max_tasks):
+    shard, main = tmp_path/'shard', tmp_path/'main'
+    execute(shard, max_tasks=max_tasks)
+    manifest, frozen = load_campaign(shard)
+    original = (shard/'records/E2_fixture.jsonl').read_bytes()
+    inputs = {key: {k: v for k, v in row.items() if k not in {'input_id', 'input_hash'}}
+              for key, row in frozen.items()}
+    freeze_campaign(main, manifest['models'], manifest['groups'], inputs,
+        provenance={'external_campaigns': [{'manifest': artifact(shard/'EXPERIMENT_MANIFEST.json')}]})
+    report = build_analysis(main, CONFIG)
+    assert report['n_observed'] == (max_tasks or 2)
+    assert report['groups'][0]['n_missing'] == (1 if max_tasks else 0)
+    assert (shard/'records/E2_fixture.jsonl').read_bytes() == original
+    assert not (main/'records/E2_fixture.jsonl').exists()
+    assert any(item['path'] == str(shard/'records/E2_fixture.jsonl') for item in report['sources'])

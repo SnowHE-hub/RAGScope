@@ -257,18 +257,23 @@ def test_laya_local_loader_boundary_is_hash_checked_and_network_disabled(tmp_pat
         hashes[name] = hashlib.sha256(target.read_bytes()).hexdigest()
     # Only this unit test replaces the production official weight digest.
     monkeypatch.setattr(module, "LAYA_WEIGHT_SHA256", hashes["model.safetensors"])
+    monkeypatch.setattr(module, "verify_sdk_installation", lambda: {"offline_fixture":True})
     calls = []
     def fake_load(path, **kwargs):
         assert os.environ["HF_HUB_OFFLINE"] == "1"
+        assert os.environ["HF_HUB_DISABLE_IMPLICIT_TOKEN"] == "1"
+        assert os.environ["TRANSFORMERS_OFFLINE"] == "1"
         assert kwargs["device"] == "cpu" and kwargs["backend"] == "eager"
         calls.append(path)
         return FakeLaya()
     monkeypatch.setitem(sys.modules, "laya", SimpleNamespace(__version__="0.4.6", load=fake_load))
     monkeypatch.setenv("HF_HUB_OFFLINE", "prior-value")
+    prior_implicit_token=os.environ.get("HF_HUB_DISABLE_IMPLICIT_TOKEN")
     router = LayaRouter.load_local(tmp_path, expected_sha256=hashes)
     assert calls == [str(tmp_path.resolve())]
     assert router.identity["checkpoint_hashes_before"] == router.identity["checkpoint_hashes_after"]
     assert os.environ["HF_HUB_OFFLINE"] == "prior-value"
+    assert os.environ.get("HF_HUB_DISABLE_IMPLICIT_TOKEN")==prior_implicit_token
     monkeypatch.delitem(os.environ, "HF_HUB_OFFLINE")
     monkeypatch.setitem(sys.modules, "laya", SimpleNamespace(__version__="invalid", load=fake_load))
     with pytest.raises(ValueError, match="SDK"):

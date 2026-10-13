@@ -289,7 +289,7 @@ def test_live_worker_receipt_requires_exact_process_identity(tmp_path, monkeypat
         assert row["status"] == "RUNNING" and len(row["active_workers"]) == 1
     receipt["status"] = "SUSPENDED"
     atomic_json(directory / "worker.json", receipt)
-    with Campaign(tmp_path, "demo") as campaign:
+    with Campaign(tmp_path, "demo_retrieval"), Campaign(tmp_path, "demo") as campaign:
         row = reconcile(campaign, catalog(spec))["tasks"]["S2.3"]
         assert row["status"] == "PENDING" and row["resource_wait"]
     spec["commands"] = [{"argv": [sys.executable, "-c", "print(1)"], "purpose": "fixture", "lock_campaigns": ["_retrieval"]}]

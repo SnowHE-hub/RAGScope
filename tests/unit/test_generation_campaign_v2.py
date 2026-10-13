@@ -9,6 +9,7 @@ from ragscope.experiments.generation_campaign import (BudgetExhausted, Generatio
     CountedClient, freeze_campaign, load_campaign, oracle_context, position_contexts,
     run_model, validate_core_matrix)
 from ragscope.experiments.ledger import read_records
+from ragscope.indexing.identity import artifact
 from ragscope.generation.context import pack_context, validate_bundle
 from ragscope.generation.llm_client import LocalLLMClient, MockLLMClient
 
@@ -72,6 +73,43 @@ def test_budget_protects_core_and_is_durable(tmp_path):
         GenerationBudget(budget.path, limit=7, core_reserved=4)
     with pytest.raises(ValueError):
         GenerationBudget(tmp_path / "bad", limit=10001)
+
+
+def test_external_shard_ownership_skips_missing_tasks_and_keeps_original_rows(tmp_path):
+    from ragscope.experiments.generation_campaign import iter_record_sources
+    inputs = {f'i{i}': sample(f'q{i}') for i in range(2)}
+    e3 = {'experiment_id': 'E3', 'method': 'oracle', 'model_ids': ['fixture'], 'input_ids': list(inputs)}
+    shard, main = tmp_path/'shard', tmp_path/'main'
+    freeze_campaign(shard, {'fixture': IDENTITY}, [e3], inputs)
+    budget = GenerationBudget(tmp_path/'shared_budget', limit=30, core_reserved=0)
+    run_model(shard, 'fixture', OfflineContractClient(), budget, evidence_units={'u': UNIT}, max_tasks=1)
+    before = (shard/'records/E3_fixture.jsonl').read_bytes()
+    freeze_campaign(main, {'fixture': IDENTITY}, [e3, {**e3, 'experiment_id': 'E2', 'method': 'R0'}], inputs,
+        provenance={'external_campaigns': [{'manifest': artifact(shard/'EXPERIMENT_MANIFEST.json')}]})
+    manifest, frozen = load_campaign(main)
+    sources = list(iter_record_sources(main, manifest, frozen))
+    assert len(sources) == 2 and len(sources[0]['owned_task_ids']) == len(sources[1]['owned_task_ids']) == 2
+    client = OfflineContractClient()
+    result = run_model(main, 'fixture', client, budget, evidence_units={'u': UNIT})
+    assert client.calls == 5 and result['E2']['n_pending'] == 0 and result['E3']['n_pending'] == 1
+    assert (shard/'records/E3_fixture.jsonl').read_bytes() == before
+    assert not (main/'records/E3_fixture.jsonl').exists()
+
+
+def test_external_shard_rejects_semantic_drift_and_duplicate_ownership(tmp_path):
+    from ragscope.experiments.generation_campaign import iter_record_sources
+    inputs = {'i': sample()}
+    group = {'experiment_id': 'E3', 'method': 'oracle', 'model_ids': ['fixture'], 'input_ids': ['i']}
+    shard = tmp_path/'shard'
+    freeze_campaign(shard, {'fixture': IDENTITY}, [group], inputs)
+    reference = {'manifest': artifact(shard/'EXPERIMENT_MANIFEST.json')}
+    for label, references, seed in [('duplicate', [reference, reference], 42), ('seed', [reference], 43)]:
+        main = tmp_path/label
+        freeze_campaign(main, {'fixture': IDENTITY}, [group], inputs, seed=seed,
+            provenance={'external_campaigns': references})
+        manifest, frozen = load_campaign(main)
+        with pytest.raises(ValueError, match='duplicate|seed'):
+            list(iter_record_sources(main, manifest, frozen))
 
 
 def test_counted_failure_and_no_ticket_after_exhaustion(tmp_path):

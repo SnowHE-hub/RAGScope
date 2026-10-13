@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 
 from ragscope.evaluation.v2 import cluster_bootstrap, paired_cluster_bootstrap, summarize_records, percentile
-from ragscope.experiments.generation_campaign import load_campaign
+from ragscope.experiments.generation_campaign import load_campaign, iter_record_sources
 from ragscope.experiments.ledger import read_records
 from ragscope.indexing.identity import artifact, atomic_json, signature
 
@@ -37,38 +37,45 @@ def _key(row):
 
 def validated_rows(directory, manifest, inputs):
     """Reject duplicated, stale, uncounted, mock or mismatched records."""
-    directory = Path(directory)
+    directory = Path(directory).resolve()
     tasks = {task['task_id']: task for task in manifest['tasks']}
     seen, tickets, rows, sources = set(), set(), [], []
-    files = sorted({f"{t['experiment_id']}_{t['model_id']}.jsonl" for t in tasks.values()})
-    for name in files:
-        path = directory/'records'/name
-        if not path.exists():
-            continue
-        stored = read_records(path)
-        config_path = path.with_suffix('.config.json')
-        config = json.loads(config_path.read_text(encoding='utf-8'))
-        if config['manifest_hash'] != manifest['manifest_hash']:
-            raise ValueError('Record store belongs to another manifest')
-        for row in stored:
-            tid = row.get('task_id')
-            if not row.get('record_hash') or row.get('config_hash') != signature(config):
-                raise ValueError('Missing record/config hash')
-            if tid not in tasks or tid in seen or row['record_id'] != tid:
-                raise ValueError('Unknown/duplicate task record')
-            if any(row.get(key) != value for key, value in tasks[tid].items()):
-                raise ValueError('Record differs from frozen task')
-            source = inputs[row['input_id']]
-            if row.get('real_model') is not True or row['model_identity'] != manifest['models'][row['model_id']]:
-                raise ValueError('Mock/stale model identity')
-            if row['context_bundle'] != source['context_bundle'] or row['question'] != source['query']['question']:
-                raise ValueError('Frozen generation text differs')
-            ticket = row.get('call_ticket', {}).get('call_number')
-            if ticket is None or ticket in tickets:
-                raise ValueError('Missing/duplicate real request ticket')
-            seen.add(tid); tickets.add(ticket)
-            rows.append(flatten_scores(row))
-        sources.extend([artifact(path), artifact(config_path)])
+    for record_source in iter_record_sources(directory, manifest, inputs):
+        source_directory = record_source['directory']
+        source_manifest = record_source['manifest']
+        owned = record_source['owned_task_ids']
+        if source_directory != directory:
+            sources.extend([artifact(source_directory/'EXPERIMENT_MANIFEST.json'),
+                            artifact(source_directory/'FROZEN_INPUTS.json')])
+        files = sorted({f"{t['experiment_id']}_{t['model_id']}.jsonl" for t in source_manifest['tasks']})
+        for name in files:
+            path = source_directory/'records'/name
+            if not path.exists():
+                continue
+            stored = read_records(path)
+            config_path = path.with_suffix('.config.json')
+            config = json.loads(config_path.read_text(encoding='utf-8'))
+            if config['manifest_hash'] != source_manifest['manifest_hash']:
+                raise ValueError('Record store belongs to another manifest')
+            for row in stored:
+                tid = row.get('task_id')
+                if not row.get('record_hash') or row.get('config_hash') != signature(config):
+                    raise ValueError('Missing record/config hash')
+                if tid not in tasks or tid not in owned or tid in seen or row['record_id'] != tid:
+                    raise ValueError('Unknown/duplicate/wrong-owner task record')
+                if any(row.get(key) != value for key, value in tasks[tid].items()):
+                    raise ValueError('Record differs from frozen task')
+                source = inputs[row['input_id']]
+                if row.get('real_model') is not True or row['model_identity'] != manifest['models'][row['model_id']]:
+                    raise ValueError('Mock/stale model identity')
+                if row['context_bundle'] != source['context_bundle'] or row['question'] != source['query']['question']:
+                    raise ValueError('Frozen generation text differs')
+                ticket = row.get('call_ticket', {}).get('call_number')
+                if ticket is None or ticket in tickets:
+                    raise ValueError('Missing/duplicate real request ticket')
+                seen.add(tid); tickets.add(ticket)
+                rows.append(flatten_scores(row))
+            sources.extend([artifact(path), artifact(config_path)])
     return rows, sources
 
 

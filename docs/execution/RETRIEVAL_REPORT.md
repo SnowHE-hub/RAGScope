@@ -134,6 +134,7 @@ test从未反向改变两个候选选择；当前R512默认仍源自dev初筛。
 随后执行完全相同的矩阵命令，从已经完成的两个组及逐文本缓存恢复，未删除完成行、未减少任何问题，也未把这次索引请求中断记成“零运行错误”。
 F512_O0中断前部分向量的原冷编码耗时未逐条落盘，因此恢复时的cache-hit耗时不能冒充这部分完整冷索引构建成本；`chunk_manifest.build_seconds`及矩阵同名字段仅指切块构建，不是完整embedding索引端到端耗时。
 后续全库索引构建已增加逐chunk首个已完成编码观测的不可变记录，批内后续请求失败也在finally中fsync此前完成的测量。该改动不回补旧数据，不影响当前暂停进程已加载的旧代码。模拟真实中断位置的离线测试证明恢复后保留原冷耗时；该数值夹具明确标为非真实模型。
+暂停期间另执行`scripts/audit_embedding_indexes_v2.py`，4个完成索引共2235个向量全部通过1024维float32、有限值、L2归一化、身份和文件哈希核验，每块正文重新用已固定真实tokenizer计数均符合预算；每索引seed42抽20个，共80个向量与文本缓存逐元素一致。已索引去重文本中523个存在真实backend usage，1639个历史无usage；可观测样本的后端tokens−正文tokens为1。详细证据为`EMBEDDING_INDEX_AUDIT.json`。向量/缓存对齐是有界抽查，未声称逐个复核全部对应关系；未完成索引不计入完成数。
 
 ## 可恢复执行与边界
 
@@ -148,12 +149,33 @@ F512_O0中断前部分向量的原冷编码耗时未逐条落盘，因此恢复�
 索引按数据、split、scope、完整切块参数、真实tokenizer及revision签名隔离；内容哈希与条数匹配才复用。
 每题保存raw候选50的ID/得分/源坐标，完整原文可从对应索引恢复；保存实际ContextBundle、预算丢弃原因、去重记录、证据分数、错误及实际计时。
 RecordStore每条fsync，Campaign持单写锁；中断从完整记录恢复，已完成问题不重复统计。
-13个检索离线单元测试通过，覆盖切块源覆盖、父子边界、真实BM25 scope、失败分母、不可回答N/A、dev容差选择及幂等恢复；全库测试额外证明gold_doc_id不进入scope、干扰文档仍被实际搜索。新增数组索引恢复和身份拒绝使用明确标记的离线数值夹具，不计入模型结果。
+14个检索离线单元测试通过，覆盖切块源覆盖、父子边界、真实BM25 scope、失败分母、不可回答N/A、dev容差选择、幂等恢复及编码批次中断的原始耗时保留；全库测试额外证明gold_doc_id不进入scope、干扰文档仍被实际搜索。新增数组索引恢复和身份拒绝使用明确标记的离线数值夹具，不计入模型结果。
 独立反向核验见`E1_BM25_INDEPENDENT_AUDIT.json`：重读1100条实际context源坐标，使用独立区间合并代码重算33个表格数字全部一致；其中seed42抽10数字保存，未用汇总表核验汇总表。
-新增可重复命令`python scripts/audit_retrieval_v2.py --home D:/RAGScope_Runtime --campaign 20261014_v2`最近实际通过：24个已完成运行、2600行、11821个context原文片段、72个汇总数字全部一致，另以seed42抽10项记录。
+新增可重复命令`python scripts/audit_retrieval_v2.py --home D:/RAGScope_Runtime --campaign 20261014_v2`最近实际通过：26个已完成运行、2800行、12602个context原文片段、78个汇总数字全部一致，另以seed42抽10项记录。
 该脚本独立实现字符区间求并、逐单元覆盖和多合法标注集合的预声明选择，不调用生产评分/汇总代码；同时核验行哈希、配置哈希、完整问题分母、原文坐标及正文片段。证据保存于`RETRIEVAL_INDEPENDENT_AUDIT.json`，每次只核验已完成summary，不将进行中的运行算作完成。
 `RETRIEVAL_LATENCY_AUDIT.json`另存编码缓存命中与各实际组件的N/P50/P95；旧行缺失的组件保留不可得，不反填估计值。
 最终神经test上下文执行前已冻结`configs/v2/retrieval_statistics.json`：2000次seed42配对论文cluster bootstrap，95% percentile区间；SQuAD使用article_cluster_id。5组对照包括论文内Hybrid−BM25、Hybrid−Dense、结构−简单Hybrid，以及全库Hybrid−BM25、Hybrid−Dense；全部明确为探索性，不将未经多重比较调整的区间解释为确认性显著结论。
 执行器`scripts/summarize_retrieval_statistics_v2.py`验证真实行/配置哈希、完整冻结问题集合、失败为零和不可回答N/A，再计算按问题加权、以整篇文档重采样的估计。未完成配置保持UNAVAILABLE；最终选择文件未就绪时保持WAITING_FOR_DEV_SELECTION，不使用初筛选择冒充最终神经方案。统计输入核验的3个离线测试通过。
 Dense/Hybrid要求显式CPU后端身份与loopback URL；没有就不将词法检索或Mock包装成Dense实验。
 重排、E8其余三种检索方式及最终生成主实验尚未完成，当前报告不声称它们已经完成。
+
+## S4在线检索调用接口
+
+`ragscope/routing/online_retrieval.py`提供`create_live_retriever(home, campaign, embedding_url=..., reranker=...)`；返回对象的`retrieve(question, scope, route, model_budget_checks=checks)`实际搜索已完成索引，支持BM25、Hybrid和HybridRerank。只接受问题文字和明确scope，不接收gold字段；全库与单篇scope不会互换。
+工厂要求最终dev候选、匹配候选哈希的context选择、真实完成索引和源文件哈希全部就绪。它不自动加载模型、下载文件或用冻结ContextBundle替代在线检索。多个路线可共享已验证Dense ArrayIndex中相同的BM25语料和统计，以减少内存；BM25调用时仍披露实际所用Dense索引签名，不声称载入了另一个索引。
+在线结果保存raw50、pack前真正selected10、重排窗口、query cache状态、编码/检索/融合/重排/context实际耗时；索引加载单列在`load_timings_ms`，不混入逐题热运行时延。少于50个候选时保存真实数量。backend错误保留，不悄悄回退BM25。
+调用者提供逐题、全部formal模型的真实prompt+512≤4096共同预算检查。在线路径严格复现freezer.shared_context的两步逻辑：先冻结扩展+2048 reference-only打包，再只对已保留pieces做共同模型预算repack；不会因模型预算拒绝前段而重新加入初次reference预算已排除的候选。初始`retrieval_context_bundle`与最终`context_bundle`及两个实际pack耗时均保留。8项离线接口测试通过，包括实际BM25调用、50→10合约、scope禁止gold、backend失败保留、未就绪不加载、两步共同预算与正式packer一致，以及拒绝模型实际device为GPU但身份声明CPU的错误注入。这些数值夹具不是神经在线实验结果。
+实际环境ready检查记录`ONLINE_RETRIEVAL_READINESS.json`为WAITING_FOR_FINAL_DEV_SELECTION：没有加载模型或伪造在线调用。后续物化结果也已加入`selected_retrieval`及schema version2；历史不可变行保持原状，缺该字段的错误分析只能标记packing_or_ranking_loss_uncertain，不能据raw50将丢失证据全部归因于打包预算。
+
+路由上下文的独立物化入口为`scripts/materialize_routing_contexts_v2.py`，只在最终完整选中索引就绪后运行train200/dev60的BM25与Hybrid，共520条实际检索。测试集100题只核验身份，在已有TEST_CONTEXT200中取得，不在此新增测试选型。
+root冻结的`ROUTING_QUERY_MANIFEST.json`哈希f1b6ae1ef21a44b720b53e1a6fffe6600a12d16d51e4b88aefe26a69c0ff952b已实际通过哈希、SPLIT源、问题文件、freezer.seeded_subset完整顺序和跨split文档不重叠检查。train200来自159篇、dev60来自30篇、test100来自59篇；证据`ROUTING_SOURCE_VALIDATION.json`明确实际物化尚未发生。新增2个离线测试拒绝重签名后的不同抽样顺序、错误外部预期哈希和变动源文件。
+
+## 辅助排序指标与来源映射
+
+`scripts/summarize_retrieval_auxiliary_v2.py`已实际处理28个完成运行、3000条原始结果，输出`RETRIEVAL_AUXILIARY_METRICS.json`及`auxiliary/*.jsonl`。原记录与配置哈希、冻结分母、完整索引manifest均核验，不改写正式实验行。定义固定于`configs/v2/retrieval_auxiliary.json`：MRR@10为首个相关chunk的倒数rank；binary nDCG@10的理想排序分母来自scope内完整索引中的相关chunk数量，不只用已检索50候选。相关性指任何正长度的合法证据单元交集，多个合法标注取union。失败为0、不可回答N/A。R3使用真实selected_retrieval重排顺序，不能用上游Hybrid50冒充。
+
+这是离线辅助描述，不参与选择：少量证据交集未必足够回答，overlap和chunk粒度改变相关item数，因此不同切块间MRR/nDCG可比性有限；完整证据单元与完整参考集合覆盖仍为主指标。两项手算测试验证全索引IDCG、实际rank、失败/N/A与重复ID拒绝。
+
+`scripts/export_retrieval_source_map_v2.py`已导出并核验`SOURCE_MAP.json`：在排序后的dev文档ID上以seed42固定抽3篇，覆盖11组、462个子块、31个父块、153个稳定证据单元，所有坐标片段逐个与canonical原文相同。导出包含canonical文字、Unicode半开区间、chunk参数、父子ID和明确标识为evaluation_only的标注，用于来源映射可视化，不进入在线检索输入。样本按文档ID抽取，未按检索成绩挑选。产物522587bytes，SHA256 `6c9faa968e9a930e614bf00f8ca2e0845022ca7b39c7b1db04ad4b596622c34c`；可重复执行要求相同内容。
+
+训练完整122步并明确资源handover后，CPU服务按精确旧命令恢复为PID36892/create1791909754.8890424，二进制/权重哈希、CPU0层offload、真实1024维向量均通过。暂停worker43932的在途HTTP连接重置已保存，确认退出后以原命令重启为28832，这是有界恢复2/3；1000条前五组Dense/Hybrid结果完成后继续第六组，无已完成query丢失。恢复过程见`TRAINING_RAM_RESUME.json`，当前身份以`worker.json`和主`embedding_service.json`为准。

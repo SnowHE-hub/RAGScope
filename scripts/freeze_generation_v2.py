@@ -12,7 +12,8 @@ from dataclasses import asdict
 import json
 import random
 
-from ragscope.experiments.generation_campaign import freeze_campaign, oracle_context, position_contexts, validate_core_matrix
+from ragscope.experiments.generation_campaign import (freeze_campaign, oracle_context, position_contexts,
+    validate_core_matrix, iter_record_sources, load_campaign)
 from ragscope.experiments.ledger import read_records
 from ragscope.experiments.runtime import runtime_home
 from ragscope.generation.context import pack_context, render_context, validate_bundle
@@ -268,6 +269,9 @@ def default_spec(home, campaign):
         'renderer_source':str(home/'models/ollama/blobs/sha256-58e51bf3ff10a5f7ed85bdbcb131428218f367ffd9fd30915cd73e31d2edb904'),
         'backend_version':'0.34.4','pilot_summary':str(run/'pilot_lfm_summary.json'),
         'pilot_records':str(run/'generation_pilots.jsonl')}
+    shard=home/'runs'/(campaign+'_generation_e3')/'EXPERIMENT_MANIFEST.json'
+    if shard.exists():
+        spec['external_campaigns']=[{'manifest':artifact(shard)}]
     return spec
 
 
@@ -464,6 +468,7 @@ def freeze_all(spec, *, client_factory=model_client_factory):
                     for mid in group['model_ids'] for iid in group['input_ids']]
     validate_core_matrix({'groups':groups,'tasks':preview_tasks},[q['query_id'] for q in queries['test']],main)
     manifest = freeze_campaign(out,models,groups,inputs,provenance={'spec':spec,'readiness':readiness,
+        'external_campaigns':spec.get('external_campaigns',[]),
         'corpus_manifest':corpus_artifact,'selection':artifact(selection_path),'selection_result':selection,
         'context_selection':artifact(context_selection_path),'context_selection_result':context_selection,
         'backend_runtime_config':RUNTIME_POLICY,'service_runtime_snapshot':artifact(snapshot),
@@ -473,6 +478,8 @@ def freeze_all(spec, *, client_factory=model_client_factory):
         'citation_visibility_interpretation':'Citation ID visibility constrained by backend schema; not a model faithfulness score',
         'oracle_unanswerable_definition':'Empty context by experimental construction, not detected answerability',
         'subset_rule':'query_id sorted then seeded shuffle42 firstN; never selected by test outputs'})
+    frozen_manifest,frozen_inputs=load_campaign(out)
+    list(iter_record_sources(out,frozen_manifest,frozen_inputs))
     validate_core_matrix(manifest,[q['query_id'] for q in queries['test']],main)
     readiness['status']='FROZEN'; readiness['manifest_hash']=manifest['manifest_hash']
     atomic_json(out/'FREEZE_READINESS.json',readiness)

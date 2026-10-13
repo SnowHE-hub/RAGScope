@@ -250,7 +250,7 @@ def run_queries(index, chunks, parents, queries, units, config, group, method,
         if query["query_id"] in store.ids:
             continue
         started = time.perf_counter()
-        candidates, bundle, error, timings = [], {}, None, {}
+        candidates, selected_candidates, bundle, error, timings = [], [], {}, None, {}
         encoding_metrics = []
         try:
             vector = None
@@ -268,7 +268,8 @@ def run_queries(index, chunks, parents, queries, units, config, group, method,
             # actually measured combined retrieval time rather than inventing it.
             timings.update(getattr(index, "last_timings", {}))
             before = time.perf_counter()
-            bundle = pack_context(candidates[:config["final_k"]], max_tokens=config["context"]["max_tokens"],
+            selected_candidates = candidates[:config["final_k"]]
+            bundle = pack_context(selected_candidates, max_tokens=config["context"]["max_tokens"],
                                   scope="all" if retrieval_scope(query) is None else query["scope"], expansion=expansion, chunk_lookup=lookup,
                                   parent_lookup=parent_lookup).to_dict()
             timings["context_ms"] = (time.perf_counter()-before)*1000
@@ -285,7 +286,9 @@ def run_queries(index, chunks, parents, queries, units, config, group, method,
                   "scope": query["scope"], "question": query["question"], "answerability": query["answerability"],
                   "experiment_type": "retrieval", "device": "cpu", "real_model": bool(embedding),
                   "embedding_identity": embedding.identity if embedding else None,
-                  "index_signature": index.signature, "raw_retrieval": raw, "context_bundle": bundle,
+                  "index_signature": index.signature, "raw_retrieval": raw,
+                  "selected_retrieval": raw[:len(selected_candidates)], "retrieval_record_schema_version": 2,
+                  "context_bundle": bundle,
                   "context_statistics": context_statistics(bundle) if bundle else {}, "scores": scores,
                   "error": error, "timings": timings, "query_encoding_metrics": encoding_metrics, "seed": config["seed"]})
         if len(store.ids) % 20 == 0:
@@ -503,6 +506,7 @@ def run_test_contexts(home: Path, data_campaign="20261014_v2"):
 
 def verified_dense_index(chunks, sparse_identity, directory, config, embedding):
     """Reuse only matching persisted arrays; each completed text is checkpointed."""
+    operation_started = time.perf_counter()
     identity = {**sparse_identity, "embedding": embedding.identity, "embedding_input": config["embedding_input"]}
     destination = directory / ("dense_" + signature(embedding.identity)[:16])
     if (destination / "manifest.json").exists():
@@ -512,7 +516,9 @@ def verified_dense_index(chunks, sparse_identity, directory, config, embedding):
                               {"embedding_identity": embedding.identity, "index_identity": identity,
                                "observation_policy": "first_completed_encoding_or_cache_lookup_per_chunk"},
                               max_records=len(chunks))
+    previously_observed = len(metric_store.ids)
     vectors, metrics = [], []
+    encoding_started = time.perf_counter()
     for offset in range(0, len(chunks), 8):
         batch = chunks[offset:offset+8]
         # A later request in this batch can fail. Persist already completed
@@ -530,14 +536,36 @@ def verified_dense_index(chunks, sparse_identity, directory, config, embedding):
         metrics.extend({"chunk_id": c["chunk_id"], **m} for c, m in zip(batch, embedding.last_metrics))
         if offset % 80 == 0:
             print(f"Final corpus embedding: {min(offset+8, len(chunks))}/{len(chunks)}", flush=True)
+    encoding_seconds = time.perf_counter() - encoding_started
+    construction_started = time.perf_counter()
     index = ArrayIndex(chunks, identity, np.stack(vectors))
+    construction_seconds = time.perf_counter() - construction_started
+    save_started = time.perf_counter()
     index.save(destination)
+    array_save_seconds = time.perf_counter() - save_started
     write_jsonl(destination / "embedding_metrics.jsonl", metrics)
+    # This is the measured successful build attempt, including its actual cache
+    # state. It is not a reconstruction of unobserved historical cold work.
+    atomic_json(destination / "build_performance.json", {
+        "identity_signature": signature(identity), "chunks": len(chunks),
+        "encoding_loop_seconds": encoding_seconds,
+        "array_construction_seconds": construction_seconds,
+        "array_save_seconds": array_save_seconds,
+        "successful_attempt_total_seconds": time.perf_counter() - operation_started,
+        "previously_completed_chunk_observations": previously_observed,
+        "successful_attempt_cache_hits": sum(bool(m["cache_hit"]) for m in metrics),
+        "successful_attempt_model_calls": sum(not m["cache_hit"] for m in metrics),
+        "first_observed_model_call_seconds": sum(m["seconds"] for m in metric_store.records if not m["cache_hit"]),
+        "first_observed_cache_lookup_seconds": sum(m["seconds"] for m in metric_store.records if m["cache_hit"]),
+        "interpretation": "Actual successful attempt and durable first observations; shared cache state disclosed. Not full historical cold build time.",
+        "embedding_metrics": artifact(destination / "embedding_metrics.jsonl"),
+        "first_observations": artifact(destination / "embedding_first_observations.jsonl")})
     return index, destination
 
 
 def run_final_contexts(home: Path, data_campaign="20261014_v2", dataset="qasper",
-                       embedding_url=None, embedding_identity_path=None, methods=None):
+                       embedding_url=None, embedding_identity_path=None, methods=None,
+                       family=None):
     """Evaluate frozen dev-selected candidates without using test to select.
 
     QASPER uses the identical all-509-paper corpus for every method. SQuAD uses
@@ -550,6 +578,8 @@ def run_final_contexts(home: Path, data_campaign="20261014_v2", dataset="qasper"
         raise ValueError("Unsupported final retrieval dataset or methods")
     if not methods:
         raise ValueError("At least one real retrieval method is required")
+    if family not in {None, "simple", "structured"} or (dataset == "squad" and family == "simple"):
+        raise ValueError("Unsupported final retrieval family")
     available = psutil.virtual_memory().available
     if available < 768*1024**2:
         guard = {"status": "BLOCKED_RESOURCE", "available_bytes": available,
@@ -599,8 +629,16 @@ def run_final_contexts(home: Path, data_campaign="20261014_v2", dataset="qasper"
         context_selection = json.loads(context_selection_path.read_text(encoding="utf-8"))
         if context_selection.get("candidate_selection_sha256") != file_hash(selection_path) or context_selection.get("split") != "dev":
             raise ValueError("Final context choices must match frozen dev candidate selection")
-        for group in chunking["groups"]:
+        # The structured candidate supplies E2/E4/E5/E8 and routing inputs. Build
+        # it first so those downstream consumers can start while the independent
+        # simple comparator is encoded. Selection and per-run identities stay
+        # unchanged; cache state is measured per query and never hidden.
+        ordered_groups = sorted(chunking["groups"],
+                                key=lambda g: g["id"] != selected["selected"]["structured"])
+        for group in ordered_groups:
             if group["id"] not in selected["selected"].values():
+                continue
+            if family is not None and group["id"] != selected["selected"][family]:
                 continue
             if dataset == "squad" and group["id"] != selected["selected"]["structured"]:
                 continue
@@ -640,8 +678,91 @@ def run_final_contexts(home: Path, data_campaign="20261014_v2", dataset="qasper"
                   "methods": methods, "groups": summaries, "selection_source": selected,
                   "selection_sha256": file_hash(selection_path), "test_used_for_selection": False,
                   "context_selection": context_selection, "context_selection_sha256": file_hash(context_selection_path),
-                  "cpu_only": True, "reranking_status": "PENDING_SEPARATE_EXPERIMENT"}
-        output = campaign.path / f"FINAL_{dataset}_{'-'.join(methods)}_CONTEXT_SUMMARY.json"
+                  "cpu_only": True, "scheduled_family": family,
+                  "reranking_status": "PENDING_SEPARATE_EXPERIMENT"}
+        family_suffix = "_" + family if family is not None else ""
+        output = campaign.path / f"FINAL_{dataset}_{'-'.join(methods)}{family_suffix}_CONTEXT_SUMMARY.json"
         atomic_json(output, result)
         print(json.dumps({"status": result["status"], "actual_rows": sum(s["n_total"] for s in summaries), "summary": str(output)}), flush=True)
+        return result
+
+
+def verified_routing_queries(home: Path, data_campaign="20261014_v2", expected_manifest_hash=None):
+    """Use root's frozen IDs exactly and verify the same freezer subset rule."""
+    from scripts.freeze_generation_v2 import seeded_subset
+
+    corpus = home / "corpora" / data_campaign
+    path = home / "runs" / data_campaign / "ROUTING_QUERY_MANIFEST.json"
+    manifest = json.loads(path.read_text(encoding="utf-8"))
+    actual = signature({key: value for key, value in manifest.items() if key != "manifest_hash"})
+    if manifest.get("manifest_hash") != actual or (expected_manifest_hash is not None and actual != expected_manifest_hash):
+        raise ValueError("Frozen routing query manifest hash differs")
+    source = manifest["source"]
+    if (Path(source["path"]).resolve() != (corpus / "SPLIT_MANIFEST.json").resolve()
+            or not verify_artifacts([source]) or manifest.get("seed") != 42):
+        raise ValueError("Frozen routing split source/seed differs")
+    split_manifest = json.loads((corpus / "SPLIT_MANIFEST.json").read_text(encoding="utf-8"))
+    result, all_ids, doc_sets = {}, set(), {}
+    for split, count in (("train", 200), ("dev", 60), ("test", 100)):
+        query_path = corpus / f"queries_{split}.jsonl"
+        if file_hash(query_path) != split_manifest["files"][query_path.name]["sha256"]:
+            raise ValueError("Routing source query file changed")
+        population = list(read_jsonl(query_path))
+        mapping = {q["query_id"]: q for q in population}
+        wanted = manifest["query_ids"][split]
+        if len(mapping) != len(population) or len(wanted) != count or len(set(wanted)) != count:
+            raise ValueError("Wrong or duplicated frozen routing denominator")
+        expected_ids = [row["query_id"] for row in seeded_subset(population, count)]
+        if wanted != expected_ids or set(wanted) & all_ids:
+            raise ValueError("Frozen routing IDs differ from freezer subset or leak across splits")
+        rows = [mapping[qid] for qid in wanted]
+        if any(q["split"] != split for q in rows):
+            raise ValueError("Routing query split metadata differs")
+        doc_sets[split] = {retrieval_scope(q) for q in rows}
+        if None in doc_sets[split]:
+            raise ValueError("Routing training inputs must retain explicit paper scope")
+        result[split] = rows
+        all_ids.update(wanted)
+    if any(doc_sets[a] & doc_sets[b] for a, b in (("train", "dev"), ("train", "test"), ("dev", "test"))):
+        raise ValueError("Routing train/dev/test document leakage")
+    return result, {"manifest": artifact(path), "manifest_hash": actual, "source": source,
+                    "counts": {split: len(rows) for split, rows in result.items()},
+                    "document_counts": {split: len(ids) for split, ids in doc_sets.items()},
+                    "sampler": "scripts.freeze_generation_v2.seeded_subset", "new_sampling_performed": False}
+
+
+def run_routing_contexts(home: Path, data_campaign="20261014_v2", embedding_url=None,
+                         embedding_identity_path=None, expected_manifest_hash=None):
+    """Materialize train200/dev60 BM25+Hybrid sources using final existing index.
+
+    This never builds/encodes a document index or creates a replacement sample.
+    The test100 selection is verified for provenance but is not executed here;
+    its contexts already belong to the frozen TEST_CONTEXT200 population.
+    """
+    from ragscope.routing.online_retrieval import create_live_retriever
+
+    populations, source = verified_routing_queries(home, data_campaign, expected_manifest_hash)
+    live = create_live_retriever(home, data_campaign, embedding_url=embedding_url,
+        embedding_identity_path=embedding_identity_path, routes=("bm25", "hybrid"))
+    corpus = home / "corpora" / data_campaign
+    units = {unit["unit_id"]: unit for doc in read_jsonl(corpus / "documents.jsonl") for unit in doc["evidence_units"]}
+    group = live.index.identity["group"]
+    summaries = []
+    with Campaign(home, data_campaign + "_retrieval") as campaign:
+        for split in ("train", "dev"):
+            config = {**live.identity["retrieval_config"], "split": split, "routing_query_source": source}
+            for method in ("bm25", "hybrid"):
+                summary = run_queries(live.index, live.index.chunks, list(live.parent_lookup.values()),
+                    populations[split], units, config, group, method, live.expansion, campaign,
+                    live.embedding if method == "hybrid" else None, experiment_id="ROUTE_CONTEXT_" + split.upper())
+                summaries.append(summary)
+        result = {"status": "PASS" if not sum(s["n_failed"] for s in summaries) else "FAILED",
+                  "source": source, "groups": summaries, "selected_group": group,
+                  "expansion": live.expansion, "actual_rows": sum(s["n_total"] for s in summaries),
+                  "shared_index_identity": live.index.identity, "index_load_timings_ms": live.load_timings_ms,
+                  "test_used_for_selection": False, "test100_executed_here": False,
+                  "rerank_status": "PENDING_SEPARATE_REAL_BGE_MATERIALIZATION"}
+        atomic_json(campaign.path / "ROUTING_CONTEXT_SUMMARY.json", result)
+        print(json.dumps({"status": result["status"], "rows": result["actual_rows"],
+                          "group": group["id"], "source_manifest_hash": source["manifest_hash"]}), flush=True)
         return result

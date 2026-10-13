@@ -20,4 +20,8 @@ LoRA 固定绝大部分基础权重，只训练小型增量矩阵。r 是增量�
 
 微调前后要用同一 BF16基础模型、同一后端、相同上下文和测试题；拿Q4基础模型与BF16微调模型比较，不能把差异全算作LoRA收益。模型如果在dev变差，就不作为UI默认模型。
 
-实际状态在 `docs/execution/TRAINING_REPORT.md`：已完成确定性软件测试与加载前资源检查；还没有真实训练结果。低 RAM guard 的阻断不等于 CUDA OOM。每个已运行检查都有 `D:/RAGScope_Runtime/runs/20261014_v2_lora` 中的原始记录，资源恢复后仍需按同一协议继续验证。
+实际状态在 `docs/execution/TRAINING_REPORT.md`：官方2B BF16模型已完成正式seed42的一轮122步、972条训练例及5→10、10→122两个实际恢复。模块检查选出114个语言attention Linear模块，共训练3,691,008个LoRA参数。59条dev平均loss从step25的0.158186降到step122的0.135663，best和latest都是step122。尚未得到100题同精度前后对照，不能把训练loss下降写成问答质量提升。
+
+这里有一个真实资源例子：首轮Windows默认CUDA缓存的reserved峰值达到14.48GB，而同次nvidia-smi的一个观测点为7888/8151MiB。二者不是同一指标，不能说物理显卡有14GB。后续只清理每条样本之后未使用的allocator缓存，并暂缓另一个自有CPU模型以释放RAM；恢复预检的allocated峰值7.57GB、reserved峰值8.23GB，主机可用RAM最低4.89GB。硬件共享/分页可能参与，不能从这些数字推断一个精确的CPU offload层数。
+
+全部原始记录保存在 `D:/RAGScope_Runtime/runs/20261014_v2_lora`。加载前RAM guard、真实CUDA OOM、正常保存退出是三种不同事件；本轮前10步已成功，不应再用早期guard失败宣称训练不可行。先前初始化未完整固定的10步保留作可行性证据，与最终seed42训练曲线分开。

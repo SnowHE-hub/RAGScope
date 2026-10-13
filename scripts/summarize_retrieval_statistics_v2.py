@@ -98,6 +98,9 @@ def report(home, campaign):
     rows_by_key = {}
     options = [("paper", family, method) for family in ("simple", "structured") for method in ("bm25", "dense", "hybrid")]
     options += [("global", "structured", method) for method in ("bm25", "dense", "hybrid")]
+    # R3 is a required existing route, included descriptively when its real
+    # CPU-reranked records arrive. This adds no post-hoc selection or contrast.
+    options += [(task, "structured", "hybrid_rerank") for task in ("paper", "global")]
     options.append(("squad", "structured", "hybrid"))
     params = {"n_resamples": protocol["n_resamples"], "seed": protocol["seed"]}
     for task, family, method in options:

@@ -5,6 +5,7 @@ Importing this module and --mode guard use no torch/model imports or GPU memory.
 from __future__ import annotations
 import argparse
 import importlib.metadata
+import hashlib
 import json
 import math
 import os
@@ -13,7 +14,7 @@ import signal
 import time
 from pathlib import Path
 
-from ragscope.experiments.ledger import RecordStore
+from ragscope.experiments.ledger import RecordStore, append_jsonl
 from ragscope.experiments.runtime import runtime_home, require_ram, require_disk
 from ragscope.indexing.identity import atomic_json, file_hash, signature, verify_artifacts
 from ragscope.training.checkpoint import CheckpointStore
@@ -122,7 +123,12 @@ def load_training_model(model_directory, path_config, config):
     architecture = verify_training_snapshot(model_directory, path_config)
     import torch
     import transformers
+    import numpy as np
     from peft import LoraConfig, get_peft_model
+    random.seed(config['seed'])
+    np.random.seed(config['seed'])
+    torch.manual_seed(config['seed'])
+    torch.cuda.manual_seed_all(config['seed'])
     if int(transformers.__version__.split(".")[0]) < 5:
         raise RuntimeError("Qwen3.5 training requires a verified Transformers v5 environment")
     model_directory = Path(model_directory)
@@ -136,12 +142,22 @@ def load_training_model(model_directory, path_config, config):
     model = get_peft_model(model, LoraConfig(r=config["r"], lora_alpha=config["alpha"],
         lora_dropout=config["dropout"], target_modules=targets, bias="none", task_type="CAUSAL_LM"))
     model.config.use_cache = False
+    if hasattr(model.config,'text_config'):
+        model.config.text_config.use_cache=False
     model.gradient_checkpointing_enable(gradient_checkpointing_kwargs={"use_reentrant": False})
     model.enable_input_require_grads()
     trainable = [name for name, parameter in model.named_parameters() if parameter.requires_grad]
     if not trainable or any("lora_" not in name or any(term in name.lower() for term in ("vision", "visual")) for name in trainable):
         raise ValueError("Unexpected trainable non-language-adapter parameters")
+    initial_hash=hashlib.sha256()
+    for name,parameter in model.named_parameters():
+        if parameter.requires_grad:
+            initial_hash.update(name.encode('utf-8'))
+            initial_hash.update(str(tuple(parameter.shape)).encode('ascii'))
+            initial_hash.update(parameter.detach().float().cpu().numpy().tobytes())
     return model, tokenizer, {"targets": targets, "trainable_names": trainable,
+                              'initialization_seed':config['seed'],'initialization_policy':'before_model_and_adapter_v1',
+                              'initial_trainable_state_sha256':initial_hash.hexdigest(),
                               "trainable_parameters": sum(p.numel() for p in model.parameters() if p.requires_grad),
                               "torch": torch.__version__, "transformers": transformers.__version__,
                               "peft": importlib.metadata.version("peft")}
@@ -375,6 +391,11 @@ def main():
     with FileLock(args.gpu_lock, timeout=0):
         model, tokenizer, observed = load_training_model(args.model_dir, path_config, config)
         atomic_json(run_dir / "model_observed.json", {**observed, "lease_device": lease["gpu_device"], "path": path_config})
+        append_jsonl(run_dir/'initialization_receipts.jsonl',{
+            'time_unix':time.time(),'initialization_seed':observed['initialization_seed'],
+            'policy':observed['initialization_policy'],'initial_trainable_state_sha256':observed['initial_trainable_state_sha256'],
+            'before_checkpoint_restore':True,'resume_requested':args.resume,
+            'code_artifact':{'path':str(Path(__file__).resolve()),'sha256':file_hash(Path(__file__))}})
         examples = [json.loads(line) for line in Path(args.examples).read_text(encoding="utf-8").splitlines() if line]
         if any(row.get("split") != "train" for row in examples):
             raise ValueError("Non-train example in training input")

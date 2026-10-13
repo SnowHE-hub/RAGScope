@@ -33,3 +33,9 @@
 - 报告独立reports环境使用Matplotlib3.11.2与11项hash锁依赖，未改变core/train/models环境；实际缓存D:/RAGScope_Runtime/cache/matplotlib，PNG/SVG落盘D:/RAGScope_Runtime/runs/20261014_v2/figures。官方savefig接口核验：https://matplotlib.org/stable/api/_as_gen/matplotlib.figure.Figure.savefig.html 。最终预检显存图已实际导出并目视核验；主矩阵图在3×4完整200test结果之前拒绝生成。
 
 - 调度偏离显式记录：所有S1/S2计算与HTTP embedding始终CPU-only；为并行推进，S3真实模型预检与S4训练准备在S2完整Dense矩阵尚未结束时执行。不能将这描述为严格完成全部阶段二后才进入阶段三。资源控制采用用户随后“可随时终止CPU/GPU，本任务优先”和最新“训练/定时检查已停、结束后用户手动续跑”的直接授权；原断点校验/精确PID控制证据保留。阶段二最终非干扰报告应按这条实际时间线写明，而不是虚构当时原训练仍在运行。
+
+### 2026-10-14：先执行与检索选择独立的E3核心对照
+CPU全矩阵仍在运行时，先冻结同200test、相同最终提示/模型/共同预算的Oracle与NoContext独立shard，共1200次，不新增组合。最终主manifest引用其不可变manifest；任务ownership覆盖尚未完成的外部分组，主runner禁止重复跑，分析直接读取原记录而不改写哈希/调用票据。独立数字auditor另实现同等来源验证。已真实完成2B400条并从raw输出及source坐标核验10数字，尚不能称完整核心完成。并行CPU任务可能影响墙钟延迟，故本轮延迟为所记录资源条件下的描述性测量，不承诺独占机器的理想性能。
+
+### 2026-10-14：启动与本地交付核验
+已有core环境的bootstrap改为只读dry-run与pip check，不默认覆盖或同步；新环境固定Python3.12.13并require-hashes。实际74包Would make no changes。Windows显式GPU/资源交接参数已接线；WSL只做bash语法和缺环境失败路径验证，环境未安装、退出码2，不声明Linux端到端通过。本地轻量打包只取明确报告/公开benchmark结果和协议，十五项验收仍PENDING时拒绝导出，不上传，不含权重或原任务快照；portable路径修改与原哈希同时明确记录。

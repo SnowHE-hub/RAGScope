@@ -1,51 +1,37 @@
 # RAGScope v2 执行状态
 
-更新时间：2026-10-14（Australia/Sydney）。campaign_id：`20261014_v2`。
+campaign_id：`20261014_v2`；主目标 ACTIVE，尚未最终验收。正式 E3 已完成2B的400/1200条，E2仍为0/2400；不能把预检或代码支持写成实验完成。
 
-当前：真实CPU Dense/Hybrid矩阵运行中；四模型最终生成预检完成并保留LFM输出截断失败；训练准备进行中。尚未最终验收，不得宣称核心E2/E3完成。
+项目分支 `codex/ragscope-v2-autonomous-20261014`。任务书完整副本 `MASTER_PLAN.md` SHA-256 为 `157040e71eab86b44bb3007bf43c1ba25240403b892a7cd5f93c1fb37e280117`。原 main、tracked diff 和用户未跟踪状态保存在 `D:/RAGScope_Runtime/backups/20261014_baseline`；用户原文件和旧报告保留。
 
-- 已完整读取 MASTER_PLAN.md；原件与副本 SHA-256：`157040e71eab86b44bb3007bf43c1ba25240403b892a7cd5f93c1fb37e280117`。
-- 项目身份已核验；分支 `codex/ragscope-v2-autonomous-20261014`。
-- 原 main 源码、HEAD、状态和 tracked diff 在 `D:/RAGScope_Runtime/backups/20261014_baseline`。
-- 原始用户未跟踪文件保留，不纳入本轮提交。CodeGraph 已初始化。
-- 阶段一/二严格CPU-only，原GPU程序在这两个阶段未被停止、暂停或修改。阶段三按用户追加授权开始安全交接（见RECOVERY与运行目录gpu_lease.json）。
-- 机器：Windows 11、32逻辑核、约15.3 GiB RAM、RTX 5060 Laptop 8151 MiB。
-- 初始剩余磁盘：D 232345247744 bytes，C 60073107456 bytes。空闲 RAM 初测约2.4 GiB，加载前重检。
-- 并行实现：清洗/切块与结构、QASPER/技术数据、生成/评测正确性；主执行器负责隔离环境和可恢复账本。
+## 当前执行与资源
 
-新增已验证：
-- Python3.12.13解释器和core环境实际base_prefix均在D；74包哈希锁安装成功。
-- QASPER509论文，train1000/dev100/test200、global100；技术3页32例；数据复验与153MiB峰值证据见DATA_REPORT。
-- 清洗/切块127测试PASS，确定性核心覆盖98%；生成/评测49测试PASS，覆盖97%。
-- runner真实子进程中断→半写入隔离→恢复→重复执行测试PASS；ArrayIndex/caches+runner 7测试PASS。
-- Qwen3 embedding Q8_0（639150592 bytes）与官方CPU llama.cpp b11429已下载校验；CPU服务11436实际运行，Dense缓存逐条落盘。
-- Windows RAM仍紧张，大型安装/下载与GPU预检已改为串行。独立生成服务触发低于512MiB保护时卸载并退出，失败请求保留。
-- 新账本主campaign已实际运行S1.1/S1.5；E0旧BM25子campaign完成。
+- 正式 seed42 2B BF16 LoRA 完成122步/972例/1epoch，进程已退出。真实5→10步恢复验证了 adapter、optimizer、scheduler、RNG 和数据顺序；dev59例最终loss .1356631101。过长剔除28/1例有证据，保留3个完整断点。损失下降不能代替问答质量提升；同精度100题对照尚待最终检索上下文。
+- 旧版固定 revision BGE-small CPU 重建完成22,254条向量、Dense/Hybrid各200题、失败0。曾在19,328条触发RAM保护并从第152批恢复；session37101 exit0，原索引与副本8个SHA不变、独立复算PASS。这是明确标注的重建替代，不冒称未知历史 embedding revision。
+- v2 CPU Dense/Hybrid 完成5/11个dev切块组、1000条神经检索。CPU embedding服务36892、worker28832/session13666已恢复，缓存和记录保留。最终structured全库/主上下文/ROUTE260完成后安排R3/Laya内存窗口，再继续simple比较索引。
+- 自有 GPU Ollama 11435由生成代理持有，PID14564/session54636；2B E3已完成400条并卸载，E0窗口已结束，4B/session78438正在运行，之后串行9B。原11434服务未重启。用户最新指示为原训练和定时检查由用户手动续跑；日更任务不动。禁止自动恢复原任务。
+- S1/S2计算始终CPU-only。按用户追加的资源优先授权，S3预检/S4训练与尚未完成的S2矩阵有时间重叠；因此不能声称严格完成阶段二后才停止原任务/进入阶段三。这一执行偏差已记入DECISIONS，最终验收第14项须如实限定。
 
-已补充验证：
-- 最新统一测试285 PASS、1项Torch环境测试单列；独立models环境路由24项PASS（含真实小型LSTM训练/恢复），覆盖92%。旧BM25实际200例，Recall@5=.845、Recall@10=.905，保留与旧CSV差异。
-- 11组dev切块+上下文策略1500条真实BM25；后续test上下文400条与E8全库100条，合计2000条，失败0。
-- E1独立重算33个数字全部一致；逐行context真实规范文本坐标核对1100条通过。
-- Dense三次初始CPU内存预检拒绝加载；资源交接后恢复。首组F256_O0 Dense/Hybrid各100条PASS，完整证据覆盖分别65/92与56/92；其余10组仍在运行。后续全库索引仍待完成。
-- 官方Qwen3.5 2B/4B/9B Q4_K_M权重已校验；纯文本别名只省略未使用视觉投影器，语言权重不变。2B旧缓存设置20/20成功；4B最终禁prompt RAM缓存设置20/20成功，token均与后端一致。2B须按最终缓存身份重做，9B待预检。过去内存保护失败保留。
-- 已定位默认8192MiB后端prompt RAM缓存增长，独立服务设置LLAMA_ARG_CACHE_RAM=0；实际日志确认禁用，4B20连续调用不再触发低内存保护。仅修改本项目服务。
-- CPU-only BGE固定版本权重已就绪，尚未加载；BF16 Qwen3.5-2B官方12文件约4.57GB已校验，独立train环境38包安装/锁定/pip check完成；尚未GPU训练。
-- LFM2.5-1.2B官方Q4_K_M权重730895168字节已下载，SHA与官方HF一致，真实预检待运行。
-- 新增逐行生成分析模块与预声明对照configs/v2/analysis.json；8项完整性/失败分母/论文聚类测试PASS。无正式生成结果时不输出最终估计。
-- 最新用户明确：训练与定时检查已停，日更未动；结束后用户手动续跑。原任务不再自动恢复，脚本restore已保护。
-- 本地里程碑提交：9c43163（基础/数据）、496354d（证据检索/生成正确性）。不push。
+## 已实际验证
 
-当前恢复点（2026-10-14 02:57，本地时区）：
-- 最终提示rag-json-v2.2、可见引用enum统一约束已冻结；四模型各20次实际dev请求，输入token80/80一致，逐请求资源80/80实测。Qwen三个规格均20条解析成功；LFM19/20，1条512输出token截断错误保留、不挑选重试。所有历史212次调用、5条错误均保留，正式核心调用仍0。
-- 自有Ollama PID17200已按停止标记正常卸载退出；11435关闭、显存0MiB。GPU已交训练代理，正在准备真实BF16训练输入；root不得同时启动GPU服务。
-- CPU embedding PID39808、Dense worker PID43932（creation1791906175.5201824）继续12线程、GPU offload0运行。进度见DATA_RETRIEVAL_CHECKPOINT.md；4/11 dev切块组Dense/Hybrid已完成，后续全库索引仍待计算。
-- CPU BGE reranker真实50→10预检通过，278044417参数、FP32 CPU，见preflight_bge_cpu.json；不等同已完成R3语料实验。
-- 独立数据审计24个已完成运行、2600条、11821片段、72个汇总数字均通过。
-- runner工程账本8 PASS、S2.3 RUNNING、16 PENDING；本地离线CI等价执行346 PASS、1项Torch环境测试单列。CI只提供手动工作流，不上传。
-- 本地新增提交af94414（真实逐行分析与失败分母/聚类统计）；尚未最终验收。
+- 硬件：Windows11、32逻辑核、16.4GB RAM、RTX5060 Laptop8151MiB。Python3.12.13及core/models/train/reports隔离环境、下载与缓存均以D盘为目标。core74个锁定包再次只读检查：Would make no changes，pip check通过。
+- QASPER509论文，train1000/dev100/test200；全库压力100；SQuAD100题；技术文档3页32个人工编写功能例（不称独立质量基准）。文档级split不交叉。
+- BM25 dev1500条、test400条、全库100条合计2000条真实检索、失败0。Dense/Hybrid已有800条。独立审计26个完成run、2800行、12602证据片段、78个均值全部一致。完整神经检索矩阵和最终选型仍待完成。
+- 最终rag-json-v2.2与visible-citation-enum-v1：四模型各20条dev实测，输入token80/80与后端一致。三个Qwen20/20解析；LFM19/20，1条length512截断保留、不挑选重试。累计212次请求含全部历史5次错误；预检只证明兼容性。
+- CPU BGE-base真实50→10英文/中文及长窗口预检通过；未冒称R3正式矩阵已完成。
+- 最新统一离线测试414通过、2项明确skip：Torch测试属于models隔离环境；Windows缺少创建symlink权限。日志和JUnit实证位于runtime/logs/unit_suite_20261014_0355.log与主run同名XML。models隔离环境中的小型LSTM训练恢复功能测试此前实际通过，不等同路由实效实验。
+- runner真实子进程中断、半写入隔离、恢复、重复运行幂等验证通过。25任务目录以证据账本核验，阶段结束不是等待点。
+- 本地图表已实际生成并目视核验pilot显存PNG/SVG；正式E2质量/延迟图等待真实完整结果。
+- 真实E3 2B每方法200题均无请求错误。182可答题文字F1：Oracle .5785604、NoContext .0414931；18不可答单列。10个数字已从原始输出与源坐标独立重算PASS，原始快照在generation_e3/analysis，后续不覆盖。
+- 存储中期快照：runtime逻辑文件长度33,319,874,515字节、按hardlink去重27,320,451,700字节；D全盘使用净增27,550,240,768字节、C可用空间净增901,668,864字节，不能把整盘变化全部归因本项目。源码原存档中的2个旧报告及任务书副本3项保留核验PASS。
 
-下一条准确命令：`. ./scripts/runtime_env.ps1; & D:/RAGScope_Runtime/envs/core/Scripts/python.exe scripts/audit_model_pilots.py`（只读实际结果汇总，无GPU调用）。训练代理持有当前session33605，完成prep后自行顺序执行2B BF1610步/断点恢复，详见TRAINING_REPORT.md。检索worker37932继续运行；禁止重复启动。
+## 尚待实际运行
 
-2026-10-14 03:12恢复点追加：CPU Dense worker43932已SUSPENDED，CPU服务39808已安全退出，2404缓存向量保留；勿沿用上文RUNNING描述。旧2B LoRA10步真实成功且5→10精确恢复，因发现PEFT初始化前seed未设而保留为可行性证据，正式同路径seed42修复新run正在训练代理手中重做预检并续122步（不增加模型/超参选择）。原任务手动恢复约束不变。本地提交3b49ac4。下一准确命令：`Get-Content -LiteralPath D:/RAGScope_Runtime/runs/20261014_v2_retrieval/PLANNED_TRAINING_RAM_PAUSE.json -Raw`；恢复CPU服务前必须与训练RAM状态协调。
+最终CPU候选/上下文选择与全库索引；ROUTE与R3上下文；核心E2/E3及冻结扩展；真实路由标签、七策略、Laya、在线配对；LoRA精度一致100题前后对照；自动支持度proxy及人工待核验样例；完整分析、至少10个数字反向核验、中文FINAL_REPORT与15项ACCEPTANCE、轻量结果包、资源清理。
 
-2026-10-14 03:24追加：正式seed42 LoRA运行中（session72907，最近确认step44/122、全部finite）；E0固定revision重建CPU进程42092（session54394）已实际编码2304/22254条，RSS约658MiB，hostfree约2.56GiB，4threads/1.25GiB安全暂停阈值。大CPUembedding仍停、worker43932暂停，不可重复启动。最新core统一372 PASS、1项Torch隔离测试skip；后续反向数字审计2项fixture测试PASS。ROUTING_QUERY_MANIFEST.json冻结train200/dev60/test100，SHA身份f1b6ae1ef21a44b720b53e1a6fffe6600a12d16d51e4b88aefe26a69c0ff952b；dataagent补BM25/Hybrid源，chunkagent补R3源。
+本地提交：9c43163、496354d、af94414、3b49ac4、fd836f4。无push。逐模块恢复点见 `ROOT_CHECKPOINT.md`、`DATA_RETRIEVAL_CHECKPOINT.md`、`GENERATION_HANDOVER.md`；本文件以前的逐时追加快照已留在runtime/status_history和Git历史。
+
+下一条准确命令（只读）：
+```powershell
+Get-Content -LiteralPath D:/RAGScope_Runtime/runs/20261014_v2_lora/logs/train_2b_1024_seed42_resume10_to_end.log -Tail 2
+```

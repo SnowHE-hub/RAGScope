@@ -106,7 +106,7 @@ def child_evidence(task, home, campaign):
         worker = live_worker(directory)
         if worker:
             workers.append(worker)
-        child_active = (bool(worker) and worker["status"] == "RUNNING") or locked(directory / "writer.lock")
+        child_active = worker["status"] == "RUNNING" if worker else locked(directory / "writer.lock")
         active = active or (child_active and source.get("active_when_locked", False))
         for task_id, row in child.get("tasks", {}).items():
             if not any(fnmatch.fnmatchcase(task_id, pattern) for pattern in source["patterns"]):

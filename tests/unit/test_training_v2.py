@@ -235,3 +235,33 @@ def test_training_pairs_answer_with_matching_annotation_and_negative_paragraph()
     doc=document(); doc['evidence_units'][0]['kind']='title'
     accepted,rejected=prepare_examples([{**query(),'answerability':'unanswerable'}],[doc],Tokenizer(),{'d'})
     assert not accepted and rejected[0]['reason']=='no_real_context_units'
+
+
+def test_bf16_comparison_counts_separate_warmups_and_resumes_without_repeating(tmp_path, monkeypatch):
+    import ragscope.training.evaluate as evaluation
+    from ragscope.experiments.generation_campaign import GenerationBudget
+    from ragscope.experiments.ledger import read_records
+    identity = {'model': 'offline-fixture', 'revision': 'offline', 'weight_sha256': 'no-real-weights', 'backend_version': 'fixture'}
+    class Client:
+        real_model = True
+        last_metadata = {}
+        prompt_token_counter = staticmethod(lambda messages: 1)
+        def __init__(self, model, tokenizer, identity, adapter):
+            self.identity = identity
+        def chat(self, messages, **kwargs):
+            return '{"answer":"","citations":[],"abstain":true}'
+    monkeypatch.setattr(evaluation, 'BF16ModelClient', Client)
+    rows = [{'query': {'query_id': 'q', 'doc_id': 'd', 'question': 'unknown?', 'split': 'test',
+                      'answerability': 'unanswerable', 'answer_refs': [], 'evidence_reference_sets': []},
+             'context_bundle': asdict(pack_context([]))}]
+    budget = GenerationBudget(tmp_path/'budget.json', limit=20, core_reserved=0)
+    def run():
+        return evaluation.evaluate_paired(None, None, identity, rows, tmp_path/'paired',
+            evidence_units={}, budget=budget, expected_n=1, adapter_identity={'sha256': 'offline-adapter'})
+    result = run()
+    assert len(result['baseline']) == len(result['adapted']) == 1
+    assert budget.state()['reserved_calls'] == 8
+    assert len(read_records(tmp_path/'paired/warmup_baseline.jsonl')) == 3
+    assert len(read_records(tmp_path/'paired/warmup_adapted.jsonl')) == 3
+    run()
+    assert budget.state()['reserved_calls'] == 8

@@ -11,10 +11,11 @@ from filelock import FileLock
 from freeze_generation_v2 import read_json, verified_corpus
 from ragscope.evaluation.v2 import summarize_records
 from ragscope.experiments.generation_campaign import GenerationBudget,load_campaign
-from ragscope.experiments.runtime import configure,runtime_home
+from ragscope.experiments.runtime import configure,runtime_home,require_ram
+from ragscope.experiments.ledger import read_records
 from ragscope.indexing.identity import atomic_json,signature,artifact
 from ragscope.training.checkpoint import CheckpointStore
-from ragscope.training.evaluate import evaluate_paired
+from ragscope.training.evaluate import evaluate_paired,validate_comparison_inputs
 from ragscope.training.run import verify_lease,load_training_model
 
 
@@ -24,8 +25,10 @@ def main():
     parser.add_argument('--campaign-dir',required=True)
     parser.add_argument('--model-dir',required=True)
     parser.add_argument('--output-dir')
+    parser.add_argument('--check-only',action='store_true',help='Validate frozen inputs/checkpoints without Torch, GPU, or generation calls')
     args=parser.parse_args()
-    configure(cpu_only=False);os.environ['CUDA_VISIBLE_DEVICES']='0'
+    configure(cpu_only=args.check_only)
+    if not args.check_only:os.environ['CUDA_VISIBLE_DEVICES']='0'
     training=Path(args.training_run);directory=Path(args.output_dir) if args.output_dir else training/'paired_test100'
     result=read_json(training/'training_result.json')
     if result.get('status')!='TRAIN_LOOP_COMPLETE' or not result.get('best_checkpoint_available'):
@@ -33,6 +36,11 @@ def main():
     immutable=read_json(training/'steps.config.json');config=immutable['config']
     store=CheckpointStore(training/'checkpoints',immutable)
     best=store.root/read_json(store.root/'best.json')['checkpoint'];store.verify(best)
+    if not (Path(args.campaign_dir)/'EXPERIMENT_MANIFEST.json').exists():
+        atomic_json(directory/'READINESS.json',{'status':'WAITING_FOR_FROZEN_GENERATION',
+            'training_status':result['status'],'best_checkpoint':str(best),'weights_loaded':False,
+            'gpu_used':False,'generation_calls':0})
+        return 2
     manifest,inputs=load_campaign(args.campaign_dir)
     selected={task['query_id']:inputs[task['input_id']] for task in manifest['tasks'] if task['experiment_id']=='E2' and task['method']=='R2'}
     ids=sorted(selected);random.Random(42).shuffle(ids);ids=ids[:100]
@@ -40,6 +48,7 @@ def main():
     frozen=[selected[qid] for qid in ids]
     specification=manifest['provenance']['spec'];queries,units,_=verified_corpus(specification['corpus_dir'])
     train_docs={query['doc_id'] for query in queries['train']}
+    validate_comparison_inputs(frozen,100,train_docs)
     audit={'manifest_hash':manifest['manifest_hash'],'query_ids':ids,'inputs':frozen,
         'rule':'query_id sorted then seed42 shuffle first100 E2/R2 contexts; no outputs read',
         'adapter_checkpoint':str(best),'adapter_manifest':artifact(best/'manifest.json'),
@@ -49,8 +58,15 @@ def main():
     path=directory/'FROZEN_EVALUATION_INPUTS.json'
     if path.exists() and read_json(path)!=audit:raise ValueError('Immutable paired evaluation inputs changed')
     atomic_json(path,audit)
+    atomic_json(directory/'READINESS.json',{'status':'CPU_INPUTS_READY_GPU_NOT_CHECKED',
+        'frozen_inputs_hash':signature(audit),'n_per_condition':100,'weights_loaded':False,
+        'gpu_used':False,'generation_calls':0,'adapter_manifest':artifact(best/'manifest.json')})
+    if args.check_only:
+        print(json.dumps({'status':'CPU_INPUTS_READY_GPU_NOT_CHECKED','output':str(directory)}))
+        return 0
     rootrun=runtime_home()/'runs'/specification['campaign'];verify_lease(rootrun/'gpu_lease.json')
     with FileLock(str(runtime_home()/'runs/gpu.lock'),timeout=0),FileLock(str(directory/'writer.lock'),timeout=0):
+        require_ram(2*1024**3)
         model,tokenizer,observed=load_training_model(args.model_dir,config['paths'][config['selected_path_index']],config)
         from peft import get_peft_model_state_dict,set_peft_model_state_dict
         from safetensors.torch import load_file
@@ -75,6 +91,13 @@ def main():
                 'baseline':summarize_records(rows['baseline']),'adapted':summarize_records(rows['adapted']),
                 'identity':identity,'adapter':artifact(best/'adapter/adapter_model.safetensors')}
             atomic_json(directory/'SUMMARY.json',summary);print(json.dumps(summary),flush=True)
+        except Exception as exc:
+            counts={tag:len(read_records(directory/f'{tag}.jsonl')) for tag in ('baseline','adapted')}
+            atomic_json(directory/'SUMMARY.json',{'status':'INCOMPLETE','expected_n_per_condition':100,
+                'completed':counts,'pending':{tag:100-count for tag,count in counts.items()},
+                'frozen_inputs_hash':signature(audit),'error':str(exc),'identity':identity,
+                'failed_rows_retained':True})
+            raise
         finally:
             del model
             torch.cuda.empty_cache()

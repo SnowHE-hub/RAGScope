@@ -55,15 +55,64 @@ def overlap(row, query):
     return max(f1, default=0.), max(exact, default=0.)
 
 
+def independently_load(directory):
+    manifest = json.loads((directory/'EXPERIMENT_MANIFEST.json').read_text(encoding='utf-8'))
+    body = {k: v for k, v in manifest.items() if k != 'manifest_hash'}
+    if signature(body) != manifest['manifest_hash']:
+        raise ValueError('Independent manifest hash mismatch')
+    inputs = json.loads((directory/'FROZEN_INPUTS.json').read_text(encoding='utf-8'))
+    if set(inputs) != set(manifest['input_hashes']):
+        raise ValueError('Independent input membership mismatch')
+    for key, value in inputs.items():
+        body = {k: v for k, v in value.items() if k != 'input_hash'}
+        if signature(body) != value['input_hash'] or value['input_hash'] != manifest['input_hashes'][key]:
+            raise ValueError('Independent frozen input hash mismatch')
+    return manifest, inputs
+
+
+def independently_owned_sources(directory, manifest, inputs):
+    """Separate implementation of provenance/ownership checks, not production API."""
+    directory = directory.resolve()
+    tasks = {row['task_id']: row for row in manifest['tasks']}
+    if len(tasks) != len(manifest['tasks']):
+        raise ValueError('Duplicate frozen task')
+    owned, visited, sources = set(), {directory}, []
+    for external in manifest.get('provenance', {}).get('external_campaigns', []):
+        item = external['manifest']; path = Path(item['path']).resolve()
+        if path.name != 'EXPERIMENT_MANIFEST.json' or path.parent in visited or sha(path) != item['sha256']:
+            raise ValueError('Independent external artifact/ownership mismatch')
+        visited.add(path.parent)
+        other, other_inputs = independently_load(path.parent)
+        if other.get('provenance', {}).get('external_campaigns'):
+            raise ValueError('Nested external source rejected')
+        for field in ('generation_config', 'metric_version', 'seed', 'reference_set_rule', 'parse_repair_attempts'):
+            if other.get(field) != manifest.get(field):
+                raise ValueError('External protocol mismatch')
+        for field in ('prompt_version', 'prompt_hash', 'output_constraint_version', 'backend_runtime_config'):
+            if other.get('provenance', {}).get(field) != manifest.get('provenance', {}).get(field):
+                raise ValueError('External prompt/backend protocol mismatch')
+        task_ids = set()
+        for row in other['tasks']:
+            key = row['task_id']
+            if key in owned or key in task_ids or row != tasks.get(key):
+                raise ValueError('External task duplicated or changed')
+            if other_inputs[row['input_id']] != inputs[row['input_id']]:
+                raise ValueError('External input changed')
+            if other['models'][row['model_id']] != manifest['models'][row['model_id']]:
+                raise ValueError('External model changed')
+            task_ids.add(key)
+        if not task_ids:
+            raise ValueError('Empty external source')
+        owned.update(task_ids)
+        sources.append((path.parent, other, other_inputs, task_ids))
+    return [(directory, manifest, inputs, set(tasks)-owned), *sources]
+
+
 def audit(campaign, analysis_path, corpus, output):
     report = json.loads(analysis_path.read_text(encoding='utf-8'))
-    manifest_path = campaign/'EXPERIMENT_MANIFEST.json'
-    inputs_path = campaign/'FROZEN_INPUTS.json'
-    manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
-    expected_hash = manifest.pop('manifest_hash')
-    if signature(manifest) != expected_hash or report['manifest_hash'] != expected_hash:
+    manifest, inputs = independently_load(campaign)
+    if report['manifest_hash'] != manifest['manifest_hash']:
         raise ValueError('Analysis/manifest identity mismatch')
-    inputs = json.loads(inputs_path.read_text(encoding='utf-8'))
     units, documents = {}, {}
     for base in (corpus, corpus/'squad_e4'):
         docs_path = base/'documents.jsonl'
@@ -74,13 +123,30 @@ def audit(campaign, analysis_path, corpus, output):
             for doc in rows(docs_path):
                 documents[doc['doc_id']] = doc
                 units.update((u['unit_id'], u) for u in doc['evidence_units'])
-    grouped, files = defaultdict(list), []
-    for path in sorted((campaign/'records').glob('*.jsonl')):
+    grouped, files, seen, tickets = defaultdict(list), [], set(), set()
+    stores = []
+    for directory, source_manifest, source_inputs, owned in independently_owned_sources(campaign, manifest, inputs):
+        for path in sorted((directory/'records').glob('*.jsonl')):
+            stores.append((path, source_manifest, source_inputs, owned))
+    tasks = {row['task_id']: row for row in manifest['tasks']}
+    for path, source_manifest, source_inputs, owned in stores:
         if path.name.startswith('warmup_'): continue
         files.append({'path': str(path), 'sha256': sha(path)})
+        config = json.loads(path.with_suffix('.config.json').read_text(encoding='utf-8'))
+        if config['manifest_hash'] != source_manifest['manifest_hash']:
+            raise ValueError('Independent record-store manifest mismatch')
         for row in rows(path):
             expected = row.pop('record_hash')
             if signature(row) != expected: raise ValueError('Raw record hash mismatch')
+            task_id = row['task_id']; ticket = row.get('call_ticket', {}).get('call_number')
+            if task_id not in owned or task_id in seen or row['record_id'] != task_id:
+                raise ValueError('Independent duplicate/wrong-owner record')
+            if any(row.get(key) != value for key, value in tasks[task_id].items()):
+                raise ValueError('Independent record task differs')
+            if (row.get('real_model') is not True or row['model_identity'] != manifest['models'][row['model_id']]
+                    or row['config_hash'] != signature(config) or ticket is None or ticket in tickets):
+                raise ValueError('Independent model/config/request identity mismatch')
+            seen.add(task_id); tickets.add(ticket)
             source = inputs[row['input_id']]
             if source['input_hash'] != manifest['input_hashes'][row['input_id']]:
                 raise ValueError('Frozen input identity mismatch')

@@ -18,7 +18,7 @@ from ragscope.evaluation.v2 import score_generation, summarize_records
 from ragscope.experiments.ledger import RecordStore, append_jsonl, read_records
 from ragscope.generation.context import pack_context, validate_bundle, fingerprint
 from ragscope.generation.pipeline import RAGPipeline
-from ragscope.indexing.identity import atomic_json, signature
+from ragscope.indexing.identity import atomic_json, signature, verify_artifacts
 
 
 class BudgetExhausted(RuntimeError):
@@ -217,9 +217,94 @@ def load_campaign(directory):
     return manifest, inputs
 
 
+def iter_record_sources(directory, manifest, inputs):
+    """Yield independently owned sources without rewriting a shard's records.
+
+    Every descriptor contains directory, manifest, inputs and owned_task_ids.
+    External ownership covers unfinished tasks too: the main runner must never
+    silently re-run an incomplete externally assigned task in its own journal.
+    """
+    directory = Path(directory).resolve()
+    main_tasks = {task['task_id']: task for task in manifest['tasks']}
+    owned, paths, external = set(), {directory}, []
+    for reference in manifest.get('provenance', {}).get('external_campaigns', []):
+        receipt = reference['manifest']
+        if not verify_artifacts([receipt]):
+            raise ValueError('External campaign manifest artifact changed')
+        path = Path(receipt['path']).resolve()
+        if path.name != 'EXPERIMENT_MANIFEST.json' or path.parent in paths:
+            raise ValueError('External campaign cycle or duplicate source')
+        paths.add(path.parent)
+        source_manifest, source_inputs = load_campaign(path.parent)
+        if source_manifest.get('provenance', {}).get('external_campaigns'):
+            raise ValueError('Nested external generation campaigns are prohibited')
+        if source_manifest['generation_config'] != manifest['generation_config']:
+            raise ValueError('External generation configuration differs')
+        for field in ('metric_version', 'reference_set_rule', 'parse_repair_attempts', 'seed'):
+            if source_manifest.get(field) != manifest.get(field):
+                raise ValueError(f'External experiment semantics differ: {field}')
+        for field in ('prompt_version', 'prompt_hash', 'output_constraint_version', 'backend_runtime_config'):
+            if source_manifest.get('provenance', {}).get(field) != manifest.get('provenance', {}).get(field):
+                raise ValueError(f'External generation protocol differs: {field}')
+        task_ids = set()
+        for task in source_manifest['tasks']:
+            task_id = task['task_id']
+            if task_id not in main_tasks or task != main_tasks[task_id]:
+                raise ValueError('External task semantics differ from the main frozen task')
+            if task_id in owned:
+                raise ValueError('External task ownership overlaps')
+            if source_manifest['models'][task['model_id']] != manifest['models'][task['model_id']]:
+                raise ValueError('External model identity differs')
+            if source_inputs[task['input_id']] != inputs[task['input_id']]:
+                raise ValueError('External input content differs')
+            task_ids.add(task_id)
+        if not task_ids:
+            raise ValueError('Empty external campaign cannot own tasks')
+        owned.update(task_ids)
+        external.append({'directory': path.parent, 'manifest': source_manifest,
+                         'inputs': source_inputs, 'owned_task_ids': task_ids})
+    yield {'directory': directory, 'manifest': manifest, 'inputs': inputs,
+           'owned_task_ids': set(main_tasks)-owned}
+    yield from external
+
+
+def read_source_records(source):
+    """Read hash-verified owned formal rows; missing external rows stay missing."""
+    manifest, inputs = source['manifest'], source['inputs']
+    tasks = {task['task_id']: task for task in manifest['tasks'] if task['task_id'] in source['owned_task_ids']}
+    rows = []
+    for experiment, model_id in sorted({(t['experiment_id'], t['model_id']) for t in tasks.values()}):
+        path = source['directory']/'records'/f'{experiment}_{model_id}.jsonl'
+        if not path.exists():
+            continue
+        config = {'manifest_hash': manifest['manifest_hash'], 'model_id': model_id, 'experiment_id': experiment}
+        if json.loads(path.with_suffix('.config.json').read_text(encoding='utf-8')) != config:
+            raise ValueError('External/local record configuration differs')
+        seen = set()
+        for row in read_records(path):
+            task_id = row['task_id']
+            if task_id not in tasks or task_id in seen:
+                raise ValueError('Duplicate or unowned source task record')
+            task = tasks[task_id]
+            if (not row.get('record_hash') or row['record_id'] != task_id or row['config_hash'] != signature(config)
+                    or any(row.get(key) != value for key, value in task.items())
+                    or row.get('real_model') is not True or row.get('model_identity') != manifest['models'][model_id]
+                    or row.get('context_bundle') != inputs[task['input_id']]['context_bundle']
+                    or not row.get('call_ticket')):
+                raise ValueError('Source record identity/context/hash differs')
+            seen.add(task_id)
+            rows.append(row)
+    return rows
+
+
 def run_model(directory, model_id, client, budget, *, evidence_units, warmups=3, max_tasks=None, token_counter=None):
     """Run one externally loaded model serially. No hidden retries or downloads."""
     manifest, inputs = load_campaign(directory)
+    record_sources = list(iter_record_sources(directory, manifest, inputs))
+    local_owned = record_sources[0]['owned_task_ids']
+    external_rows = [row for source in record_sources[1:] for row in read_source_records(source)
+                     if row['model_id'] == model_id]
+    external_completed = {row['task_id'] for row in external_rows}
     if warmups != 3:
         raise ValueError("Real timing runs require exactly three separately recorded warmups")
     if max_tasks is not None and max_tasks <= 0:
@@ -240,7 +325,8 @@ def run_model(directory, model_id, client, budget, *, evidence_units, warmups=3,
             if tag not in stores:
                 stores[tag] = RecordStore(directory / "records" / f"{tag}_{model_id}.jsonl",
                     {"manifest_hash": manifest["manifest_hash"], "model_id": model_id, "experiment_id": tag}, real_only=True)
-        pending = [task for task in tasks if task["task_id"] not in stores[task["experiment_id"]].ids]
+        pending = [task for task in tasks if task['task_id'] in local_owned
+                   and task["task_id"] not in stores[task["experiment_id"]].ids]
         # Validate references before making costly requests. A bad evidence mapping
         # must not lose a real output during scoring or silently alter its denominator.
         for task in pending:
@@ -302,13 +388,18 @@ def run_model(directory, model_id, client, budget, *, evidence_units, warmups=3,
             print(json.dumps({"experiment": task["experiment_id"], "model": model_id,
                               "completed_this_session": completed, "error": result.error}), flush=True)
         for tag, store in stores.items():
+            if any(row['task_id'] not in local_owned for row in store.records):
+                raise ValueError('Main journal contains an externally owned task')
+            combined = store.records+[row for row in external_rows if row['experiment_id'] == tag]
+            finished = store.ids | external_completed
             methods = sorted({task["method"] for task in tasks if task["experiment_id"] == tag})
-            results[tag] = {**summarize_records(store.records),
+            results[tag] = {**summarize_records(combined),
                             "n_expected": sum(task["experiment_id"] == tag for task in tasks),
-                            "n_pending": sum(task["experiment_id"] == tag and task["task_id"] not in store.ids for task in tasks),
+                            "n_pending": sum(task["experiment_id"] == tag and task["task_id"] not in finished for task in tasks),
                             "stop_reason": stop_reason,
-                            "manifest_hash": manifest["manifest_hash"], "records": str(store.path)}
-            results[tag]["methods"] = {method: {**summarize_records([row for row in store.records if row["method"] == method]),
+                            "manifest_hash": manifest["manifest_hash"], "records": str(store.path),
+                            'external_sources':[str(source['directory']) for source in record_sources[1:]]}
+            results[tag]["methods"] = {method: {**summarize_records([row for row in combined if row["method"] == method]),
                 "n_expected": sum(task["experiment_id"] == tag and task["method"] == method for task in tasks)} for method in methods}
             atomic_json(directory / "summaries" / f"{tag}_{model_id}.json", results[tag])
         atomic_json(directory / 'summaries' / f'MODEL_{model_id}.json', {

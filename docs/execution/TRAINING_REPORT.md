@@ -1,63 +1,71 @@
-# 有限 LoRA 实施与状态
+# 有限 LoRA 实施与真实结果
 
-当前状态：真实官方tokenizer准备已完成，train接受972/1000、dev接受59/60，完整监督边界审计通过。2B BF16 1024长度的真实GPU预检进程已启动，计划5步保存后精确恢复至10步；**训练完成、真实断点恢复与100题同精度对照尚待运行结果**。此前低RAM保护失败不是CUDA OOM实测。
+官方 Qwen3.5-2B BF16 LoRA 已实际完成 **1 epoch、122 optimizer steps、972 条 train 样本**。正式 seed42 run 的损失与梯度全部有限，5→10 和10→正式训练的完整状态恢复逐项精确核验通过。进程正常退出、GPU锁释放，nvidia-smi观测为0/8151MiB。**100题同精度基础模型/adapter对照仍等待最终E2/R2上下文，因此不能宣称问答质量提升，也尚未决定是否启用adapter。**
 
-## 官方核验与冻结
+最终审计：D:/RAGScope_Runtime/runs/20261014_v2_lora/train_2b_1024_seed42/TRAINING_AUDIT.json。
+GPU释放证据：同目录GPU_RELEASE_RECEIPT.json。
+数据审计：D:/RAGScope_Runtime/runs/20261014_v2_lora/prepared_2b_1024_v2/MASK_AND_SPLIT_AUDIT.json。
 
-2026-10-14 读取 [Unsloth Qwen3.5 微调说明](https://unsloth.ai/docs/models/qwen3.5/fine-tune)：支持小档 BF16 LoRA，要求当前 Transformers v5；本项目不采用该系列 4-bit QLoRA。上游给出 2B 约 5 GiB、0.8B 约 3 GiB 的参考显存，这不是本机测量，也不保证当前环境能训练。
+## 冻结条件与实际训练
 
-读取 [Qwen 官方 2B config](https://huggingface.co/Qwen/Qwen3.5-2B/raw/15852e8c16360a2fea060d615a32b45270f8a8fc/config.json)、[Transformers 模型实现](https://github.com/huggingface/transformers/blob/main/src/transformers/models/qwen3_5/modeling_qwen3_5.py) 与 [PEFT LoRA 文档](https://huggingface.co/docs/peft/main/package_reference/lora)。官方架构是 Qwen3_5ForConditionalGeneration，包含语言和视觉组件，语言侧包含混合 attention。代码会检查实际实例化的模块树，再选择语言 attention 祖先下的二维 Linear；排除视觉、MLP、embedding 和输出头。没有猜测 q_proj 等硬编码目标名。
+官方模型 Qwen/Qwen3.5-2B revision：15852e8c16360a2fea060d615a32b45270f8a8fc。完整12文件快照在D盘，经所有权重、配置、tokenizer哈希校验后才加载；禁止下载器不完整receipt进入GPU加载。config SHA为ed1c1723241f23f7f4e23430759cbd7dcfb4103cbdfe052bfe7626b57c2615b4。
 
-两条冻结候选最多：
+配置固定r8、alpha16、dropout0.05、batch1、梯度累积8、BF16、最大长度1024、gradient checkpointing、lr1e-4、warmup3%、seed42、最多1epoch/200步。实际972条样本对应122步。没有使用512回退或0.8B候补；没有新增训练超参组合。
 
-| 模型 | revision | config SHA-256 |
-|---|---|---|
-| Qwen/Qwen3.5-2B | 15852e8c16360a2fea060d615a32b45270f8a8fc | ed1c1723241f23f7f4e23430759cbd7dcfb4103cbdfe052bfe7626b57c2615b4 |
-| Qwen/Qwen3.5-0.8B | 2fc06364715b967f1860aea9cf38778875588b17 | b90b86f35c8e6925ef74ee04d0e758f0a845c83a42089ad82bbaa948de9b4204 |
+实际模型模块检查选出114个语言attention祖先下的二维Linear，共3,691,008个LoRA可训练参数。排除视觉、MLP、embedding和输出头，所有基础参数冻结。没有猜测q_proj等硬编码模块列表。独立环境为Torch2.9.1+cu128、Transformers5.19.0、PEFT0.21.2、Accelerate1.15.0。缺少可选快速内核时使用上游参考PyTorch路径，未安装未验证替代内核。
 
-官方2B BF16完整权重已下载并校验，位于 `D:/RAGScope_Runtime/models/Qwen3.5-2B/15852e8c16360a2fea060d615a32b45270f8a8fc`，完整manifest为VERIFIED；0.8B只保留预先指定的候补路径，没有因结果好坏更换模型。
+[官方微调说明](https://unsloth.ai/docs/models/qwen3.5/fine-tune)、[官方模型配置](https://huggingface.co/Qwen/Qwen3.5-2B/raw/15852e8c16360a2fea060d615a32b45270f8a8fc/config.json)及[PEFT LoRA文档](https://huggingface.co/docs/peft/main/package_reference/lora)用于实现核验；它们的参考显存不是本机测量。
 
-## 实现约束
+## 真实样本与完整监督
 
-`configs/v2/lora.json` 固定 r=8、alpha=16、dropout=0.05、batch=1、accumulation=8、长度1024（允许统一512预检）、gradient checkpointing、lr=1e-4、warmup3%、seed42、最多1epoch/200 optimizer steps。`ragscope/training/run.py` 校验这些边界。
+| 集合 | 原始数 | 接受 | 可回答/不可回答 | 完整长度超预算拒绝 |
+|---|---:|---:|---:|---:|
+| train | 1000 | 972 | 841/131 | 28 |
+| dev | 60 | 59 | 53/6 | 1 |
 
-`data.py` 从已冻结 train 文档和合法标注生成最多1000条训练例。无答案题使用真实标注和原论文实际段落，不制造随机假证据。模型自己的 chat template 生成全部 token，prompt 必须是完整序列的精确前缀，只有 assistant 后缀产生标签；超过长度预算整条拒绝并保留原因，不截去答案或必要证据。dev 最多60条仅用于 best adapter 的 loss 选择；test 不进入准备或训练入口。
+train涉及394篇论文，dev31篇，无论文交叉；test不进入准备或训练。最大实际训练序列999tokens，dev825，最少assistant监督27tokens。使用官方chat template；prompt为完整序列的精确前缀且labels全部设为-100，assistant后缀保留真实监督。必要证据或答案放不下时整条拒绝，不截断或虚造证据。多标注问题使用同一条annotation的答案与完整证据集合；无答案例也来自真实标注和实际论文段落。
 
-GPU 训练入口要求 `ACQUIRED`、`owner=ragscope`、`safety_verified=true` 的租约且不是 CPU-only 进程，再取得项目 GPU 文件锁。模型必须已有本地 model_manifest.json，记录官方 model/revision 和所有下载产物哈希；不在训练脚本中联网或下载。
+train examples SHA：3a015dc3121732ef266d6450fd6a75666b4ce1c55d11a97d81d53c32fb3ca405。
+dev examples SHA：a1606aecc83c9b9c0286d4c173d0d165707ab0444b174fff4a361db3f7651592。
 
-断点在 optimizer step 边界保存：adapter、optimizer、scheduler、Python/NumPy/torch/CUDA RNG、step、epoch、data_order/data_position、配置与训练数据哈希。完整产物经过校验才原子发布 latest；保留 best 和 latest，总共至多3个本轮自有断点，绝不清理原 GPU 任务目录。未完成的临时目录不会被当作成功。此设计参照 [PyTorch 保存与恢复说明](https://docs.pytorch.org/tutorials/beginner/saving_loading_models.html)，实际 torch 恢复仍须实测。
+## 训练观察与dev选择
 
-预检建议先停在5步，再同配置 `--resume` 到10步，确认损失、有限梯度、数据进度与日志连续；随后才允许正式 train 从该10步断点继续。预检和正式训练必须传入同一份 dev 文件；没有完成10步时正式入口拒绝运行。
+| optimizer step | 59条dev平均loss |
+|---:|---:|
+| 25 | 0.1581860474 |
+| 50 | 0.1428376289 |
+| 75 | 0.1394188490 |
+| 100 | 0.1372079927 |
+| 122 | 0.1356631101 |
 
-`evaluate.py` 对同一已加载 BF16 基础模型切换 adapter，使用完全相同 frozen ContextBundle、tokenizer、prompt、后端与 greedy 输出预算。允许模型实际声明的 FP32 数值稳定性参数，但要求基础参数 dtype 映射在两种模式保持一致。固定100个test问题（不足时事先冻结实际N），所有失败保留。当前该真实对照尚未执行。
+按预先规定的dev loss选择step122为best；latest也是step122。保留本轮自有完整断点120/121/122，共3个。Adapter文件14,798,456bytes，SHA a532dc22942d84e4dceabacb64b936c191b37ebdfa9fda092f3f87464d0bbae4。loss下降是训练/验证观察，不能替代独立test问答指标。
 
-## 已执行的软件测试与资源证据
+所有122条optimizer-step日志有配置hash与逐条record_hash，序号无缺失/重复。实际每步耗时中位数9.942秒，step计算时间合计1215.023秒；这些数字不包含模型加载、dev评价、保存断点与进程间暂停，不能当总墙钟时间。
 
-`tests/unit/test_training_v2.py`：10 passed，3.18秒；数据和断点确定性模块行覆盖92%（data91%、checkpoint93%），证据 `D:/RAGScope_Runtime/runs/training_coverage.json`。测试实际验证原子断点 roundtrip、重启读取全部模拟状态、至多3个自有断点、损坏/半写入/无归属目录拒绝、标签边界、split与GPU租约限制。这里的模拟状态测试不是一次真实神经网络训练恢复。
+## 实际恢复核验与历史失败
 
-实际资源 guard：
+正式seed42训练在模型/PEFT构造前固定Python/NumPy/Torch/CUDA随机种子。三个独立初始化进程得到同一LoRA参数初始SHA：c730a4fa702c2a45717a7d810f472fecd2e90a78f4b4f76b7eb4ca93cf5d685f。
 
-| 运行目录末段 | 配置 | 可用 RAM 字节 | 所需 RAM 字节 | 结果 |
-|---|---|---:|---:|---|
-| guard_2b_1024 | 2B / 1024 | 1558700032 | 2147483648 | BLOCKED_RESOURCE |
-| guard_2b_512 | 2B / 512 | 885649408 | 2147483648 | BLOCKED_RESOURCE |
-| guard_08b_512 | 0.8B / 512 | 781205504 | 2147483648 | BLOCKED_RESOURCE |
+正式run先5步保存退出，再新进程恢复5→10，第三个进程恢复10→122。两个resume receipt实际验证adapter张量、optimizer、scheduler、全部RNG、data_order和data_position完全一致。每一步在optimizer边界原子发布完整adapter+训练状态+tokenizer+progress+哈希manifest；只清理本轮已有归属标记的多余断点，没有触碰用户原任务断点。可用scripts/audit_lora_v2.py --run <正式目录>重新核验，审计本身不加载Torch或模型。
 
-证据根目录 `D:/RAGScope_Runtime/runs/20261014_v2_lora`。这些是低 RAM 时加载前的真实保护检查，不能宣称已试过 CUDA OOM。用户后续扩大了其他计算任务停止与恢复授权，根代理正在核验；资源条件改变后可继续受控预检，本报告不能永久替代真实可行实验。
+首轮train_2b_1024完成真实10步，但发现PEFT初始化早于seed设置。经root授权，只修复该可复现性缺口，重做同模型同参数seed42正式run；原10步及证据保留为诊断，未混入正式loss曲线。
 
-可执行入口：
+其他保留的工程失败：首次准备缺diskcache，隔离依赖补齐后恢复；Transformers5.19的apply_chat_template默认返回dict，初始prepared_2b_1024的1000条被守卫全部拒绝，显式return_dict=False修复后使用新_v2目录，不覆盖拒绝记录。实际CPU准备探针显示该版本即使USE_TORCH=0仍导入Torch，但CUDA mask为空且cuda_initialized=false；报告没有宣称未导入Torch。
 
-```powershell
-. ./scripts/runtime_env.ps1
-& 'D:/RAGScope_Runtime/envs/core/Scripts/python.exe' -m ragscope.training.run --mode guard --config configs/v2/lora.json --path-index 0 --max-seq-len 1024 --run-dir D:/RAGScope_Runtime/runs/20261014_v2_lora/guard_recheck
-```
+更早的资源检查：2B1024可用RAM1,558,700,032bytes、2B512为885,649,408bytes、0.8B512为781,205,504bytes，均未达到2GiB加载前门槛。这些是preload资源保护失败，不是已运行的CUDA OOM；后续资源释放后2B1024真实训练成功。
 
-真实训练使用后续建立的独立 train 环境，执行 `python -m ragscope.training.prepare --help` 与 `python -m ragscope.training.run --help` 获取精确参数。训练入口不会把已实现的框架标作已完成的实验。
+## 实际资源与释放
 
-后续数据准备修正：多标注问题使用与选定完整证据集合配对的同一条真实annotation答案，保存annotation_id；无答案题选择实际paragraph，不能只拿标题充当上下文。未匹配或存在未解决证据的annotation整条拒绝。准备产物记录接受/拒绝分母、拒绝原因、tokenizer产物哈希、最大实际长度与监督token数；再次执行只接受完全相同内容，不覆盖不同结果。模型快照必须status=VERIFIED，并核验所有weight_map分片，且这些检查发生在导入Torch之前。
+正式run跨三个进程的最大Torch allocator allocated为7,608,193,024bytes，reserved为8,283,750,400bytes；最高采样进程RSS2,556,239,872bytes，最低采样主机可用内存1,947,979,776bytes。采样发生在microbatch之后，可能漏过短暂峰值。allocator reserved不等于物理显存，Windows共享/分页可能参与，不能据此推断精确CPU offload层数。
 
-实际数据准备产物：`D:/RAGScope_Runtime/runs/20261014_v2_lora/prepared_2b_1024_v2`。train972接受（841可回答、131不可回答），28完整长度超预算拒绝；dev59接受（53可回答、6不可回答），1超预算拒绝。最大训练长度999，最少assistant监督token27。所有972条实际token数组的prompt掩码、assistant标签与序列长度一致；CPU准备CUDA mask为空且cuda_initialized=false。数据manifest固定官方tokenizer文件哈希、来源SPLIT哈希、prompt版本rag-json-v2.2及examples哈希。
+诊断首轮默认缓存reserved曾达到14.48GB，同次nvidia-smi单点为7888/8151MiB。后续运行明确使用empty_unused_after_each_microbatch_and_dev_example，仅释放未使用allocator缓存，数学超参未改变。策略hash为3f3dab11c896cc7b7d6d5f2eb1bc786cf035f8770a0ea7b4de60ca5692f872fe。主机RAM低于512MiB时会在完整checkpoint边界恢复性退出，本轮没有触发。
 
-保留初始工程失败：缺少diskcache时进程没有进入准备；补齐隔离env应用依赖后，Transformers5.19默认返回dict导致旧prepared_2b_1024的1000条被类型守卫拒绝。显式return_dict=False修复后用新目录生成最终样本。实际探针证明USE_TORCH=0并未阻止该版本导入Torch，因此最终报告使用cuda_initialized与实际设备mask区分CPU准备和GPU训练，不宣称该步骤未导入Torch。
+exec72907最终exit0；2026-10-13T16:37:59Z确认训练进程不存在，gpu.lock实际重新获取/释放成功，GPU0MiB/0%，主机可用4,041,805,824bytes。已通知检索代理恢复本项目CPU embedding。用户原任务按最新要求保持USER_MANUAL_RESUME，没有自动恢复。
 
-GPU预检日志：`.../20261014_v2_lora/logs/preflight_2b_1024_stop5.log`，训练run固定`.../20261014_v2_lora/train_2b_1024`。预检后正式训练受972样本的一轮122 optimizer steps上限约束（全局上限200），同一配置、同一dev、同一数据顺序，从10步断点继续。恢复时adapter、optimizer、scheduler、全部RNG、数据顺序和进度将逐项真实核验，输出resume_from_step_*.json；尚未产生时不得宣称恢复已验证。
+## 待完成的同精度对照
+
+scripts/evaluate_lora_v2.py使用最终E2/R2固定100题，同一BF16基础权重、tokenizer、prompt、上下文、后端、greedy512输出预算，只切换adapter。每种条件每次进程先做3条单列warmup，全部调用进入全局预算。两组的prompt-only JSON协议相同；它们与Q4主矩阵的schema约束后端不同，不能做不控制协议的精度归因。
+
+完整输入冻结和test推理尚未执行；失败会保留，OOM一次或连续后端失败三次停机，不生成虚假的完整对照结果。完成后才能报告F1、EM、ROUGE-L、拒答与引用指标的变化。
+
+最新离线训练与在线路由回归22项通过；早期数据/checkpoint确定性模块覆盖92%。这些软件测试与上面的真实122步证据明确区分。

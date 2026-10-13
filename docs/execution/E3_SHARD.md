@@ -1,0 +1,17 @@
+# E3独立执行与最终联合验收
+
+在最终Dense/Hybrid dev矩阵仍运行时，E3的Oracle与无上下文条件已经具备全部独立前提。主调度器批准先执行这部分原定核心实验；没有新增模型、题目或组合，也没有根据test结果调整协议。
+
+实际冻结目录：D:/RAGScope_Runtime/runs/20261014_v2_generation_e3。
+EXPERIMENT_MANIFEST.json SHA语义哈希：8c6a71031d25f0a0218a85a3abbd9d8dc35d3c0f56dafa046e8249beeffb5599。
+任务总数1200：原冻结200个QASPER test问题×oracle/no_context×Qwen3.5的2B/4B/9B。所有200题进入每种条件，包含不可回答题和失败结果。没有把阶段执行进展写成全矩阵完成。
+
+Oracle仅使用来源标注的完整合法证据文字，不注入答案；不可回答题按已声明实验构造使用空context。无上下文条件全部为空。每条source先遵循2048 reference-token预算，再按所有三个Qwen真实聊天模板共同预算封装，预留512输出tokens。prompt版本rag-json-v2.2、可见citation enum约束、量化权重、后端及禁用历史prompt RAM缓存策略与最终主矩阵相同。冻结不使用test生成输出；模型已完成最终20dev token parity预检。
+
+执行使用现有run_generation_campaign.py，仍是单卡串行、三个单列warmup、同一generation_budget.json、OOM一次/连续后端失败三次停止并保存。所有资源与原始输出、解析错误、调用ticket、config_hash和record_hash逐行记录。被冻结的问题不会因为失败被替换。
+
+最终主manifest的provenance.external_campaigns明确引用这个不可变manifest。iter_record_sources验证每个external任务与主任务的所有字段、输入全文/哈希、model identity、generation config、seed、指标规则、prompt/constraint版本完全相同；拒绝循环、嵌套或重复ownership。主runner对已经分配给external的任务一律跳过，即使external尚未完成；外部缺行仍算missing，不能转移主目录重复生成。
+
+分析程序直接读取原shard rows及其原始manifest/config hash，联合验证task与ticket不重复；不复制行、不把旧记录改标成新实验。完整后另存来源产物哈希清单，后续验收可按原record hash追溯。初始独立E3 manifest和正式主manifest保留各自身份，最终报告按同一预注册条件合并呈现。
+
+软件验证：14项campaign契约测试通过，其中覆盖不完整external ownership仍被跳过、来源行字节不变、duplicate来源和seed漂移拒绝。真实执行进度以shard的records和summaries为准，不以本说明声称完成。

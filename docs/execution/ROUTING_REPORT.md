@@ -50,6 +50,12 @@
 
 Laya返回合法choice不代表任务路由正确。项目使用三种循环候选顺序保存全部概率与选择，检查选择是否变化；ECE/Brier只相对生成F1/成本代理标签，不能引用上游“calibrated”描述就声称本任务已校准。低信心、非法概率、输入/候选描述被截断均回退固定Hybrid。Jev按任务书保持NOT_APPLICABLE，未调用收费API。
 
+## 固定SDK实装核验（后续）
+
+已按固定Git提交下载必要源码，用`--no-deps --no-build-isolation`在独立models CPU环境安装Laya0.4.6。44个安装源码文件与下载manifest逐个SHA匹配；`verify_sdk_installation()`通过importlib.metadata读取路径并复验文件，不import Laya/Torch。实际验证二者均未出现在sys.modules。详情见`docs/execution/MODELS_ENV_ADDITIONS.md`和models环境`laya_sdk_installation.json`。
+
+`load_local`现在在SDK导入前强制检查实装源码凭据。加载期间同时启用HF_HUB_OFFLINE、TRANSFORMERS_OFFLINE和HF_HUB_DISABLE_IMPLICIT_TOKEN，之后恢复原值；始终传本地完整检查点，避免官方远程checkpoint分支读取HF_TOKEN。实际offline loader保护测试1 passed，23 deselected，1.96秒，日志`D:/RAGScope_Runtime/logs/laya_fixed_sdk_guard_tests.log`。此轮仍未调用SDK或加载Laya权重，不能记真实路由质量。
+
 ## 离线验证与缺口
 
 当前测试文件：`tests/unit/test_routing_v2.py`。24项离线测试已通过，包括泄漏字段不进特征、冻结ID、F1容差与成本优先、失败标签留存、真实记录门槛、train/dev论文不重叠、线性/MLP/LSTM小夹具实际拟合、二分类概率、JSON+npz序列化、单类塌缩、LSTM预算、三顺序Laya测试对象、加载路径哈希/offline控制、概率校准计算、重放与在线计时区分、部署拒绝。模型环境中的小LSTM只用64词上限、4维embedding/hidden、最多3epoch，全部CPU；这验证代码执行，不证明真实路由质量。

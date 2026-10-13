@@ -1,0 +1,11 @@
+{
+  "version": "chunk_binary_overlap_auxiliary_v1",
+  "k": 10,
+  "relevance": "A unique indexed chunk is relevant if its positive-length canonical unit spans overlap any unit in the union of all legal evidence reference sets.",
+  "ranking": "BM25/Dense/Hybrid: raw_retrieval first10. HybridRerank: selected_retrieval actual reranked first10. No context expansion is ranked here.",
+  "mrr": "Reciprocal rank of first relevant chunk within10; zero when absent.",
+  "ndcg": "Binary gains at10, discount log2(rank+1); ideal DCG uses min(10, all relevant indexed chunks in declared scope), not just retrieved candidates.",
+  "failure_policy": "Answerable failures remain zero; unanswerable evidence ranking is N/A.",
+  "use": "Auxiliary descriptive analysis only; never candidate selection, context selection, or deployment gating.",
+  "limitations": "Any positive overlap can be insufficient to answer. Overlapping chunks may each count as relevant. Grain and overlap change the relevant-item universe, so cross-chunking MRR/nDCG comparability is limited. Strict full-unit/full-reference coverage remains primary."
+}

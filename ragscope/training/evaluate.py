@@ -102,6 +102,24 @@ def evaluate_paired(model, tokenizer, identity, frozen_rows, run_dir, *, evidenc
                             real_only=True, max_records=expected_n)
         client = BF16ModelClient(model, tokenizer, active_identity, adapter=adapter)
         consecutive_backend_failures=0
+        pending = [row for row in frozen_rows if row['query']['query_id'] not in store.ids]
+        if pending:
+            warmups = RecordStore(Path(run_dir)/f'warmup_{tag}.jsonl',
+                {**common, 'identity': active_identity, 'purpose': 'separate_warmup'}, real_only=True)
+            session = str(time.time_ns())
+            source = pending[0]
+            for number in range(3):
+                counted = CountedClient(client, budget, 'lora_'+tag+'_warmup', source['query']['query_id'])
+                result = RAGPipeline(None, counted, use_cache=False).answer(source['query']['question'],
+                    context_bundle=source['context_bundle'], scope=source['query'].get('scope'), formal_evaluation=True)
+                if counted.last_ticket is None:
+                    raise RuntimeError(f'BF16 warmup did not start: {result.error}')
+                warmups.add(f'{session}:{number}', {**asdict(result), 'purpose': 'warmup',
+                    'call_ticket': counted.last_ticket, 'query_id': source['query']['query_id']})
+                kind = (result.error or {}).get('kind')
+                consecutive_backend_failures = consecutive_backend_failures+1 if kind in {'transport_error','timeout','oom'} else 0
+                if kind == 'oom' or consecutive_backend_failures >= 3:
+                    raise RuntimeError('BF16 warmup circuit-break; attempts preserved, formal questions pending')
         for row in frozen_rows:
             query = row["query"]
             if query["query_id"] in store.ids:

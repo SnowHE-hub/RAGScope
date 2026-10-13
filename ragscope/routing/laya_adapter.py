@@ -2,11 +2,13 @@
 from __future__ import annotations
 
 import math
+import json
 import os
 from pathlib import Path
+import sys
 from time import perf_counter
 
-from ragscope.indexing.identity import file_hash
+from ragscope.indexing.identity import file_hash, artifact, verify_artifacts
 from .core import ROUTES, RouteDecision
 
 LAYA_MODEL_REVISION = "7b928d828b7b0e022f929d9bd2e44165aa270148"
@@ -16,6 +18,22 @@ CRITERIA = {"bm25": "Exact terms, quoted phrases or identifiers; lexical retriev
             "hybrid": "Mix lexical and semantic retrieval for general evidence questions.",
             "hybrid_rerank": "Hybrid candidates followed by reranking for comparative, ambiguous or multi-part evidence questions."}
 PERMUTATIONS = (ROUTES, ("hybrid", "hybrid_rerank", "bm25"), ("hybrid_rerank", "bm25", "hybrid"))
+
+
+def verify_sdk_installation():
+    """Validate the installed audited source without importing Laya or Torch."""
+    import importlib.metadata
+    receipt_path=Path(sys.prefix)/"laya_sdk_installation.json"
+    receipt=json.loads(receipt_path.read_text(encoding="utf-8"))
+    distribution=importlib.metadata.distribution("laya")
+    installed=Path(distribution.locate_file("laya")).resolve()
+    artifacts=receipt.get("installed_source_artifacts",[])
+    if (receipt.get("status")!="VERIFIED" or receipt.get("revision")!=LAYA_CODE_REVISION
+            or receipt.get("version")!="0.4.6" or distribution.version!="0.4.6" or not artifacts
+            or any(not Path(item["path"]).resolve().is_relative_to(installed) for item in artifacts)
+            or not verify_artifacts(artifacts)):
+        raise ValueError("Laya installed SDK differs from audited fixed revision")
+    return artifact(receipt_path)
 
 
 class LayaRouter:
@@ -43,9 +61,11 @@ class LayaRouter:
             if not path.is_relative_to(checkpoint) or file_hash(path).lower() != digest.lower():
                 raise ValueError("Laya checkpoint hash/path mismatch")
             before[name] = digest.lower()
+        sdk_receipt=verify_sdk_installation()
         # A local path plus offline Hub prevents SDK fallback downloads/token use.
-        prior = os.environ.get("HF_HUB_OFFLINE")
-        os.environ["HF_HUB_OFFLINE"] = "1"
+        flags=("HF_HUB_OFFLINE","TRANSFORMERS_OFFLINE","HF_HUB_DISABLE_IMPLICIT_TOKEN")
+        prior = {key:os.environ.get(key) for key in flags}
+        for key in flags:os.environ[key]="1"
         try:
             import laya
             if laya.__version__ != "0.4.6":
@@ -53,11 +73,11 @@ class LayaRouter:
             agent = laya.load(str(checkpoint), device="cpu", backend="eager", fast=False, compile=False,
                               expected_sha256=expected_sha256)
         finally:
-            if prior is None:
-                os.environ.pop("HF_HUB_OFFLINE", None)
-            else:
-                os.environ["HF_HUB_OFFLINE"] = prior
+            for key,value in prior.items():
+                if value is None:os.environ.pop(key,None)
+                else:os.environ[key]=value
         router = cls(agent, min_confidence=min_confidence, real_model=True)
+        router.identity["sdk_installation_receipt"]=sdk_receipt
         router.identity["checkpoint_hashes_before"] = before
         router.identity["checkpoint_hashes_after"] = {name: file_hash(checkpoint / name) for name in before}
         return router

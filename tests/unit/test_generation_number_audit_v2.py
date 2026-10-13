@@ -1,21 +1,29 @@
 """Independent auditing is exercised only on explicit offline contract fixtures."""
 import json
 from pathlib import Path
+import pytest
 
 from scripts.audit_generation_numbers_v2 import audit, overlap, sha
 from ragscope.experiments.generation_campaign import freeze_campaign, run_model, GenerationBudget
 from ragscope.experiments.analysis_report import build_analysis
 from test_generation_campaign_v2 import sample, IDENTITY, UNIT, OfflineContractClient
 from test_analysis_report_v2 import CONFIG
+from ragscope.indexing.identity import artifact
 
 
-def test_reverse_audit_detects_changed_report_without_trusting_saved_scores(tmp_path):
+@pytest.mark.parametrize('external', [False, True])
+def test_reverse_audit_detects_changed_report_without_trusting_saved_scores(tmp_path, external):
     campaign, corpus = tmp_path/'campaign', tmp_path/'corpus'
     inputs = {method: sample('same-question') for method in ('R0', 'R2')}
     groups = [{'experiment_id': 'E2', 'method': method, 'model_ids': ['fixture'], 'input_ids': [method]} for method in inputs]
     freeze_campaign(campaign, {'fixture': IDENTITY}, groups, inputs)
     run_model(campaign, 'fixture', OfflineContractClient(), GenerationBudget(tmp_path/'budget', limit=10, core_reserved=0),
               evidence_units={'u': UNIT}, token_counter=len)
+    if external:
+        main = tmp_path/'main'
+        freeze_campaign(main, {'fixture': IDENTITY}, groups, inputs,
+            provenance={'external_campaigns': [{'manifest': artifact(campaign/'EXPERIMENT_MANIFEST.json')}]})
+        campaign = main
     corpus.mkdir()
     docs = corpus/'documents.jsonl'
     docs.write_text(json.dumps({'doc_id': 'd', 'text': 'source', 'evidence_units': [UNIT]})+'\n')

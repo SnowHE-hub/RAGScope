@@ -25,6 +25,8 @@ if __name__ == "__main__":
     parser.add_argument("--selected-expansions", action="store_true")
     parser.add_argument("--dataset", choices=("qasper", "squad"), default="qasper")
     parser.add_argument("--methods", choices=("bm25", "dense", "hybrid"), nargs="+")
+    parser.add_argument("--family", choices=("simple", "structured"),
+                        help="Schedule one already selected family; does not change per-query experiment identity")
     args = parser.parse_args()
     if args.selected_expansions:
         selected = json.loads((args.home / "runs" / (args.campaign + "_retrieval") / "CANDIDATE_SELECTION.json").read_text(encoding="utf-8"))
@@ -37,7 +39,7 @@ if __name__ == "__main__":
         freeze_context_choices(args.home, args.campaign)
     elif args.final_contexts:
         result = run_final_contexts(args.home, args.campaign, args.dataset, args.embedding_url,
-                                    args.embedding_identity, args.methods)
+                                    args.embedding_identity, args.methods, args.family)
         if result["status"] == "BLOCKED_RESOURCE":
             sys.exit(2)
     elif args.test_contexts:

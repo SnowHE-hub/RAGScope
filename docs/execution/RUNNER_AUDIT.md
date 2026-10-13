@@ -29,3 +29,7 @@ WSL限制：`scripts/run_v2.sh`指向单独`/mnt/d/RAGScope_Runtime/envs/core-li
 ```
 
 下一项独立工作：隔离的E0 Dense/Hybrid真实复跑。原BM25已完成200题；原Chroma缺历史模型revision，必须保留未知身份事实。不得运行原`rerun/rerun.py`覆盖旧报告；若无法确认历史权重，重建相同legacy chunks的固定官方权重对照并标`legacy_reconstructed_fixed_revision`。
+
+后续资源交接：矩阵worker明确标SUSPENDED且身份仍匹配时，逻辑任务为PENDING并带resource_wait=true，仍阻止重复启动；即使原writer锁仍由暂停进程持有，也不误标RUNNING。该分支实际离线测试通过。最新对账8 PASS、17 PENDING，原计划及失败记录仍保留。工程凭据因新增核验/文本换行变化需重新签收时，将旧凭据存入completion/history内容寻址文件，不删除旧版本。
+
+2026-10-14包装入口实测：PowerShell新增-Gpu、-ReconcileOnly和-CoordinatedTask，默认CPU mask；-Gpu仍要求已核验租约，不自动改动服务或原任务。实际Windows只对账返回native exit2，25任务中8 PASS、其余进行/等待，未假装验收完成。WSL实际bash语法检查exit0；执行CPU入口因core-linux缺失明确exit2，此为失败路径验证，不是Linux端到端运行通过。两种入口均使用D盘缓存路径；Linux新增MPLCONFIGDIR。完整跨平台模型运行仍以Windows实证为准。
