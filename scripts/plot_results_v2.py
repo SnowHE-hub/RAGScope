@@ -189,18 +189,51 @@ def training_figures(source, output):
     save(fig, output, 'lora_training_loss', {'steps': rows, 'audit': audit}, source)
 
 
+def legacy_figures(source, output):
+    report = json.loads(source.read_text(encoding='utf-8'))
+    body = {k: v for k, v in report.items() if k != 'analysis_hash'}
+    if (report.get('status') != 'COMPLETE' or signature(body) != report['analysis_hash']
+            or not verify_artifacts(report['sources'])
+            or report.get('reconstruction_label') != 'legacy_reconstructed_fixed_revision'):
+        raise ValueError('Completed, unchanged legacy reconstruction analysis required')
+    metrics = [('recall5', 'Recall@5 / Hit@5'), ('recall10', 'Recall@10'),
+               ('mrr', 'MRR'), ('ndcg10', 'nDCG@10')]
+    fig, ax = plt.subplots(figsize=(10, 5.2), layout='constrained')
+    for method, offset, color in [('dense', -.13, BLUE), ('hybrid', .13, '#B57635')]:
+        group = report['groups'][method]
+        if group['n_total'] != report['query_count']:
+            raise ValueError('Legacy method population differs')
+        for i, (metric, _) in enumerate(metrics):
+            stats = group['descriptive_ci95'][metric]
+            mean = stats['mean']
+            ax.errorbar(mean, i+offset,
+                xerr=[[mean-stats['low']], [stats['high']-mean]],
+                fmt='o', capsize=4, color=color, label=method.capitalize() if i == 0 else None)
+            ax.annotate(f'{mean:.3f}', (mean, i+offset), xytext=(0, -14 if offset > 0 else 8),
+                        textcoords='offset points', ha='center', color=color, fontsize=9)
+    ax.set_yticks(range(4), [label for _, label in metrics])
+    ax.set_ylim(3.65, -.55); ax.set_xlim(0, 1.03); ax.grid(axis='x')
+    ax.set_xlabel('旧版段落文档相关性指标（均值与文章聚类 95% 区间）')
+    ax.legend(loc='lower left')
+    fig.suptitle('E0 固定版本重建：文档命中与排序', x=.01, ha='left', fontsize=15, fontweight='bold')
+    fig.supxlabel(f"每方法 {report['query_count']} 题 · {report['n_article_clusters']} 篇原始文章 · 2,000 次聚类重采样\n历史模型版本未知；固定官方版本与精确余弦重建，不是 v2 证据覆盖或因果改善。", fontsize=9)
+    save(fig, output, 'e0_reconstructed_retrieval', report['groups'], source)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--pilot', type=Path); parser.add_argument('--analysis', type=Path)
     parser.add_argument('--e3-analysis', type=Path)
     parser.add_argument('--training-audit', type=Path)
+    parser.add_argument('--legacy-analysis', type=Path)
     parser.add_argument('--output', required=True, type=Path)
     args = parser.parse_args()
-    if not any((args.pilot, args.analysis, args.e3_analysis, args.training_audit)): parser.error('A verified source is required')
+    if not any((args.pilot, args.analysis, args.e3_analysis, args.training_audit, args.legacy_analysis)): parser.error('A verified source is required')
     if args.pilot: pilot(args.pilot, args.output)
     if args.analysis: main_figures(args.analysis, args.output)
     if args.e3_analysis: e3_figures(args.e3_analysis, args.output)
     if args.training_audit: training_figures(args.training_audit, args.output)
+    if args.legacy_analysis: legacy_figures(args.legacy_analysis, args.output)
 
 
 if __name__ == '__main__':

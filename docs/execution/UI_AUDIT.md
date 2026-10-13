@@ -12,3 +12,13 @@
 实际证据：D:/RAGScope_Runtime/runs/20261014_v2/UI_INTERIM_BROWSER_QA.json；日志D:/RAGScope_Runtime/logs/ui_visual_qa.log。本次不计入模型实验调用。
 
 启动路径补正：README改用scripts/run_ui_v2.ps1；项目.streamlit/config.toml和CLI均明确127.0.0.1。启动器先检查环回端口，端口占用时不停止原进程。实际-CheckOnly在18501空闲端口exit0，在本项目embedding占用的11436端口exit1；未触及该服务。通过-CheckOnly不意味着已经启动UI或加载模型。
+
+后续工程接入已完成22项离线契约测试（ui_routing_live_tests.xml）：实验路由只能绑定同一就绪索引与冻结扩展，逐次读取校验后的规范文档metadata，标准答案和evidence标签不会作为特征。规则/线性/MLP/LSTM按实际ready项显示；缺失项保留资源页未就绪说明。未经真实dev质量与至少30题/策略在线延迟门槛的路由，即使配置写为default，也不能成为默认选项。
+
+交互生成现在共用generation-client.lock与原进程/租约核验；每个实际请求进入全局generation budget，以UI用途单列，不混入benchmark。带配置hash的交互结果持久化在主run/ui。显示的总耗时包含索引/路由来源核验、加载和请求，原pipeline时间另存。以上是实现及离线功能验证；尚未运行正式最终UI的路由/真实生成，不将fixtures当作结果。
+
+独立代码审查又发现并修复：仅核模型名会漏掉同名tag替换；现同时核manifest digest、服务实际模型目录和weight blob字节，调用锁内再次核验。四模型实际本地包CPU核验通过，`UI_MODEL_PACKAGE_PINS.json`明确不等于服务就绪，生成调用0。两个准备脚本错误（未补E3未使用LFM的既定runtime policy、Qwen缺省counter_kind）在可复用build_ui_model_pins.py中修正，没有改旧实验或重新请求模型。
+
+基础原始结果现在在answer_live返回及释放调用锁前保存；页面路由/时长信息另存补充记录，不覆盖基础记录。UI重排改用与正式在线相同的已审查loader和完整identity，不能仅加载同名目录默认参数。上述身份与落盘集成13项离线测试通过。
+
+界面每次冷加载，与在线实验预热常驻运行方式不同；当前UI不得直接采用其延迟优势作为自适应默认部署证据。已就绪路由仍可作为实验选项，固定路径保留默认；后续报告必须披露这项运行方式限制。

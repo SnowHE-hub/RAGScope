@@ -1,0 +1,14 @@
+{
+  "scope": "Frozen QASPER dev only; 36 papers, 100 questions, 92 answerable and 8 evidence-N/A per run",
+  "renderer": "Matplotlib standalone PNG and SVG",
+  "source_policy": "Verify every selected original row/config/source hash; freeze compact snapshot before plotting; never include test or unfinished all-corpus rows",
+  "palette": {"policy": "hard two-root cap plus neutrals", "blue": "#3878A8", "gold": "#C99A38", "ink": "#22313B", "grid": "#E4E8EB"},
+  "charts": [
+    {"id": "dev_evidence_matrix", "question": "How do the 11 chunkers compare across BM25, Dense and Hybrid?", "takeaway": "Quality depends on method; the declared Hybrid selection rule chose F512_O0 and R512, not the best individual Dense cell.", "family": "heatmap", "variant": "two annotated 11 by 3 matrices", "rows": 33, "metrics": ["full_reference_coverage", "continuous_coverage"], "scale": [0, 1], "non_color": "Every cell has its numeric label; candidates marked in row labels.", "footprint_inches": [11.8, 7.5]},
+    {"id": "dev_expansion_delta", "question": "What changed when the selected candidates used neighbor expansion?", "takeaway": "Full-reference coverage increased while continuous coverage decreased for both candidates; the frozen rule prioritizes full-reference coverage.", "family": "bar", "variant": "horizontal signed grouped changes in percentage points", "rows": 4, "comparison": "neighbor minus none", "zero": true, "non_color": "Full-reference filled bars; continuous open hatched bars; direct signed labels.", "footprint_inches": [10, 4.8]},
+    {"id": "dev_chunk_counts", "question": "How many child and parent records does each dev chunker create?", "takeaway": "Parent-child layouts have additional parent mapping records; parent records are not independently embedded.", "family": "bar", "variant": "horizontal stacked child and parent counts", "rows": 11, "zero": true, "non_color": "Parent segment open and hatched; direct totals.", "footprint_inches": [10, 6.5]}
+  ],
+  "data_sufficiency": "The complete fixed 11-group matrix is available. Expansion comparison deliberately has only the two frozen candidates; no extra sampling or new experiments to fill charts.",
+  "uncertainty_policy": "Descriptive dev scores used for selection; no test inference or significance claims. No omitted failures; actual N/A denominators shown.",
+  "qa": "Inspect exported PNGs at native readable size; compare 10 seed42 numeric cells to independent canonical interval reconstruction; confirm SVG palette and no clipped labels."
+}

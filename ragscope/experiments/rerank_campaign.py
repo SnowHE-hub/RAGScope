@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import random
 import sys
+import threading
 import time
 
 from ragscope.indexing.identity import artifact, atomic_json, file_hash, signature, verify_artifacts
@@ -257,6 +258,29 @@ def run_job(job, chunks, parents, units, reranker, campaign, index_artifacts, *,
     return summary
 
 
+def load_reranker_with_receipt(home, runtime):
+    """Bound backend load retries independently of resource waiting and row tasks."""
+    from ragscope.retrieval.verified_reranker import load_verified_reranker
+    path=runtime/"LOAD_STATE.json"
+    state=read(path) if path.exists() else {"attempts":0,"backend_failures":0}
+    if state["backend_failures"]>=3:
+        raise RuntimeError("Three R3 model loading failures already recorded; bounded diagnosis required")
+    tick=time.perf_counter()
+    state.update(status="RUNNING",attempts=state["attempts"]+1,pid=os.getpid(),started_at=time.time())
+    atomic_json(path,state)
+    try:
+        reranker=load_verified_reranker(home)
+    except Exception as error:
+        if not isinstance(error,MemoryError):state["backend_failures"]+=1
+        state.update(status="PENDING_RESOURCE" if isinstance(error,MemoryError) else "FAILED",
+                     error={"type":type(error).__name__,"message":str(error)})
+        atomic_json(path,state)
+        raise
+    state.update(status="LOADED",load_seconds=time.perf_counter()-tick)
+    atomic_json(path,state)
+    return reranker
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--home",default="D:/RAGScope_Runtime")
@@ -288,20 +312,35 @@ def main():
     if os.environ.get("CUDA_VISIBLE_DEVICES")!="":raise ValueError("CPU runtime environment required")
     import psutil
     if psutil.virtual_memory().available<3072*1024**2:raise MemoryError("R3 requires 3 GiB available before model load")
-    from ragscope.retrieval.verified_reranker import load_verified_reranker
     # Owning the existing retrieval campaign lock prevents concurrent writers.
     with Campaign(home,args.campaign+"_retrieval") as campaign:
-        reranker=load_verified_reranker(home)
-        documents=jsonl(home/"corpora"/args.campaign/"documents.jsonl")
-        units={u["unit_id"]:u for doc in documents for u in doc["evidence_units"]}
-        del documents
-        failures=0
-        for job in jobs:
-            config,_=verified_source(job)
-            chunks,parents,artifacts=find_index_material(home,args.campaign,config["index_identity"])
-            result=run_job(job,chunks,parents,units,reranker,campaign,artifacts)
-            failures+=result["n_failed"]
-            del chunks,parents
+        runtime=campaign.path/"R3_RUNTIME"
+        runtime.mkdir(exist_ok=True)
+        process=psutil.Process(os.getpid())
+        worker={"campaign_id":campaign.campaign_id,"pid":process.pid,"creation_time":process.create_time(),
+                "command":process.cmdline(),"cwd":process.cwd(),"device":"cpu","status":"RUNNING"}
+        atomic_json(runtime/"worker.json",worker)
+        from ragscope.experiments.legacy_reconstruction import _sample_resources
+        stop=threading.Event()
+        monitor=threading.Thread(target=_sample_resources,args=(runtime/"resource_samples.jsonl",stop),daemon=True)
+        monitor.start()
+        try:
+            reranker=load_reranker_with_receipt(home,runtime)
+            documents=jsonl(home/"corpora"/args.campaign/"documents.jsonl")
+            units={u["unit_id"]:u for doc in documents for u in doc["evidence_units"]}
+            del documents
+            failures=0
+            for job in jobs:
+                config,_=verified_source(job)
+                chunks,parents,artifacts=find_index_material(home,args.campaign,config["index_identity"])
+                result=run_job(job,chunks,parents,units,reranker,campaign,artifacts)
+                failures+=result["n_failed"]
+                del chunks,parents
+        finally:
+            stop.set()
+            monitor.join(timeout=2)
+            worker.update(status="EXITING",ended_at=time.time())
+            atomic_json(runtime/"worker.json",worker)
     return 1 if failures else 0
 
 

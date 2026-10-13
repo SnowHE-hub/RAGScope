@@ -12,11 +12,11 @@ campaign：`20261014_v2`；runtime：`D:/RAGScope_Runtime`。
 
 实际安全停止：身份逐一匹配后先向队列父进程发SIGTERM防止推进下一任务，再对训练子进程发SIGINT。XGB以KeyboardInterrupt退出；LGBM的`/proc/status`显示SIGINT被忽略（SigIgn末位7），55秒后仍运行。依据用户追加的CPU/GPU终止授权，再次复验断点后仅对PID114866发送SIGTERM，未使用SIGKILL。未完成单元重算；不能宣称这个进程进行了中途保存。两任务已退出，全部先前完成文件哈希不变，租约现ACQUIRED。
 
-恢复入口（仅本项目资源全部释放、租约ACQUIRED且原队列未运行时）：`wsl.exe -d Ubuntu --exec python3 /mnt/d/MCS_26S1课程资料/个人项目/RAGScope/scripts/manage_previous_jobs.py restore`。恢复后必须检查原日志继续增长/新训练单元完成，才能标RESTORED；不能重复启动。
+历史自动恢复入口仅供审计留存，已经被最新USER_MANUAL_RESUME政策禁用，不执行：`wsl.exe -d Ubuntu --exec python3 /mnt/d/MCS_26S1课程资料/个人项目/RAGScope/scripts/manage_previous_jobs.py restore`。本轮终验应确认RAGScope资源释放并通知用户，状态记录为等待用户手动续跑，不能声称原日志已经推进或原训练已经恢复。
 
 源码基线：`D:/RAGScope_Runtime/backups/20261014_baseline/tracked-source.zip`；HEAD、tracked.patch、未跟踪状态在同目录。不要用 reset/clean 覆盖用户文件。
 
-当前恢复入口：在原项目目录运行 `. ./scripts/runtime_env.ps1`。统一 runner 建成后补充命令和中断测试证据。不要假定其他聊天状态。
+本项目当前恢复入口：在原项目目录运行 `. ./scripts/runtime_env.ps1`，然后按ROOT_CHECKPOINT及各模块检查点继续准确的独立命令。不要假定其他聊天状态，也不要重复启动尚活跃的worker。
 
 运行入口已实现并实际使用：`./scripts/run_v2.ps1 -Profile full -Resume -CpuOnly`。查询状态：`. ./scripts/runtime_env.ps1; & D:/RAGScope_Runtime/envs/core/Scripts/python.exe -m ragscope.experiments.status`。
 
@@ -25,3 +25,5 @@ campaign：`20261014_v2`；runtime：`D:/RAGScope_Runtime`。
 独立子campaign：`20261014_v2_legacy`、`20261014_v2_retrieval`；分别持有自己的writer.lock。不得同时启动同一campaign两个写入者。
 
 下一条准确命令：`Get-Content D:/RAGScope_Runtime/runs/20261014_v2/gpu_lease.json -Raw`
+
+当前内部资源交接顺序：structured全库和ROUTE正常完成，核验退出后释放本项目embedding；R3五组完成退出；4K/8K共22请求压力诊断完成退出GPU服务；Laya有界运行；再归还CPU给SQuAD/simple索引。每次按实际PID、创建时间、命令及来源核验，仅操作本项目进程，不重启原11434、WSL或日更程序。

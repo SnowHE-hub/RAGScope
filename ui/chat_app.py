@@ -22,7 +22,7 @@ def read_ui_config(path=None):
     if not path.exists():
         return {"models": [], "indexes": [], "result_files": [], "status": "未配置就绪资源"}
     config = json.loads(path.read_text(encoding="utf-8-sig"))
-    for name in ("models", "indexes", "result_files"):
+    for name in ("models", "indexes", "result_files", "routers"):
         if not isinstance(config.get(name, []), list):
             raise ValueError(f"UI config {name} must be a list")
     return config
@@ -101,6 +101,9 @@ def probe_model(entry):
         with opener.open(base+route, timeout=2) as response:
             payload = json.load(response)
         models = payload.get("models", []) if entry["provider"] == "ollama" else payload.get("data", [])
+        if entry['provider'] == 'ollama':
+            from ui.model_identity import tag_matches
+            return (True, '服务 tag 与冻结模型 manifest 一致') if tag_matches(entry, models) else (False, '同名模型的 digest 已改变或模型未就绪')
         names = {model.get("name", model.get("id")) for model in models}
         return (True, "本地模型已就绪") if entry["model"] in names else (False, "所选模型未在该服务中就绪")
     except Exception as exc:
@@ -163,7 +166,7 @@ class ScopedRetriever:
             k=50 if method == "hybrid+rerank" else k, candidate_depth=50)
         self.last_timings["ranking_ms"] = (time.perf_counter()-ranking_start)*1000
         if method == "hybrid+rerank":
-            from ragscope.retrieval.reranker import Reranker
+            from ragscope.retrieval.verified_reranker import load_verified_reranker
             from ragscope.experiments.runtime import require_ram
             config = self.entry["reranker"]
             if not config.get("ready"):
@@ -172,7 +175,10 @@ class ScopedRetriever:
             # click must not blindly load a second model into exhausted RAM.
             require_ram(1536*1024**2, reserve_bytes=1280*1024**2)
             load_start = time.perf_counter()
-            reranker = Reranker(config["model_path"], revision=config["revision"], device="cpu", local_files_only=True)
+            from ragscope.experiments.runtime import runtime_home
+            reranker = load_verified_reranker(runtime_home(), device='cpu')
+            if reranker.identity != config['identity']:
+                raise ValueError('重排模型与已登记的实际版本/运行配置不一致')
             self.last_timings["reranker_load_ms"] = (time.perf_counter()-load_start)*1000
             require_ram(0, reserve_bytes=1280*1024**2)
             rerank_start = time.perf_counter()
@@ -183,6 +189,11 @@ class ScopedRetriever:
 
 def result_view(st, record):
     result = record.get("result", record)
+    if record.get('routing'):
+        routing = record['routing']
+        st.caption(f"实际路由：{routing['policy_id']} → {routing['decision']['route']}")
+        with st.expander('路由依据与耗时'):
+            st.json(routing)
     if result.get("error"):
         st.error(f"执行错误：{result['error']}")
     elif result.get("abstain"):
@@ -252,11 +263,32 @@ def main():
         if not models:
             st.info("真实生成模型尚未就绪；不会自动切换到 Mock。")
         scope = st.text_input("论文范围（doc_id；留空为全库检索）", value=config.get("default_scope", ""))
+        routers = [item for item in ready_options(config.get('routers', []))
+                   if selected_index and item.get('index_id') == selected_index['id']]
+        selected_router = None
+        if routers:
+            from ui.routing_options import deployable_default
+            route_ids = ['固定当前检索配置'] + [item['id'] for item in routers]
+            default_policy = next((item for item in routers if item['id'] == config.get('default_router')), None)
+            current_model = next((item for item in models if item['id'] == model_id), None)
+            can_default = bool(default_policy and deployable_default(default_policy,
+                model_identity=(current_model or {}).get('identity'),
+                index_manifest=validate_index_entry(selected_index),
+                runtime_config={'execution_profile': 'cold_application_loads'}))
+            route_default = route_ids.index(default_policy['id']) if can_default else 0
+            route_id = st.selectbox('路由策略', route_ids, index=route_default)
+            selected_router = next((item for item in routers if item['id'] == route_id), None)
+            if selected_router:
+                st.caption('实验路由使用已冻结的上下文策略和最多 10 个片段，选择过程与加载时间均计入实际耗时。')
         strategies = ["none", "neighbor"] + (["parent"] if selected_index and selected_index.get("parent_ready") else [])
+        strategy_default = (selected_router or selected_index or {}).get('expansion', 'none')
         strategy = st.selectbox("上下文策略", strategies,
-            index=strategies.index(selected_index.get("expansion", "none")) if selected_index and selected_index.get("expansion", "none") in strategies else 0,
+            index=strategies.index(strategy_default) if strategy_default in strategies else 0,
+            disabled=selected_router is not None,
             format_func=lambda value: {"none": "直接使用片段", "neighbor": "补相邻片段", "parent": "扩展父块"}[value])
-        k = st.slider("最多返回片段数", 1, 10, 10)
+        k = st.slider("最多返回片段数", 1, 10, 10, disabled=selected_router is not None)
+        if selected_router:
+            k = 10
         question = st.text_input("问题", placeholder="输入关于已选论文的问题")
         if st.button("运行", type="primary", disabled=selected_index is None):
             if not question.strip():
@@ -266,7 +298,11 @@ def main():
                     from ragscope.generation.context import pack_context
                     started = time.perf_counter()
                     index = load_index(selected_index)
-                    retriever = ScopedRetriever(index, selected_index, scope or None)
+                    routing, active_index = None, selected_index
+                    if selected_router:
+                        from ui.routing_options import choose_route
+                        active_index, routing = choose_route(selected_router, question, scope or None, selected_index, index.identity)
+                    retriever = ScopedRetriever(index, active_index, scope or None)
                     packing = context_options(selected_index, index, strategy, config.get("reference_budget", 2048))
                     if scope and scope not in index.by_doc:
                         raise ValueError("该论文不在所选索引中")
@@ -277,14 +313,24 @@ def main():
                                   "timings": {"retrieval_ms": (time.perf_counter()-started)*1000,
                                               "total_ms": (time.perf_counter()-started)*1000, **retriever.last_timings}}
                     else:
-                        from ragscope.generation.pipeline import RAGPipeline
+                        from ui.live_generation import answer_live
                         entry = next(model for model in models if model["id"] == model_id)
                         ready, reason = probe_model(entry)
                         if not ready:
                             raise ValueError(reason)
                         client = make_client(entry)
-                        pipeline = RAGPipeline(retriever, client, use_cache=False, context_config=packing)
-                        record = asdict(pipeline.answer(question, k, scope=scope or None))
+                        record = answer_live(client, retriever, packing, question, k, scope or None, config['execution'], model_entry=entry)
+                    if routing:
+                        record['routing'] = routing
+                        record.setdefault('timings', {}).update(routing['timings'])
+                    # This application timing includes source verification, index
+                    # and router/model-client loading, unlike pipeline-only time.
+                    record.setdefault('timings', {})['application_total_ms'] = (time.perf_counter()-started)*1000
+                    record['timings']['pipeline_total_ms'] = record['timings'].get('total_ms')
+                    record['timings']['total_ms'] = record['timings']['application_total_ms']
+                    if model_id != '仅检索证据':
+                        from ui.live_generation import save_live_record
+                        record['saved_record_path'] = save_live_record(record, config['execution'], supplement=True)
                     st.session_state["live_result"] = record
                 except Exception as exc:
                     st.error(f"本次执行未完成：{exc}")
@@ -314,8 +360,8 @@ def main():
                     with st.expander("完整原始记录"):
                         st.json(row)
     with tabs[2]:
-        for label in ("indexes", "models"):
-            st.subheader("索引配置" if label == "indexes" else "模型配置")
+        for label in ("indexes", "models", "routers"):
+            st.subheader({'indexes': '索引配置', 'models': '模型配置', 'routers': '实验路由'}[label])
             entries = config.get(label, [])
             if not entries:
                 st.write("未登记")

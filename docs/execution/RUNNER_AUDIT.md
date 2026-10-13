@@ -37,3 +37,5 @@ E0隔离重建已真实完成：Dense/Hybrid各200条、均0失败，全部22,25
 终验门槛复审又补两项：旧Sx.y成功执行不直接完成experiment/delivery；S2.3自动PASS前核每个正式run的100条唯一dev ID、逐行hash/config/index/CPU和真实神经模型身份、失败分母。BM25不要求神经模型标记。新36项runner测试PASS（7.48秒），已完成29个真实run/2900行额外审查通过；33组尚未全齐时不PASS。完整15条终验差距记录在`ACCEPTANCE_GAP_REVIEW.md`，不把25任务账本状态当最终验收。
 
 2026-10-14包装入口实测：PowerShell新增-Gpu、-ReconcileOnly和-CoordinatedTask，默认CPU mask；-Gpu仍要求已核验租约，不自动改动服务或原任务。实际Windows只对账返回native exit2，25任务中8 PASS、其余进行/等待，未假装验收完成。WSL实际bash语法检查exit0；执行CPU入口因core-linux缺失明确exit2，此为失败路径验证，不是Linux端到端运行通过。两种入口均使用D盘缓存路径；Linux新增MPLCONFIGDIR。完整跨平台模型运行仍以Windows实证为准。
+
+完整dev矩阵到齐后，S2.3已实际通过33组×100条逐行核验（BM25/Dense/Hybrid各11组，0失败），主账本更新为9 PASS、16 PENDING。S1.3的旧凭据因已提交UI新增E3真实结果路径而失效；重新运行chunking/UI共134项PASS（8.59秒），将旧凭据及旧工程审查存入内容寻址history后签收新配置。日志`runner_full_dev_matrix_reconcile_revalidated.log`和`engineering_s13_ui_update_revalidation.log`保存实际输出。后续UI尚在计划内更新，待稳定后统一签收；矩阵完成不等于test/global/ROUTE上下文及R3已经完成。

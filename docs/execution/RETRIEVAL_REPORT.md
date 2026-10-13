@@ -150,9 +150,9 @@ F512_O0中断前部分向量的原冷编码耗时未逐条落盘，因此恢复�
 索引按数据、split、scope、完整切块参数、真实tokenizer及revision签名隔离；内容哈希与条数匹配才复用。
 每题保存raw候选50的ID/得分/源坐标，完整原文可从对应索引恢复；保存实际ContextBundle、预算丢弃原因、去重记录、证据分数、错误及实际计时。
 RecordStore每条fsync，Campaign持单写锁；中断从完整记录恢复，已完成问题不重复统计。
-14个检索离线单元测试通过，覆盖切块源覆盖、父子边界、真实BM25 scope、失败分母、不可回答N/A、dev容差选择、幂等恢复及编码批次中断的原始耗时保留；全库测试额外证明gold_doc_id不进入scope、干扰文档仍被实际搜索。新增数组索引恢复和身份拒绝使用明确标记的离线数值夹具，不计入模型结果。
+15个检索离线单元测试通过，覆盖切块源覆盖、父子边界、真实BM25 scope、失败分母、不可回答N/A、dev容差选择、幂等恢复及编码批次中断的原始耗时保留；全库测试额外证明gold_doc_id不进入scope、干扰文档仍被实际搜索。新增数组索引恢复和身份拒绝使用明确标记的离线数值夹具，不计入模型结果。
 独立反向核验见`E1_BM25_INDEPENDENT_AUDIT.json`：重读1100条实际context源坐标，使用独立区间合并代码重算33个表格数字全部一致；其中seed42抽10数字保存，未用汇总表核验汇总表。
-新增可重复命令`python scripts/audit_retrieval_v2.py --home D:/RAGScope_Runtime --campaign 20261014_v2`最近实际通过：26个已完成运行、2800行、12602个context原文片段、78个汇总数字全部一致，另以seed42抽10项记录。
+新增可重复命令`python scripts/audit_retrieval_v2.py --home D:/RAGScope_Runtime --campaign 20261014_v2`最近实际通过：44个已完成运行、4600行、18430个context原文片段、132个汇总数字全部一致，另以seed42抽10项记录。
 该脚本独立实现字符区间求并、逐单元覆盖和多合法标注集合的预声明选择，不调用生产评分/汇总代码；同时核验行哈希、配置哈希、完整问题分母、原文坐标及正文片段。证据保存于`RETRIEVAL_INDEPENDENT_AUDIT.json`，每次只核验已完成summary，不将进行中的运行算作完成。
 `RETRIEVAL_LATENCY_AUDIT.json`另存编码缓存命中与各实际组件的N/P50/P95；旧行缺失的组件保留不可得，不反填估计值。
 最终神经test上下文执行前已冻结`configs/v2/retrieval_statistics.json`：2000次seed42配对论文cluster bootstrap，95% percentile区间；SQuAD使用article_cluster_id。5组对照包括论文内Hybrid−BM25、Hybrid−Dense、结构−简单Hybrid，以及全库Hybrid−BM25、Hybrid−Dense；全部明确为探索性，不将未经多重比较调整的区间解释为确认性显著结论。
@@ -166,14 +166,14 @@ Dense/Hybrid要求显式CPU后端身份与loopback URL；没有就不将词法�
 工厂要求最终dev候选、匹配候选哈希的context选择、真实完成索引和源文件哈希全部就绪。它不自动加载模型、下载文件或用冻结ContextBundle替代在线检索。多个路线可共享已验证Dense ArrayIndex中相同的BM25语料和统计，以减少内存；BM25调用时仍披露实际所用Dense索引签名，不声称载入了另一个索引。
 在线结果保存raw50、pack前真正selected10、重排窗口、query cache状态、编码/检索/融合/重排/context实际耗时；索引加载单列在`load_timings_ms`，不混入逐题热运行时延。少于50个候选时保存真实数量。backend错误保留，不悄悄回退BM25。
 调用者提供逐题、全部formal模型的真实prompt+512≤4096共同预算检查。在线路径严格复现freezer.shared_context的两步逻辑：先冻结扩展+2048 reference-only打包，再只对已保留pieces做共同模型预算repack；不会因模型预算拒绝前段而重新加入初次reference预算已排除的候选。初始`retrieval_context_bundle`与最终`context_bundle`及两个实际pack耗时均保留。8项离线接口测试通过，包括实际BM25调用、50→10合约、scope禁止gold、backend失败保留、未就绪不加载、两步共同预算与正式packer一致，以及拒绝模型实际device为GPU但身份声明CPU的错误注入。这些数值夹具不是神经在线实验结果。
-实际环境ready检查记录`ONLINE_RETRIEVAL_READINESS.json`为WAITING_FOR_FINAL_DEV_SELECTION：没有加载模型或伪造在线调用。后续物化结果也已加入`selected_retrieval`及schema version2；历史不可变行保持原状，缺该字段的错误分析只能标记packing_or_ranking_loss_uncertain，不能据raw50将丢失证据全部归因于打包预算。
+实际环境ready检查记录`ONLINE_RETRIEVAL_READINESS.json`为WAITING_FOR_FINAL_DENSE_INDEX：候选和扩展已冻结，但完整Dense manifest尚未就绪，探测没有模型调用或伪造在线结果。后续物化结果也已加入`selected_retrieval`及schema version2；历史不可变行保持原状，缺该字段的错误分析只能标记packing_or_ranking_loss_uncertain，不能据raw50将丢失证据全部归因于打包预算。
 
 路由上下文的独立物化入口为`scripts/materialize_routing_contexts_v2.py`，只在最终完整选中索引就绪后运行train200/dev60的BM25与Hybrid，共520条实际检索。测试集100题只核验身份，在已有TEST_CONTEXT200中取得，不在此新增测试选型。
 root冻结的`ROUTING_QUERY_MANIFEST.json`哈希f1b6ae1ef21a44b720b53e1a6fffe6600a12d16d51e4b88aefe26a69c0ff952b已实际通过哈希、SPLIT源、问题文件、freezer.seeded_subset完整顺序和跨split文档不重叠检查。train200来自159篇、dev60来自30篇、test100来自59篇；证据`ROUTING_SOURCE_VALIDATION.json`明确实际物化尚未发生。新增2个离线测试拒绝重签名后的不同抽样顺序、错误外部预期哈希和变动源文件。
 
 ## 辅助排序指标与来源映射
 
-`scripts/summarize_retrieval_auxiliary_v2.py`已实际处理28个完成运行、3000条原始结果，输出`RETRIEVAL_AUXILIARY_METRICS.json`及`auxiliary/*.jsonl`。原记录与配置哈希、冻结分母、完整索引manifest均核验，不改写正式实验行。定义固定于`configs/v2/retrieval_auxiliary.json`：MRR@10为首个相关chunk的倒数rank；binary nDCG@10的理想排序分母来自scope内完整索引中的相关chunk数量，不只用已检索50候选。相关性指任何正长度的合法证据单元交集，多个合法标注取union。失败为0、不可回答N/A。R3使用真实selected_retrieval重排顺序，不能用上游Hybrid50冒充。
+`scripts/summarize_retrieval_auxiliary_v2.py`已实际处理44个完成运行、4600条原始结果，输出`RETRIEVAL_AUXILIARY_METRICS.json`及`auxiliary/*.jsonl`。原记录与配置哈希、冻结分母、完整索引manifest均核验，不改写正式实验行。定义固定于`configs/v2/retrieval_auxiliary.json`：MRR@10为首个相关chunk的倒数rank；binary nDCG@10的理想排序分母来自scope内完整索引中的相关chunk数量，不只用已检索50候选。相关性指任何正长度的合法证据单元交集，多个合法标注取union。失败为0、不可回答N/A。R3使用真实selected_retrieval重排顺序，不能用上游Hybrid50冒充。
 
 这是离线辅助描述，不参与选择：少量证据交集未必足够回答，overlap和chunk粒度改变相关item数，因此不同切块间MRR/nDCG可比性有限；完整证据单元与完整参考集合覆盖仍为主指标。两项手算测试验证全索引IDCG、实际rank、失败/N/A与重复ID拒绝。
 
@@ -184,3 +184,42 @@ root冻结的`ROUTING_QUERY_MANIFEST.json`哈希f1b6ae1ef21a44b720b53e1a6fffe660
 SQuAD E4将复用已冻结的Qwen查询指令（含scientific paper措辞），不单独为SQuAD调指令或检索参数。它用于同一短文本任务内的模型回归对照；数据领域、标注形式和长度均与QASPER不同，跨数据集差异不能归因为长度，也不能合并排名。
 
 历史元数据限制：独立`CHUNK_PREFLIGHT_SCOPE_AUDIT.json`核验13个chunk manifests，发现早期两个all509 BM25索引的preflight.split误写为dev。它们的不可变identity明确为frozen_all_splits_corpus，document_checks保留真实文档ID，数据/hash/检索结果均正确；审计另列实际预检前3篇及其source split。未改写旧manifest。未来manifest使用真实identity范围、显式sample_document_ids/source_split_counts。该耗时预检不参与质量选择，也不把全库预检冒称dev样本。
+
+## CPU 请求批量的有界实测
+
+现有 llama.cpp b11429 CPU12线程服务支持string-array输入（[固定版本官方API文档](https://github.com/ggml-org/llama.cpp/blob/b11429/tools/server/README.md)）。在正常完成dev11组后，用固定seed42选择的4块512 tokens和4块1024 tokens，对batch1/2/4各测两轮，顺序1→2→4→4→2→1；另一次固定dev query，共29次请求。无共享cache读写、无重启、无额外模型，RAM每次调用前至少1.25GiB。
+
+两轮合计serial37.7094s、batch2 37.7043s、batch4 40.6022s；相对吞吐分别1.00013倍和0.92875倍，均未达到预声明1.15倍门槛，保持request batch1。48个逐文本比较max_abs_diff=0、固定query排名完全一致；结论仅覆盖这八个文本，不能推广为所有输入的数值保证。实际backend usage保留在逐请求层，未将数组aggregate usage虚分到每个文本。
+
+凭据：`D:/RAGScope_Runtime/runs/20261014_v2_retrieval/cpu_batch_benchmark/RESULT.json`，配置hash`0ac6e5562df3d8cf161008a1e09d63b0fa33ddd413554e44da93485c16aad91d`。不将这个有界性能实验当检索质量比较，也不因其结果改动候选或上下文规则。
+
+## 完整真实 Dense/Hybrid dev 矩阵
+
+下表每个方法100题，92题证据覆盖指标适用、8题不可回答为N/A；各组0失败。数值为实际打包后的整组引用证据覆盖/连续覆盖，父子组此表使用预声明parent，其他组使用none。正式上下文扩展选择在下表候选冻结之后进行。
+
+| Group | Dense full / continuous | Hybrid full / continuous | Chunks / parents |
+|---|---:|---:|---:|
+| F256_O0 | 0.706522 / 0.810365 | 0.608696 / 0.776352 | 696 / 0 |
+| F256_O32 | 0.630435 / 0.790381 | 0.619565 / 0.773523 | 786 / 0 |
+| F512_O0 | 0.652174 / 0.749798 | 0.663043 / 0.777828 | 355 / 0 |
+| F512_O64 | 0.673913 / 0.776798 | 0.619565 / 0.725493 | 398 / 0 |
+| F1024_O0 | 0.608696 / 0.666910 | 0.630435 / 0.683214 | 184 / 0 |
+| F1024_O128 | 0.554348 / 0.642577 | 0.630435 / 0.679306 | 204 / 0 |
+| S512 | 0.663043 / 0.724876 | 0.641304 / 0.699310 | 389 / 0 |
+| R512 | 0.739130 / 0.800272 | 0.739130 / 0.779438 | 406 / 0 |
+| R1024 | 0.673913 / 0.707609 | 0.706522 / 0.727536 | 198 / 0 |
+| P256_1024 | 0.804348 / 0.824275 | 0.728261 / 0.749275 | 853 / 198 |
+| P256_1536 | 0.630435 / 0.662319 | 0.586957 / 0.607971 | 823 / 135 |
+
+预声明规则使用Hybrid结果，先整组证据覆盖、再连续覆盖，0.01容差内取小索引/低P50；因此simple=F512_O0、structured=R512。不能从Dense更高的单项数字事后替换该选择规则。
+
+| Candidate | Expansion | Full reference | Continuous |
+|---|---|---:|---:|
+| F512_O0 | none | 0.663043 | 0.777828 |
+| F512_O0 | neighbor | 0.684783 | 0.707951 |
+| R512 | none | 0.739130 | 0.779438 |
+| R512 | neighbor | 0.750000 | 0.755435 |
+
+两组最终均选择neighbor；所有正式test/global/SQuAD/ROUTE上下文沿用此冻结结果。早期BM25筛选阶段的none test结果保留为探索性历史，不能替代正式neighbor结果。完整证据为`E1_dense_SUMMARY.json`、`CANDIDATE_SELECTION.json`和`CONTEXT_SELECTION.json`。
+
+当前11个已完成神经索引共5292个向量全部通过独立维度、float32、finite/L2及真实正文token检查；每索引seed42抽20个向量与内容寻址缓存逐项对齐，共220次。3098个去重文本具备实际backend usage；1639个历史文本无此观察，继续保留N/A。证据`EMBEDDING_INDEX_AUDIT.json`。

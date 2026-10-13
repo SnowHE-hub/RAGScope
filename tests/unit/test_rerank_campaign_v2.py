@@ -163,3 +163,51 @@ def test_unpermitted_loader_does_not_import_torch(tmp_path,monkeypatch):
     before='torch' in sys.modules
     with pytest.raises(ValueError,match='CPU-only'):loader.load_verified_reranker(tmp_path)
     assert ('torch' in sys.modules)==before
+
+
+def test_rerank_model_load_failure_preserves_worker_and_stops_observer(tmp_path,monkeypatch):
+    import os
+    import sys
+    from types import SimpleNamespace
+    import psutil
+    from ragscope.experiments import rerank_campaign as module
+    from ragscope.retrieval import verified_reranker as loader
+    monkeypatch.setenv('CUDA_VISIBLE_DEVICES','')
+    monkeypatch.setattr(sys,'argv',['run_rerank_v2.py','--home',str(tmp_path),'--campaign','fixture','--run'])
+    monkeypatch.setattr(module,'frozen_jobs',lambda *_:[{'prefix':'fixture','source':tmp_path/'source',
+                                                       'destination':tmp_path/'destination'}])
+    monkeypatch.setattr(module,'verified_source',lambda _job:({},[]))
+    monkeypatch.setattr(psutil,'virtual_memory',lambda:SimpleNamespace(available=4*1024**3))
+    def fail_load(_home):
+        raise ValueError('offline simulated missing checkpoint')
+    monkeypatch.setattr(loader,'load_verified_reranker',fail_load)
+    with pytest.raises(ValueError,match='missing checkpoint'):
+        module.main()
+    folder=tmp_path/'runs/fixture_retrieval/R3_RUNTIME'
+    worker=json.loads((folder/'worker.json').read_text('utf-8'))
+    assert worker['pid']==os.getpid() and worker['status']=='EXITING'
+    assert worker['device']=='cpu' and worker['ended_at']>worker['creation_time']
+    state=json.loads((folder/'LOAD_STATE.json').read_text('utf-8'))
+    assert state['backend_failures']==1 and state['status']=='FAILED'
+    # The observer file is closed even when checkpoint loading raises.
+    path=folder/'resource_samples.jsonl'
+    path.rename(path.with_suffix('.closed.jsonl'))
+
+
+def test_reranker_loading_has_three_failure_bound_and_excludes_resource_wait(tmp_path,monkeypatch):
+    from ragscope.experiments.rerank_campaign import load_reranker_with_receipt
+    from ragscope.retrieval import verified_reranker as loader
+    def resource_wait(_home):raise MemoryError('offline simulated RAM guard')
+    monkeypatch.setattr(loader,'load_verified_reranker',resource_wait)
+    with pytest.raises(MemoryError):load_reranker_with_receipt(tmp_path,tmp_path)
+    assert json.loads((tmp_path/'LOAD_STATE.json').read_text('utf-8'))['backend_failures']==0
+    calls=[]
+    def failed(_home):
+        calls.append(True)
+        raise ValueError('offline simulated checkpoint error')
+    monkeypatch.setattr(loader,'load_verified_reranker',failed)
+    for _ in range(3):
+        with pytest.raises(ValueError):load_reranker_with_receipt(tmp_path,tmp_path)
+    with pytest.raises(RuntimeError,match='Three R3'):
+        load_reranker_with_receipt(tmp_path,tmp_path)
+    assert len(calls)==3
