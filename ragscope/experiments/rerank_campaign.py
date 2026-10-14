@@ -168,7 +168,7 @@ def rerank_record(source, query, chunks, parents, units, reranker, expansion):
     fixture = bool(reranker.identity.get("offline_fixture", False))
     return {"query_id":query["query_id"], "question":query["question"], "doc_id":gold, "scope":query["scope"],
             "split":query["split"], "answerability":query["answerability"], "experiment_type":"retrieval",
-            "real_model":not fixture, "device":"cpu", "model_identity":reranker.identity, "reranker_identity":reranker.identity,
+            "real_model":not fixture, "device":reranker.identity.get("device", "cpu"), "model_identity":reranker.identity, "reranker_identity":reranker.identity,
             "embedding_identity":source["embedding_identity"], "index_signature":source["index_signature"],
             "raw_retrieval":copy.deepcopy(source["raw_retrieval"]), "selected_retrieval":selected_raw,
             "retrieval_record_schema_version":2, "candidate_count":len(candidates), "scoped_chunk_count":eligible,
@@ -233,6 +233,8 @@ def run_job(job, chunks, parents, units, reranker, campaign, index_artifacts, *,
             row.update(campaign_id=campaign.campaign_id,run_id=run_id,
                        actual_process_rss=psutil.Process(os.getpid()).memory_info().rss,
                        host_available_bytes=psutil.virtual_memory().available)
+            if reranker.identity.get("device") == "cuda":
+                row["gpu_memory"] = reranker.model.resource_snapshot()
             store.add(source["query_id"],row)
             consecutive_failures=consecutive_failures+1 if row["error"] else 0
             print(json.dumps({"run_id":run_id,"completed":len(store.ids),"expected":len(rows),
@@ -258,7 +260,7 @@ def run_job(job, chunks, parents, units, reranker, campaign, index_artifacts, *,
     return summary
 
 
-def load_reranker_with_receipt(home, runtime):
+def load_reranker_with_receipt(home, runtime, *, device="cpu"):
     """Bound backend load retries independently of resource waiting and row tasks."""
     from ragscope.retrieval.verified_reranker import load_verified_reranker
     path=runtime/"LOAD_STATE.json"
@@ -269,7 +271,13 @@ def load_reranker_with_receipt(home, runtime):
     state.update(status="RUNNING",attempts=state["attempts"]+1,pid=os.getpid(),started_at=time.time())
     atomic_json(path,state)
     try:
-        reranker=load_verified_reranker(home)
+        if device == "cpu":
+            reranker=load_verified_reranker(home)
+        elif device == "cuda":
+            from ragscope.retrieval.verified_reranker import load_verified_gpu_reranker
+            reranker=load_verified_gpu_reranker(home)
+        else:
+            raise ValueError("Unknown R3 device")
     except Exception as error:
         if not isinstance(error,MemoryError):state["backend_failures"]+=1
         state.update(status="PENDING_RESOURCE" if isinstance(error,MemoryError) else "FAILED",
