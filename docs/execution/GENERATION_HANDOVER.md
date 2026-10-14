@@ -18,11 +18,17 @@ Recovery audit directory: D:/RAGScope_Runtime/runs/20261014_v2/recovery/generati
 
 E3 is COMPLETE1200/1200 (three models ×400, zero request errors, token parity1200, nine separate warmups). Do not rerun it. Main default_spec automatically references its immutable manifest; an in-memory E3-only parent import exercise passed exact task/input/model ownership checks. Full main import remains pending until its real manifest is frozen; this audit does not claim main completion. Preserve both old2B analysis and complete E3 analysis artifacts.
 
-After completed stress22, the budget snapshot is1443/10000 used,1200 core used:8557 total calls available and2400 protected for E2. The earlier recovery-only snapshot1421 is historical. Maximum remaining main formal calls4320 plus12 initial model warmups; stress22, pairedBF16206, online66 and judge≤200 leave3753 calls before additional restarts/retries, if every planned group is feasible. All further attempts remain counted; no budget was reserved by this audit.
+After completed stress22, the budget snapshot is1443/10000 used,1200 core used:8557 total calls available and2400 protected for E2. The earlier recovery-only snapshot1421 is historical. Maximum remaining main formal calls4320 plus12 initial model warmups, pairedBF16206, online66 and judge≤200 leave3753 calls before additional restarts/retries, if every planned group is feasible; stress22 is already included in the used1443. All further attempts remain counted; no budget was reserved by this audit.
 
 The 2B 4K/8K stress is COMPLETE:8formal+3warmup per window,22/22 real calls with zero errors and exact token parity3584/7680 plus512 output reserve. Manifest e87d506a9eab594eac0f088317d094df315c82097bc3eaa3ce0a56cbb04589c9 and both frozen stress source files remain unchanged. COMPLETION_RECEIPT.json validates every source/record/config artifact and unique budget tickets1422–1443. Historical pre-load RAM rejection and empty-service version mismatch are retained, neither is a model OOM. Resource report: CONTEXT_STRESS_REPORT.md. All stress models are unloaded, API ps empty, GPU12MiB/0%, service READY empty pendingE2.
 
 LoRA formal training is COMPLETE122steps/972train/59dev; do not train again. Real CPU check-only reverified beststep122 checkpoint and returned exit2 WAITING_FOR_FROZEN_GENERATION. Paired100+100 BF16 evaluation has not run and will permanently bind the E2 shard R2 contexts, plus its own later resource handoff.
+
+## Authorized continuation after the R3 TEST200 source notice
+
+Root granted continuous execution on2026-10-14: E2 three-model2400 + production acceptance/seal, then E2-bound support judge200/Qwen4B, then normal unload/stop owned11435 and exact PID/port/gpu.lock release, then best122 same-BF16 paired100+100 after its core check-only and fresh original resource/lease guard. No phase approval wait, no new combinations, no retraining. Root may reprioritize when main sources become ready. Each segment records actual concurrent CPU4 process identities and resource conditions, retains failures/tickets, and reports startup identity/time estimate. Runtime continuation receipt: GENERATION_CONTINUATION_20261014T0341.json.
+
+Judge uses `scripts/run_support_judge_v2.py --campaign-dir D:/RAGScope_Runtime/runs/20261014_v2_generation_e2 --judge-model qwen_4b --sample-size 200` to freeze, then the same command with `--run`; it must follow complete E2 and freshresource checks. Paired evaluation uses the E2 command below, first corePython `--check-only`, then isolatedtrainPython after11435exit. The same paired directory must remain bound to E2 permanently.
 
 ## Completed E3 and historical resource measurements
 

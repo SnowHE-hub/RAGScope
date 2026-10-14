@@ -1,5 +1,8 @@
 # 主生成与 LoRA 的重启后恢复点
 
+> 后续进展（03:34 UTC）：旧租约已由root重新签发，固定stress22已经真实COMPLETE并卸载。恢复了官方portable0.34.4到D盘，服务当前READY空载；不要重跑stress。下一执行边界已改为R3 TEST200封存后执行独立E2，不再等待其余R3全660退出。最新条件与精确命令以GENERATION_HANDOVER.md和E2_CORE_SHARD.md为准。本文下方1421预算与旧资源状态是重启恢复时的历史审计快照。
+
+
 2026-10-14 的轻量预检没有启动模型、服务或联网。主代理报告主机于当日07:03 Sydney重启；所有旧进程与资源收据只保留作历史证据。原任务维持 `USER_MANUAL_RESUME`，不恢复原作业或日更，不改变 WSL 配置。
 
 证据目录：`D:/RAGScope_Runtime/runs/20261014_v2/recovery/generation_post_reboot_20261014`。`audit.py` 是可重复的只读实验预检，输出仅在该目录；`PREFLIGHT.json` 保存来源哈希、分片导入演练、调用账本、时间计算及限制。`GPU_LEASE_IMPLEMENTATION_AUDIT.json` 绑定50项CPU测试和真实旧租约拒绝收据。旧handover及旧pilot源码保存在其 `provenance` 中。
@@ -43,7 +46,7 @@
 
 ```powershell
 . ./scripts/runtime_env.ps1 -Gpu
-& D:/RAGScope_Runtime/envs/core/Scripts/python.exe scripts/serve_generation.py
+& D:/RAGScope_Runtime/envs/core/Scripts/python.exe scripts/serve_generation.py --binary D:/RAGScope_Runtime/tools/ollama-0.34.4/ollama.exe
 ```
 
 项目11435服务READY后，在另一执行句柄串行运行以下两条件。两条之间显式卸载2B、核验API无resident model与当前RAM；最后正常卸载、停止自有服务，核验进程退出及GPU锁释放，交回Laya窗口。
