@@ -33,7 +33,9 @@ def main():
                     'scripts/v3/run_atomization.py', 'scripts/v3/resume_atomization.py',
                     'scripts/v3/calibrate_gpu_claim_judge.py', 'scripts/v3/score_claim_metrics.py',
                     'scripts/v3/run_context_judge.py', 'scripts/v3/run_protocol_study.py',
-                    'scripts/v3/build_task_references.py'} and str(run).replace('\\', '/') in [a.replace('\\', '/') for a in argv]:
+                    'scripts/v3/build_task_references.py', 'scripts/v3/run_protocol_supplements.py',
+                    'scripts/v3/run_protocol_supplements_v2.py', 'scripts/v3/download_reranker.py',
+                    'scripts/v3/calibrate_qwen_reranker.py', 'scripts/v3/prepare_retrieval_sources.py'} and str(run).replace('\\', '/') in [a.replace('\\', '/') for a in argv]:
                 live.append(info)
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             continue
@@ -42,7 +44,8 @@ def main():
     budget = Budget(run).snapshot()
     now = datetime.now(timezone.utc)
     status.update(updated_utc=now.isoformat(), updated_local=now.astimezone().isoformat(),
-                  active_model_processes=live, budget_snapshot=budget,
+                  active_owned_processes=live,
+                  active_model_processes=[p for p in live if not p['cmdline'][1].replace('\\','/').endswith(('prepare_retrieval_sources.py','download_reranker.py'))], budget_snapshot=budget,
                   new_llm_requests=budget['requests_reserved'], atomization_progress=progress,
                   last_local_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=PROJECT, text=True).strip())
     live_atom = any(p['cmdline'][1].replace('\\', '/').endswith('atomization.py') for p in live)
@@ -125,6 +128,58 @@ def main():
     status['next_tool_call'] = {'tool': 'exec_command', 'args': {'cmd':
         "Get-Content -LiteralPath 'D:/RAGScope_Runtime/runs/v3_20261015_014506/S2_PROTOCOL_INPUTS.jsonl' -TotalCount 1",
         'max_output_tokens': 2200}}
+    if (run/'S2_SUPPLEMENT_ANALYSIS.json').exists():
+        supplement=json.loads((run/'S2_SUPPLEMENT_ANALYSIS.json').read_text('utf-8'))
+        if supplement['status']=='PASS_INDEPENDENT_SUPPLEMENT_AUDIT':
+            status['completed_evidence'].update(S2_padding_calls=36,S2_prior_total_calls=12,S2_total_new_calls=840)
+            status['tasks'].update({'S2.2_oracle_padded36':'PASS_36_REAL_CALLS_MATCHED_SOURCE_EVIDENCE',
+                'S2.2_prior_extra6':'PASS_12_TOTAL_PRIOR_PROBES',
+                'S0.3_task_source30_papers':'PASS_20_VALID_SYNTHETIC_TASKS_29_FAILED_BRANCHES_RETAINED'})
+            status['stages']['S2']='DIAGNOSTIC_COMPLETE_D_CONFIRM_GENERATOR_STABILITY_PENDING'
+    if (run/'S3_OLD_RETRIEVAL_FUNNEL.json').exists():
+        funnel=json.loads((run/'S3_OLD_RETRIEVAL_FUNNEL.json').read_text('utf-8'))
+        status['tasks']['S3.2_old_retrieval_funnel']='PASS_500_OLD_ROWS_INDEPENDENT_SPAN_RECOUNT'
+        status['tasks']['S3.5_old_window_audit']='PASS_9519_WINDOWS_NO_BUDGET_OR_CHAR_COVERAGE_VIOLATION'
+        status['tasks']['S3.5_top2_vs_max_old']='PASS_REAL_SCORE_REUSE_ZERO_SELECTED_COVERAGE_GAIN'
+        status['completed_evidence'].update(S3_old_funnel_rows=sum(g['record_n'] for g in funnel['groups'].values()),
+            S3_old_window_count=funnel['window_checks']['window_n'])
+        status['stages']['S3']='RUNNING_NEW_RETRIEVAL_REQUIRED'
+        status['current_stage']='S3_RETRIEVAL_AND_S2_D_CONFIRM'
+        status['next_action']='Finish any verified-live reranker calibration, then build the three source-only metadata indices and D_confirm retrieval/generation validation. Do not repeat old NLI or completed S2 calls.'
+        status['next_tool_call']={'tool':'exec_command','args':{'cmd':
+            "Get-Content -LiteralPath 'D:/RAGScope_Runtime/runs/v3_20261015_014506/S3_QWEN_RERANKER_CALIBRATION.log' -Tail 5",'max_output_tokens':1000}}
+    if (run/'S3_CORE_FIRST_OLD_SCREEN.json').exists():
+        status['tasks']['S3.6_core_first_old_screen']='PASS_400_MATCHED_PACKING_ROWS_MIXED_RESULTS_NOT_PROMOTED'
+        status['completed_evidence']['S3_core_first_old_rows']=400
+    if (run/'S3_DOCUMENT_BM25_INDEX.json').exists():
+        document_index=json.loads((run/'S3_DOCUMENT_BM25_INDEX.json').read_text('utf-8'))
+        status['tasks']['S3.4_document_bm25_index']=document_index['status']
+        status['completed_evidence']['S3_document_index_papers']=document_index['paper_n']
+    if (run/'S3_DOCUMENT_CANDIDATES_D_SEARCH.json').exists():
+        document_audit=json.loads((run/'S3_DOCUMENT_CANDIDATES_D_SEARCH.json').read_text('utf-8'))
+        status['tasks']['S3.1_scope_document_candidate_diagnostic']='PASS_120_EXPOSED_QUESTIONS_240_REAL_LOOKUPS_INPUT_CONDITIONS_SEPARATE'
+        status['completed_evidence']['S3_document_candidate_questions']=document_audit['questions_n']
+    if (run/'S3_QWEN_RERANKER_CALIBRATION.json').exists():
+        calibration=json.loads((run/'S3_QWEN_RERANKER_CALIBRATION.json').read_text('utf-8'))
+        status['tasks']['S3.5_qwen_reranker_12_fixtures']=calibration['status']
+        status['completed_evidence']['S3_reranker_fixture_n']=calibration['record_n']
+        status['completed_evidence']['S3_reranker_fixture_correct_n']=calibration['correct_n']
+    live_source=any(p['cmdline'][1].replace('\\','/').endswith('prepare_retrieval_sources.py') for p in live)
+    if live_source:
+        status['tasks']['S3.3_three_chunker_source_metadata']='RUNNING_CPU_ONLY_SOURCE_PREPARATION'
+        status['next_action']='Observe the live source preparation job (tool session85266; verify PID/exe/argv). Do not start another builder. After terminal exit, verify all per-document artifacts, then build actual BM25/dense indices and D_confirm validation.'
+        status['next_tool_call']={'tool':'write_stdin','args':{'session_id':85266,'chars':'','yield_time_ms':1000,'max_output_tokens':1200}}
+    if (run/'S3_RETRIEVAL_SOURCE_PREPARATION.json').exists():
+        source_prep=json.loads((run/'S3_RETRIEVAL_SOURCE_PREPARATION.json').read_text('utf-8'))
+        status['tasks']['S3.3_three_chunker_source_metadata']=source_prep['status']
+        status['completed_evidence']['S3_source_document_groups']=source_prep['completed_document_groups']
+        status['completed_evidence']['S3_source_groups']=source_prep['groups']
+        status['next_action']='Three source-only chunk preparations completed; build real document/chunk BM25 and dense indices, compare bounded candidates on D_search/D_confirm, and verify generator stability. Do not rerun completed model studies.'
+        status['next_tool_call']={'tool':'exec_command','args':{'cmd':
+            "Get-Content -LiteralPath 'D:/RAGScope_Runtime/runs/v3_20261015_014506/S3_RETRIEVAL_SOURCE_PREPARATION.json' -Raw",'max_output_tokens':1600}}
+    status['unresolved']=['S1 full claim/support/citation metrics BLOCKED after bounded resource attempts',
+        'S2 generator D_confirm stability; S3 new retrieval indices/candidates and generation gates',
+        'S4 workflow utility, S5 mandatory LoRA microdiagnosis, S6 locked holdout/online/report/acceptance']
     status.pop('resume_command_after_verified_exit', None)
     observation = {'observed_utc': now.isoformat(), 'live_processes': live, 'budget': budget,
                    'atomization': progress, 'process_observation_not_terminal_exit_receipt': True}
@@ -146,11 +201,13 @@ def main():
         + '实际GPU裁判210构造检查全部通过，session46755 exit0。评分12条冒烟因均UNKNOWN没有关系调用；原空缓存汇总bug session29339 exit1，已保存源与日志，修复后复用12条且actualexit0。\n\n'
         + 'GPU全量session80992/66941均actualexit1，分别在可用内存3153125376/3206303744字节触发3GiB守卫；其部分结果保留。流式修复后仍不足，GPU全量停止有界重试。\n\n'
         + 'CPU兼容session24620也actualexit1；335实际评分/230关系判断保留。全量旧NLI已到有界阻断，不再加载。所有5720条覆盖/UNKNOWN及盲评120条部分包保存，未执行行不冒充模型结果。\n\n'
-        + '40范围题已封存，30任务来源论文已冻结且与主分割241篇零交叉；H_tasks参考未生成。117个独立问题/上下文输入已冻结。\n\n'
+        + '40范围题已封存，30任务来源论文已冻结且与主分割241篇零交叉；20有效H_tasks参考/29失败任务分支保留，全部人造AI标签。117个独立问题/上下文输入已冻结。\n\n'
         + '9B上下文独立校准59/60。session21014在104/117后资源exit1，6771只续跑13条actualexit0；117条完成。23新增拒答：YES8/NO12/UNKNOWN3，均为proxy，不是人评。\n\n'
         + 'S2输入冻结24题×2上下文，G0真实144复用。72新direct/pipeline调用session65647 exit0，36配对完全一致、无token/思考通道差异。主矩阵session84289 exit0，864完整记录（新720）独立计分验证；含6prior探针。\n\n'
         + 'H_tasks整篇来源session71248 actualexit0，30请求全部完成；初版16有效任务/20失败论文。一次零生成成本的空白格式修复和独立任务验证后，20有效任务、29失败分支保留；H_tasks.questions_v2/gold_v2为当前辅助人造任务集，不是官方QASPER或操作者盲测。无后台模型进程。\n\n'
-        + '参考构建实际退出后，先核验 H_TASKS_CONSTRUCTION.json、全部失败与有效参考；再实现/执行尚未完成的S2 Oracle等长噪声36和额外prior6，之后S3–S6。不要重跑主矩阵或NLI。Goal active，execution_complete仍false。\n')
+        + '当前下一项：'+status['next_action']+'\n\n'
+        + 'S2_SUPPLEMENT_RESULTS_verified.jsonl是42条补充结果的当前校验投影。v2封装首行遗留旧record_hash参与新hash的缺陷有确证，原两份journal保留，逐个raw请求/输出完全相同；不得重发调用。\n\n'
+        + 'S3旧500记录漏斗与9519窗口核验、400同预算core-first对照已落盘；仅旧诊断，不能当成新D_confirm或holdout。Goal active，execution_complete仍false。\n')
     for destination in (PROJECT / 'docs/execution/v3/RECOVERY.md', run / 'RECOVERY.md'):
         destination.write_text(recovery, encoding='utf-8')
     print(canonical_json(observation))

@@ -44,3 +44,23 @@ GPU评分前的实际栈校准（尚未运行时为待执行，不是完成证�
 ```
 
 现有评分契约、代理边界和证据见 `reports/v3/METRIC_SPEC.md`、`ERROR_ATTRIBUTION.md`；这些命令不代表最终候选或发布已经完成。
+
+## S2补充与S3取证实际命令
+
+以下已执行终态，不重复模型调用；完整原记录保留。
+
+```powershell
+. ./scripts/runtime_env.ps1
+& D:/RAGScope_Runtime/envs/core/Scripts/python.exe scripts/v3/audit_protocol_supplements.py --campaign D:/RAGScope_Runtime/runs/v3_20261015_014506
+& D:/RAGScope_Runtime/envs/core/Scripts/python.exe scripts/v3/audit_v2_preservation.py --campaign D:/RAGScope_Runtime/runs/v3_20261015_014506
+```
+
+补充生成42条当前有效journal为S2_SUPPLEMENT_RESULTS_verified.jsonl。原首次和v2 journal不可覆盖；独立投影说明见S2_SUPPLEMENT_PROJECTION_VERIFICATION.json。
+
+源准备正在CPU进程运行，不启动第二个builder。仅在确认原进程终态后可按以下命令resume已落盘文档：
+
+```powershell
+& D:/RAGScope_Runtime/envs/core/Scripts/python.exe scripts/v3/prepare_retrieval_sources.py --campaign D:/RAGScope_Runtime/runs/v3_20261015_014506 --resume
+```
+
+Gpu校准已actualexit0；Qwen reranker12组只验证接口相关性，不是自然检索收益。文档BM251585已实际构建，Dense与块索引未完成。
