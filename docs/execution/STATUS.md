@@ -1,6 +1,10 @@
 # RAGScope v2 执行状态
 
-更新：2026-10-14 05:08 UTC / 16:08 Sydney。Goal **ACTIVE，未最终验收**；campaign `20261014_v2`。硬截止 **10:29:06 UTC / 21:29:06 Sydney**，主run/EXECUTION_DEADLINE.json。
+更新：2026-10-14 05:48 UTC / 16:48 Sydney。Goal **ACTIVE，未最终验收**；campaign `20261014_v2`。硬截止 **10:29:06 UTC / 21:29:06 Sydney**，主run/EXECUTION_DEADLINE.json。
+
+**05:58UTC资源/修复覆盖：** root实际浏览器BM25四片/证据展开/资源提示与截图已保存，BROWSER_PHASE1_QA SHA8b332...16855；自身18501已正常请求停止/Windows实际exit1保留、26204gone/port可bind，UI不再常驻。chunk修复replay最后来源凭据误找本地E2路径的问题（原失败完整留档），25定向PASS，216旧源215同SHA/仅campaign.py变更/新增7覆盖测试，labels和七冻结决策均不变。chunk等fresh≥3GiB再replay，不降资源门槛；root不叠加重分析。data正在独立验收实证与学习材料核验，尚不写最终ACCEPTANCE/四正式报告。gen4B336/420（两条输出长度失败保留）后原模型队列连续执行。
+
+**05:48UTC最新覆盖：** main2B1200+3warmups完整（1条length/parse_error保留），4B177/420正在运行（1条同类失败保留），gen继续原LFM/9B/judge/BF16队列。三种CPU路由已真实训练，七mandatory每种dev60/test100决策全部冻结（SHAf0e0ff...），chunk正在七策略replay/Laya报告，无模型。root唯一live session99187是CPU4本地Streamlit18501，IAB实际浏览器验收BM25/证据/资源状态，不请求正在被gen占锁的模型；最终在线60/真实UI生成/正式发布仍待。主分析等chunk轻量报告释放后运行，完整5520正式生成尚未全部完成。详细身份、失败分母、准确下一动作见ROOT_CHECKPOINT顶部，覆盖下方旧状态。
 
 **05:29UTC最新：** main FROZEN5520/20READY，gen own11435 PID31596/session55731与main2B36036/session29105正在1200 local-owned，最近563/1200零error，约11–13min是当时速率外推；后续4B/LFM/E2 9B/main9B/judge/BF16已有连续授权。Laya1080+3warmups完整PASS/0error/646confidencefallback/142顺序变化，仅描述不当质量；11880实际exit0/锁释放，raw292a.../release0b3...。chunk idle等ROUTE780完整后同agentfollowup训练/七冻结/重放/Laya校准。root全离线core678PASS/2skip+models24PASS，去重679不同PASS/唯一symlink能力skip，216源hash前后同，FULL_OFFLINE_REGRESSION_20261014_0527.json；源稳定不重复全套。ROOT没有常驻exec，剩余期限约5h；详细livePID/create/准确下一动作见ROOT_CHECKPOINT顶部，覆盖下方旧“Laya在跑/主freeze中/585测试”快照。
 

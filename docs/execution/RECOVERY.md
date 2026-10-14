@@ -1,5 +1,7 @@
 # 恢复记录
 
+2026-10-14 05:58UTC：root本地UI18501第一轮真实浏览器验收后正常向自身exec99187发Ctrl+C，Windows实际exit1保留。服务PID26204/create2026-10-14T16:41:04.015385+11:00，argv为隔离models Python启动streamlit ui/chat_app.py/127.0.0.1/18501/headless/usageStats=false；已核PID absent、18501可bind。BROWSER_PHASE1_QA.json SHA8b332fa2d1ea4875a7b6057307563232f5f9406c3622f80047dae85ebef16855，不留下UI服务/不操作gen11435或原进程。最终UI仍需真实生成验证后重新启动自己的服务及刷新配置，不能将第一轮BM25验收冒充全部UI完成。
+
 2026-10-14 04:36UTC最新资源授权覆盖：用户允许任何阶段使用GPU，并确认没有原程序竞争，旧S1/S2 CPU-only阶段限制不再适用于新增工作。原结果设备/后端身份不回写。4B完整审计/正常11435退出→SQuAD CPU4短窗口完整100并退出→GPU BGE R3独立360/验证/释放→9B E2/judge/BF16。GPU串行及lease/锁/资源guard继续保留。R3 CPU已因写后RAM guard退出，329成功/0error及partial29完整归档；新GPU E8全100均匀条件，不能冒称旧29被重算/删掉。新GPU backend身份在R3_GPU_MIGRATION.json中明示，CPU E2 source原样。simple600已PASS/0HTTP、23220实际退出/锁释放，三历史usage N/A保持null。原任务恢复仍USER_MANUAL_RESUME、WSL配置不动；本项目结束释放并通知用户手动续跑。
 
 campaign：`20261014_v2`；runtime：`D:/RAGScope_Runtime`。
