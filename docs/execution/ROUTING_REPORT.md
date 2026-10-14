@@ -1,18 +1,18 @@
-# S4.1–S4.4 路由结果与在线验收草稿
+# S4.1–S4.4 路由结果与在线验收
 
-日期：2026-10-14（客户端 Australia/Sydney）。本文件保留实现/验证历史；正式200train/60dev训练、100test重放及Laya校准已完成，真实数字与完整来源见[ROUTING_REAL_RESULTS.md](ROUTING_REAL_RESULTS.md)。在线60次验证仍待独立执行，不宣称已部署。
+日期：2026-10-14（客户端 Australia/Sydney）。正式200train/60dev训练、100test重放及Laya校准已完成，来源见[ROUTING_REAL_RESULTS.md](ROUTING_REAL_RESULTS.md)。随后真实在线60次与6次独立预热也已完整验收。规则路由P50降低5.0446%，未达到预设10%门槛，默认保留固定Hybrid。
 
 ## 当前状态
 
 | 分支 | 已实现且已实际验证 | 仍待真实实验 |
 |---|---|---|
-| Always-BM25 / Always-Hybrid / Always-Rerank | 各60dev/100test真实重放完成；逐条绑定冻结决策与真实生成来源 | 在线部署比较独立待办 |
-| 规则路由 | 仅用可见输入；真实dev F1 .426660、test F1 .477269，已完整重放 | 实际在线延迟及部署门槛 |
+| Always-BM25 / Always-Hybrid / Always-Rerank | 各60dev/100test真实重放完成；逐条绑定冻结决策与真实生成来源 | 无新增实验；dev选择Hybrid进入实际在线比较 |
+| 规则路由 | 仅用可见输入；真实dev F1 .426660、test F1 .477269；在线30题已完成 | P50降低不足10%，不设为默认 |
 | TF-IDF + LogisticRegression | 200train/60dev真实代理标签训练完成，17次求解迭代；dev/test均预测BM25，完整重放 | 不因模型训练成功声称有部署收益 |
 | TF-IDF + SVD + MLP | 真实200train/60dev训练，14epoch早停、最佳11；dev/test均预测BM25，完整重放 | 同上，保留预测塌缩事实 |
 | 小LSTM | 真实200train/60dev、69,251参数、CPU4/seed42，9epoch早停、最佳6；dev/test均预测BM25，完整重放 | 不宣称隔离了网络架构效果 |
-| Laya | 原官方SDK/固定权重已实际运行CPU4 FP32：360题×3顺序=1080条，0调用错误、646低信心回退，3条dev预热单列；完整逐条独立验收PASS，模型已退出 | 真实dev/test三顺序与ECE/Brier检验及原order0质量重放均完成；部署仍无在线证据 |
-| 在线部署门槛 | 禁止用重放估计当成真实在线延迟；dev质量容差0.01、P50至少降低10%、至少30条实际在线记录的门槛 | 尚无真实生成在线记录，默认固定路径，不部署学习路由 |
+| Laya | 原官方SDK/固定权重已实际运行CPU4 FP32：360题×3顺序=1080条，0调用错误、646低信心回退，3条dev预热单列；完整逐条独立验收PASS，模型已退出 | 原order0质量及三顺序校准均完成；未被dev选择进入在线比较，不宣称其有在线收益 |
+| 在线部署门槛 | 同30个dev题、两策略各30次真实请求，6次预热独立；0失败、66次输入token一致 | 完整dev质量容差通过；P50降低5.0446%不足10%，默认固定Hybrid |
 
 ## 固定协议与接口
 
@@ -64,7 +64,7 @@ Laya返回合法choice不代表任务路由正确。项目使用三种循环候�
 
 ## 正式结果接线与防泄漏补充
 
-ROOT新增`ragscope/routing/campaign.py`与`scripts/run_routing_v2.py`，早期querymanifest位于主run/ROUTING_QUERY_MANIFEST.json，实际冻结200train/60dev/100test，来源SPLIT_MANIFEST哈希核验。只有真实正式生成完整260×3时才输出labels；不可答F1仍N/A，使用明确的correct_abstention代理单列。全部7个必需策略测试决策写成不可变带哈希DECISIONS文件后才允许读取test路径分数做replay。回放只报告实际组件计时之和，在线门槛另等真在线实验。初期READINESS为WAITING_FOR_FROZEN_GENERATION；目前正式生成manifest、ROUTE780、三个学习模型训练、七策略冻结及八策略质量重放、Laya三顺序校准均已完成。在线60次仍待独立窗口；来源/数字见[ROUTING_REAL_RESULTS.md](ROUTING_REAL_RESULTS.md)，Laya加载与原始1080记录见[LAYA_REAL_RUN.md](LAYA_REAL_RUN.md)。
+ROOT新增`ragscope/routing/campaign.py`与`scripts/run_routing_v2.py`，早期querymanifest位于主run/ROUTING_QUERY_MANIFEST.json，实际冻结200train/60dev/100test，来源SPLIT_MANIFEST哈希核验。只有真实正式生成完整260×3时才输出labels；不可答F1仍N/A，使用明确的correct_abstention代理单列。全部7个必需策略测试决策写成不可变带哈希DECISIONS文件后才允许读取test路径分数做replay。回放只报告实际组件计时之和。正式生成manifest、ROUTE780、三个学习模型训练、七策略冻结及八策略质量重放、Laya三顺序校准均已完成。在线60次使用独立真实请求完成；离线数字见[ROUTING_REAL_RESULTS.md](ROUTING_REAL_RESULTS.md)，Laya原始1080记录见[LAYA_REAL_RUN.md](LAYA_REAL_RUN.md)。
 
 正式固定权重 train600 诊断已补齐，见 [ROUTING_TRAIN_DIAGNOSTIC.md](ROUTING_TRAIN_DIAGNOSTIC.md)。原权重和dev/test决策未变；分类gap与类别占比变化一并解释。
 
@@ -74,12 +74,21 @@ ROOT新增`ragscope/routing/campaign.py`与`scripts/run_routing_v2.py`，早期q
 
 train的BM25标签占128/200=64%，dev占31/60=51.667%。因此MLP/LSTM的0.123333准确率差恰等于多数类占比变化，不能直接称为过拟合。线性模型训练集比多数类基线高3.5个百分点，dev仍未超出多数类基线；这是有限训练收益没有在这批dev中体现的观察，不是架构优劣或显著性结论。原dev损失曲线、早停和600条固定权重预测共同保留，不凭test重训。
 
-## 离线结果与部署措辞草稿
+## 离线结果与部署决策
 
-三个固定策略、rules、linear、MLP、LSTM和Laya各有dev60/test100，共1280次完整重放选择；它们复用真实路径生成结果，不能计为1280次新生成，也不能称在线请求。dev答案F1分别为BM25 0.380598、Hybrid 0.429777、Rerank 0.370988、rules 0.426660；三个学习模型均为0.380598。rules相对Hybrid差−0.003117，处在预设0.01容差内，但重放P50几乎相同，尚无真实在线加速证据。
+三个固定策略、rules、linear、MLP、LSTM和Laya各有dev60/test100，共1280次完整重放选择；它们复用真实路径生成结果，不能计为1280次新生成，也不能称在线请求。dev答案F1分别为BM25 0.380598、Hybrid 0.429777、Rerank 0.370988、rules 0.426660；三个学习模型均为0.380598。rules相对Hybrid差−0.003117，处在预设0.01容差内；真实在线结果独立列于下表，不以重放P50代替。
 
 Laya原order0在dev全部选择或回退Hybrid，F1同为0.429777，组件重放P50却由约1.218秒增加至1.900秒，57/60次为低信心回退。原1080条三顺序决策完整保留；dev三顺序raw choice变化59/60，最终路线变化26/60。order0的dev ECE约0.1254、Brier约0.7567，只相对本次代理标签解释；不能由SDK声明或合法概率输出推断本任务已可靠校准。默认order0未根据test更换。
 
-拟用于交付的当前结论是：**本轮学习路由未显示优于固定Hybrid的dev答案质量；rules虽满足预设质量容差，但实际在线速度门槛仍未验证，因此维持现有固定路径默认，暂不默认部署路由。** 这不是在线实验失败结论。S4.4当前仍为PENDING；已冻结的在线比较仅为fixed_hybrid与rules，在同30个dev题各执行一次，另有每策略3次独立预热，共计划60+6调用。实际执行并签收后，才根据完整dev质量容差、至少30次真实请求/策略和在线P50降低至少10%决定是否部署。
+**本轮学习路由未显示优于固定Hybrid的dev答案质量；rules满足完整dev质量容差，但实际在线P50只降低5.0446%，未达到预设10%，因此默认保留固定Hybrid。** S4.4实验本身已完整执行，负向部署结论也是有效结果，没有为了达标更换题目、阈值或重复测量。
 
-该在线对照测量同一2B模型驻留、独立预热后的端到端时间；加载成本单列，不伪称包含冷启动。CPU Rerank与GPU ROUTE来源的成本差异仍按[真实结果报告](ROUTING_REAL_RESULTS.md)披露。在线RAM保护与实现重新绑定见[ONLINE_RAM_GUARD.md](ONLINE_RAM_GUARD.md)，不据代码或冻结成功改变PENDING状态。
+|在线策略|正式题数|可答F1（26题）|P50秒|P95秒|调用失败|
+|---|---:|---:|---:|---:|---:|
+|固定Hybrid|30|0.408830|1.277657|2.026595|0|
+|rules|30|0.411395|1.213204|2.201954|0|
+
+同30个dev题包含4个不可回答题，两策略正确拒答率均0；不能因为调用成功就称答案正确。最终质量门槛取完整dev60（其中56可答）的冻结F1，而不是在线子集F1；延迟取上述真实在线30题/策略。顺序按题交替，6次预热独立。2B驻留，生成应用缓存关闭；实时CPU4 embedding、CPU4 BGE、索引/上下文打包都按原配置。BGE加载28.903秒、索引加载2.883秒另列，不能把驻留延迟称为冷启动时间。观测客户端峰值RSS2,473,873,408字节，2秒采样最低host available1,764,184,064字节；采样可能错过峰值，保护线未降低。
+
+第一轮因CPU客户端未传递已核验远程GPU授权，3次预热在HTTP生成前失败、0正式行，预算6191–6193原样保留；旧实现、manifest、失败行和退出2证据按原SHA归档。最小修复增加默认关闭的授权回调，每请求重新验证自有服务与当前boot lease，CPU CUDA mask、模型identity和payload不变；66项定向测试通过。重新冻结只改变implementation和online_hash，题目/策略/顺序/模型/生成配置全部相同。唯一修复后运行完整60+6、0失败、66次token计数一致，实际exit0；此前失败不能藏入“从未出错”的陈述。
+
+线上记录位于`D:/RAGScope_Runtime/runs/20261014_v2_routing/online`；当前online_hash为`0c82613047a1b8e8041d2a3129faa0627aaea29e571b84e0a7f30ca0065cc5f1`。独立签收`INDEPENDENT_COMPLETION_AUDIT.json` SHA `57f895d3329ebb6670b536c0841b9ecb6ebe9675cbd3240ddc660814c4a1b708`，核完整ID、交替顺序、逐条/config哈希、66预算票、token一致、指标和门槛。CPU模型/客户端精确退出、两锁释放收据SHA `d8f7981a69a703ad495ccaa99a49cc6d371903116c72d9391668d7b632afe308`；根任务的两个服务继续用于独立UI验收。本轮线上没有读取test进行选择，CPU与GPU重放来源的成本差异仍按[真实结果报告](ROUTING_REAL_RESULTS.md)披露。
