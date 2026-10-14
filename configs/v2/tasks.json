@@ -994,7 +994,7 @@
             "-m",
             "ragscope.routing.train",
             "--labels",
-            "{runtime}/runs/{campaign}_routing/proxy_labels.jsonl",
+            "{runtime}/runs/{campaign}_routing/labels.jsonl",
             "--output",
             "{runtime}/runs/{campaign}_routing/linear",
             "--kind",
@@ -1002,7 +1002,7 @@
           ],
           "purpose": "actual_task_action",
           "requires": [
-            "{runtime}/runs/{campaign}_routing/proxy_labels.jsonl"
+            "{runtime}/runs/{campaign}_routing/labels.jsonl"
           ],
           "external_coordination": true
         },
@@ -1012,7 +1012,7 @@
             "-m",
             "ragscope.routing.train",
             "--labels",
-            "{runtime}/runs/{campaign}_routing/proxy_labels.jsonl",
+            "{runtime}/runs/{campaign}_routing/labels.jsonl",
             "--output",
             "{runtime}/runs/{campaign}_routing/mlp",
             "--kind",
@@ -1020,7 +1020,7 @@
           ],
           "purpose": "actual_task_action",
           "requires": [
-            "{runtime}/runs/{campaign}_routing/proxy_labels.jsonl"
+            "{runtime}/runs/{campaign}_routing/labels.jsonl"
           ],
           "external_coordination": true
         },
@@ -1030,7 +1030,7 @@
             "-m",
             "ragscope.routing.train",
             "--labels",
-            "{runtime}/runs/{campaign}_routing/proxy_labels.jsonl",
+            "{runtime}/runs/{campaign}_routing/labels.jsonl",
             "--output",
             "{runtime}/runs/{campaign}_routing/lstm",
             "--kind",
@@ -1038,7 +1038,7 @@
           ],
           "purpose": "actual_task_action",
           "requires": [
-            "{runtime}/runs/{campaign}_routing/proxy_labels.jsonl"
+            "{runtime}/runs/{campaign}_routing/labels.jsonl"
           ],
           "external_coordination": true
         }
