@@ -1,6 +1,6 @@
 # 有限 LoRA 实施与真实结果
 
-官方 Qwen3.5-2B BF16 LoRA 已实际完成 **1 epoch、122 optimizer steps、972 条 train 样本**。正式 seed42 run 的损失与梯度全部有限，5→10 和10→正式训练的完整状态恢复逐项精确核验通过。进程正常退出、GPU锁释放，nvidia-smi观测为0/8151MiB。**100题同精度基础模型/adapter对照已冻结最终E2/R2输入并通过CPU预检，实际BF16推理仍等待既定GPU队列，因此不能宣称问答质量提升，也尚未决定是否启用adapter。**
+官方 Qwen3.5-2B BF16 LoRA 已实际完成 **1 epoch、122 optimizer steps、972 条 train 样本**。正式 seed42 run 的损失与梯度全部有限，5→10 和10→正式训练的完整状态恢复逐项精确核验通过。进程正常退出、GPU锁释放，nvidia-smi观测为0/8151MiB。**100题同精度基础模型/adapter对照已冻结最终E2/R2输入并通过CPU预检，实际BF16推理已进入既定GPU队列执行（session4583），尚未完成对照，因此不能宣称问答质量提升，也尚未决定是否启用adapter。**
 
 最终审计：D:/RAGScope_Runtime/runs/20261014_v2_lora/train_2b_1024_seed42/TRAINING_AUDIT.json。
 GPU释放证据：同目录GPU_RELEASE_RECEIPT.json。
@@ -66,6 +66,6 @@ exec72907最终exit0；2026-10-13T16:37:59Z确认训练进程不存在，gpu.loc
 
 scripts/evaluate_lora_v2.py使用最终E2/R2固定100题，同一BF16基础权重、tokenizer、prompt、上下文、后端、greedy512输出预算，只切换adapter。每种条件每次进程先做3条单列warmup，全部调用进入全局预算。两组的prompt-only JSON协议相同；它们与Q4主矩阵的schema约束后端不同，不能做不控制协议的精度归因。
 
-完整100题输入已经冻结，CPU check-only实际exit0并返回CPU_INPUTS_READY_GPU_NOT_CHECKED；该检查加载模型0次、使用GPU0次、生成调用0次。`paired_test100/FROZEN_EVALUATION_INPUTS.json` SHA-256为`5fc064e350500e4049b3ee8a355296f421038626a1151706b9760e213623c092`，永久绑定E2分片R2来源与已验证best122 adapter，不再切换到main目录。实际test推理尚未执行；失败会保留，OOM一次或连续后端失败三次停机，不生成虚假的完整对照结果。完成后才能报告F1、EM、ROUGE-L、拒答与引用指标的变化。
+完整100题输入已经冻结，CPU check-only实际exit0并返回CPU_INPUTS_READY_GPU_NOT_CHECKED；该检查加载模型0次、使用GPU0次、生成调用0次。`paired_test100/FROZEN_EVALUATION_INPUTS.json` SHA-256为`5fc064e350500e4049b3ee8a355296f421038626a1151706b9760e213623c092`，永久绑定E2分片R2来源与已验证best122 adapter，不再切换到main目录。实际test推理正在执行（同一BF16模型先baseline、后adapter，session4583）；失败会保留，OOM一次或连续后端失败三次停机，不生成虚假的完整对照结果。完成后才能报告F1、EM、ROUGE-L、拒答与引用指标的变化。
 
 最新离线训练与在线路由回归22项通过；早期数据/checkpoint确定性模块覆盖92%。这些软件测试与上面的真实122步证据明确区分。
