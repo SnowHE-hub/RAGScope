@@ -95,3 +95,11 @@ E6的simple对照只查询固定test的75篇论文，因此可只为这些论文
 八小时截止下，R3与辅助索引使用独立目标锁并行；E2核心以不可变分片先执行，最后由主清单引用。分片复用原问题、模型、提示和上下文，不把旧实验再跑一遍。CPU4与GPU并行会影响墙钟时间，因此记录运行条件，不把不同负载下的耗时差异当成方法质量改善。
 
 `scripts/build_final_report_v2.py`校验原始记录和分析来源后生成中文报告，按文档长度与适用分母列出统计；缺失的路由、支持性proxy和微调对照保持UNAVAILABLE。已用原E3的1200条封存记录做真实报表预览，零新增模型调用。预览没有被当作整项目最终报告；正式报告仍需主矩阵完成、独立随机数字反查及十五条终验。
+
+## 916de34：先完成独立索引，再如实生成UI资源候选
+
+`ragscope/experiments/aux_preencode.py`和`scripts/preencode_aux_v2.py`使用独立campaign和目标索引锁，与正在持主writer锁的R3分开。SQuAD1212与simple777块已经全部真实CPU4编码完成；`verify_aux_preencode_v2.py`把1989个向量从磁盘重新读取，逐项核对cache、维度、归一化、token预算与manifest。执行证据在`20261014_v2_aux_preencode/AUX_INDEX_HANDOFF.json`。这项准备新增的问答质量行数仍为0，E4/E6最终检索和生成不能据此写成完成。
+
+`scripts/configure_ui_v2.py`实际核验完整509篇/6551块R512索引及原四模型的权重与模板，只在runtime中生成候选。它发送GET元数据请求，不加载或调用模型；04:01观察到11436已关闭、E2占用生成锁，因此相应功能标为不可用，项目正式ui.json没有改。默认意图是2B与fixed Hybrid/neighbor，自适应路由没有满足真实在线门槛前不启用。UI还修正了独立tokenizer revision接线，并核对候选manifest的固定哈希；13项定向UI检查通过，不等于最终GUI质量验收。
+
+到04:05UTC，R3已完整签收dev100＋test200，global/ROUTE仍运行；E2的原2400任务来源已FROZEN、三模型串行实跑中；E3的1200记录已经封存，只引用不重跑。4K/8K共22次压力请求实际完成并保留并行CPU负载条件。所有生成共用原10,000预算，失败和预热照计。LoRA122步训练已完成、同BF16配对问答未跑；所有人工语义审核仍为`NOT_REVIEWED`。这些状态更新帮助理解执行边界，不代表十五条最终验收已经通过。
