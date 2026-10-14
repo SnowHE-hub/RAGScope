@@ -4,6 +4,15 @@ Updated for the reported host restart at 2026-10-14 07:03 Australia/Sydney. This
 
 ## Current execution boundary
 
+Latest: E2 is FROZEN with manifest_hash `6a2862e3fed696fb0224d23abc78437c5eaa318efb190c13b2422724ca3246e5`; qwen_2b is executing its800 formal tasks after3warmups. Own portable0.34.4 service PID3644/session26765 and E2 worker session80850 are live. `generation_e2/OPERATOR_CHECKPOINT.json` records the next exact continuation; do not restart this live service. When a future restart is required, first verify the old owned service exited, port11435 is available, its stop marker was archived, and the original resource/current-boot lease guards pass, then use:
+
+```powershell
+. ./scripts/runtime_env.ps1 -Gpu
+& D:/RAGScope_Runtime/envs/core/Scripts/python.exe scripts/serve_generation.py --binary D:/RAGScope_Runtime/tools/ollama-0.34.4/ollama.exe
+```
+
+Earlier paragraphs below retain the recovery/stress sequence; the E2 source wait is now resolved. Current execution conditions: start RAM5,001,850,880bytes, R3 CPU4 active, auxiliary worker/service exited, no active pytest. E2 timing/progress is monitored without reading test quality means or changing any protocol.
+
 Deadline update: user requires completion by 2026-10-14T10:29:06.606796Z (21:29 Sydney), recorded in EXECUTION_DEADLINE.json. E2 now has an independent unchanged2400-task core shard; see [E2_CORE_SHARD.md](E2_CORE_SHARD.md). After R3 TEST200 is sealed and root grants resources, stress22→E2 may run in one serial GPU window while the remaining R3 CPU4 work continues. This supersedes waiting for all660 R3/auxiliary sources before core generation. No GPU/model has been started by this engineering change.
 
 Update at 03:27 UTC: root authorized the stress GPU window using fresh parallel-workload evidence. Own service started empty and exposed a real system Ollama auto-update to0.40.3, conflicting with frozen0.34.4; it was normally stopped with zero model requests. Official0.34.4 portable restoration to D:/RAGScope_Runtime/tools/ollama-0.34.4 passed archive SHA and82-file verification; executable SHA exactly matches the old pilot/E3 service. Own11435 is READY using explicit --binary and all22 frozen stress calls completed after fresh3.872GB RAM guard. Both windows were unloaded; service remains READY empty while waiting for the sealed R3 TEST200 source notice. Restoration acceptance: runtime downloads/ollama-0.34.4/RESTORATION_ACCEPTANCE.json. System installation and frozen experiment identities are preserved. Do not treat any pre-restart PID, service receipt, port state, GPU measurement or ACQUIRED lease as current authority. Original workloads remain USER_MANUAL_RESUME; never restart them or their daily jobs. WSL configuration remains unchanged.

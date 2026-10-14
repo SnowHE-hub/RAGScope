@@ -28,6 +28,13 @@ check-only为`SOURCE_RECORDS_READY_MODELS_NOT_CHECKED`仅表示来源记录就�
 
 ## GPU窗口与实际执行
 
+当前E2已冻结，manifest_hash为`6a2862e3fed696fb0224d23abc78437c5eaa318efb190c13b2422724ca3246e5`，2B正式执行中。实际当前状态以运行目录的`OPERATOR_CHECKPOINT.json`为准；不要对正在运行的服务重复启动。系统Ollama已更新，冻结实验使用的官方0.34.4便携版在D盘。仅在自有旧服务已退出、11435可用、旧stop标记已归档及资源/当前启动周期租约校验通过后，使用以下精确启动命令：
+
+```powershell
+. ./scripts/runtime_env.ps1 -Gpu
+& D:/RAGScope_Runtime/envs/core/Scripts/python.exe scripts/serve_generation.py --binary D:/RAGScope_Runtime/tools/ollama-0.34.4/ollama.exe
+```
+
 等待主代理明确资源交接。当前启动周期lease校验、有效3GiB RAM门槛和自有单模型11435服务规则继续适用。22调用stress可在同一次GPU窗口中先串行完成，然后正常卸载其模型，再开始E2；stress的冻结源码、输入和语义均未修改。
 
 R3其余组若继续CPU4运行，主代理在E2分片 `EXECUTION_CONDITIONS.json` 记录实际并行CPU进程身份/线程及启动RAM快照。逐请求仍实测host available、项目服务RSS及设备总显存；这些是采样极值，不是进程显存峰值。延迟解释须注明与E3运行时的并行负载差异，不能把不同主机负载算作模型质量或检索改进。
