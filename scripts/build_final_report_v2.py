@@ -202,6 +202,7 @@ def build(campaign, analysis_path, output, *, allow_incomplete=False):
         "详细样例见 ERROR_CASES.md/JSON；导出的人工审核字段保持NOT_REVIEWED。自动支持性裁判是proxy，同模型自评偏差保留，不能称为人工真值或已核验幻觉率。",
         observed(judge_path, "本地支持性proxy", ("status", "n_expected", "n_completed", "n_pending", "verdict_counts", "n_actual_judge_calls", "n_same_model_bias", "n_failed_or_unassessable", "interpretation"), sources),
         "## 检索、资源诊断与部署证据", "",
+        observed(home / "runs" / (base.name + "_legacy_reconstructed") / "E0_ARTICLE_CLUSTER_CI.json", "E0官方版本重建（旧历史权重UNKNOWN）", ("status", "query_count", "n_article_clusters", "n_resamples", "confidence", "original_weight_revision", "reconstruction_label", "groups", "limitations"), sources),
         observed(retrieval / "RETRIEVAL_STATISTICS.json", "检索统计", ("status", "test_used_for_selection", "comparisons"), sources),
         observed(retrieval / "R3_GPU_MIGRATION.json", "R3 GPU执行迁移配置", ("status", "reason", "cpu_groups_preserved", "expected_gpu_rows", "device", "dtype", "tf32", "backend", "backend_versions", "historical_extra_partial_calls", "comparison_limit"), sources),
         observed(retrieval / "R3_GPU_COMPLETION_VALIDATION.json", "R3 GPU实际独立验收", ("status", "scope", "n_total", "n_failed", "worker_exited", "gpu_migration_complete"), sources),
@@ -220,8 +221,27 @@ def build(campaign, analysis_path, output, *, allow_incomplete=False):
         "```", "", "逐项命令、exit code、证据和限制见 ACCEPTANCE.json；从本报告表格抽取至少10数字独立回到原始结果，不拿报告验证报告。", "",
         "## 本次报告来源", ""]
     figures = []
+    for figure, filename in (
+        (home / 'runs' / (base.name + '_legacy_reconstructed') / 'figures/e0_reconstructed_retrieval.png',
+         'e0_reconstructed_retrieval.png'),
+        (training / 'figures/lora_training_loss.png', 'lora_training_loss.png')):
+        if figure.is_file():
+            if figure.is_symlink() or not figure.resolve().is_relative_to(home.resolve()):
+                raise ValueError('External figure must remain inside the project runtime')
+            target = output.parent / 'figures' / filename
+            if target.exists() and file_hash(target) != file_hash(figure):
+                raise FileExistsError('Preserve the existing differing figure')
+            if not target.exists():
+                target.parent.mkdir(parents=True, exist_ok=True)
+                with target.open('xb') as handle:
+                    handle.write(figure.read_bytes())
+            if file_hash(target) != file_hash(figure):
+                raise ValueError('External report figure copy differs')
+            sources.extend([artifact(figure), artifact(target)])
     for name, label in (("main_quality", "模型与方法F1"), ("quality_latency", "质量与生成耗时"),
-                        ("evidence_answer", "实际证据与答案F1"), ("context_stress_resource", "4K/8K实际资源诊断")):
+                        ("evidence_answer", "实际证据与答案F1"), ("context_stress_resource", "4K/8K实际资源诊断"),
+                        ("e0_reconstructed_retrieval", "固定官方版本E0重建"),
+                        ("lora_training_loss", "LoRA训练loss（不代表QA改善）")):
         figure = output.parent / "figures" / (name + ".png")
         if figure.is_file():
             sources.append(artifact(figure))
