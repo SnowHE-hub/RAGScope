@@ -35,3 +35,11 @@ campaign：`20261014_v2`；runtime：`D:/RAGScope_Runtime`。
 12:41实际启动CPU4服务6016和worker3312/session37283，原模型/二进制hash不变，真实1024维控制检查通过；root另重核服务PID/create/argv及health200。缓存重放保留5976条既有观察，HOST_RESTART_REENTRY.json与启动脚本保存新来源/性能配置。12:45重放仍在原断点之前，尚不能以恢复控制成功替代最终索引完成。
 
 用户曾提出暂时减少WSL的10GB额度，核对后又明确“先不动那个wsl的内存上限”；**未写入任何WSL设置，也无需恢复配置**。原.wslconfig仍memory=12GB、swap=8GB、processors=12，SHA d995d866826cbfd36c261689ba27c1673108016d38fe8be20af067234bb3e686。WSL未运行；官方说明该配置是VM容量设置且在WSL启动时读取（https://learn.microsoft.com/en-us/windows/wsl/wsl-config），不声称12GB在当前主机上被预留占住。没有因诊断而启动/关闭WSL、结束其他进程或删除任何缓存文件。
+
+12:58 GPU前置只读核验在`PRE_GPU_REVALIDATION_20261014_1258.json`：设备12MiB/0%，compute-apps仅列Codex桌面进程（WDDM内存N/A）；这不涵盖所有图形消费者。原项目GPU服务11435和UI18501均未监听，CPU11436仍在；WSL运行列表为空。没有重新读取WSL原断点或改变原作业，最终仍由用户手动续跑。
+
+生成执行器预检发现旧`gpu_lease.json`虽为ACQUIRED，但creation_time早于当前主机启动时间且缺少boot绑定。下一次GPU加载前必须归档原凭据、重新核验并签发当前启动周期的凭据，不能沿用旧状态。generation_evaluation正在给共享Python/PowerShell入口增加fail-closed启动周期检查与小型CPU测试；root负责真实租约归档/签发。当前CPU编码不受影响，尚未因这次核验启动任何GPU模型。原实验记录和旧租约历史不回写。
+
+13:04该修复与真实签发已经完成：50项CPU定向测试通过；旧租约经CLI实际拒绝exit2，PowerShell拒绝后CUDA保持关闭。02:04:42UTC在gpu.lock内重新确认WSL空列表、本项目11435/18501关闭、compute-apps仅Codex桌面；原租约40961字节逐字节归档，SHA `003f52ad1159316e9a5e82ca4e8b830af77d238798531604e02a75658a77eb30`。新租约SHA `884715ec4556624cd069b461b1b9cfc3483f0bab32f6f77c6cf2165f6d6b0cac`绑定win32、host_boot_time_unix及validated_at，共享validator实际通过。收据`GPU_LEASE_REVALIDATION_20261014.json`。
+
+新租约用previous_lease artifact追溯原断点/历史PID，不复制历史PID为活进程。当前状态仅为`NOT_RUNNING_OBSERVED_WSL_OFF`，不冒称重新读取了原断点或检查日更存活；`USER_MANUAL_RESUME`保留。全过程空CUDA mask、没有加载模型、没有停止或恢复原任务。实际GPU模型交接仍需复查当时资源，当前凭据不代表已经执行stress或主实验。

@@ -1,5 +1,9 @@
 # 主执行器恢复点
 
+**13:04新增签收：** 新boot租约guard50项CPU定向测试通过，旧真实lease拒绝exit2。root已在GPU锁内重新只读核WSL/端口/GPU并归档40961B旧lease（SHA003f52ad…77eb30），新lease SHA884715ec4556624cd069b461b1b9cfc3483f0bab32f6f77c6cf2165f6d6b0cac，validator实际PASS；收据GPU_LEASE_REVALIDATION_20261014.json。USER_MANUAL_RESUME继续，原作业零动作，未启动GPU模型。generation代理负责提交其修复与测试。chunking_core原代理也已followup恢复，仅轻量核对R3入口，等待data正常释放；四个原任务已经恢复，无新建代理。02:02 durable6336/6551，host3.45GiB。
+
+**12:59最新：** durable6272/6551，同worker3312/service6016正常，host3.48GiB。generation_evaluation已发现并正在最小修复GPU租约跨主机重启仍被接受的缺口；涉及共享Python校验与runtime_env.ps1 -Gpu，禁止改冻结stress语义。root持有真实lease，待明确新schema后归档旧文件并按当前WSL/GPU/服务证据重新签发，再在实际GPU交接前复查。不要直接运行旧ACQUIRED租约；12:58只读设备12MiB/0%、11435关闭、WSL空列表证据在PRE_GPU_REVALIDATION_20261014_1258.json。CPU执行不受影响。最新root文档提交9325431。
+
 **12:50更新：** 同一CPU4 worker已经实际新增104条，durable6080/6551，manifest未发布；RAM1.47GiB并已通知data观察。generation_evaluation原代理已followup恢复，仅允许轻量离线执行预检、不加载模型，继续等R3释放后22调用stress。给用户的全项目8–16小时为粗略估计；资源反复中断可能24小时以上。WSL配置继续原样。
 
 **12:45新增实际恢复结果：** data_preparation已启动CPU4服务6016/create1791942102.6736171、worker3312/create1791942111.7390096/session37283。root另以psutil重核服务完整argv/create吻合、health200。5976完整观察与末16条cache/vector hash、固定权重/二进制、锁/端口经data核验；新脚本reenter_structured_after_host_restart.py，源SHA及perf hash a316fc68…在HOST_RESTART_REENTRY.json。旧3/3失败journal字节/SHA未改。12:45:42缓存读取5608/6551，durable5976未丢，host3.23GiB；不要把重放控制台较小数字当成果丢失。仍由data独占session，不重复启动。
