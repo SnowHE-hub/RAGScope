@@ -105,11 +105,10 @@ def test_external_shard_rejects_semantic_drift_and_duplicate_ownership(tmp_path)
     reference = {'manifest': artifact(shard/'EXPERIMENT_MANIFEST.json')}
     for label, references, seed in [('duplicate', [reference, reference], 42), ('seed', [reference], 43)]:
         main = tmp_path/label
-        freeze_campaign(main, {'fixture': IDENTITY}, [group], inputs, seed=seed,
-            provenance={'external_campaigns': references})
-        manifest, frozen = load_campaign(main)
         with pytest.raises(ValueError, match='duplicate|seed'):
-            list(iter_record_sources(main, manifest, frozen))
+            freeze_campaign(main, {'fixture': IDENTITY}, [group], inputs, seed=seed,
+                provenance={'external_campaigns': references})
+        assert not (main/'EXPERIMENT_MANIFEST.json').exists()
 
 
 def test_counted_failure_and_no_ticket_after_exhaustion(tmp_path):

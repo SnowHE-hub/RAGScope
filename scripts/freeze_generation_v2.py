@@ -269,14 +269,27 @@ def default_spec(home, campaign):
         'renderer_source':str(home/'models/ollama/blobs/sha256-58e51bf3ff10a5f7ed85bdbcb131428218f367ffd9fd30915cd73e31d2edb904'),
         'backend_version':'0.34.4','pilot_summary':str(run/'pilot_lfm_summary.json'),
         'pilot_records':str(run/'generation_pilots.jsonl')}
-    shard=home/'runs'/(campaign+'_generation_e3')/'EXPERIMENT_MANIFEST.json'
-    if shard.exists():
-        spec['external_campaigns']=[{'manifest':artifact(shard)}]
+    return attach_core_shards(spec)
+
+
+def attach_core_shards(spec):
+    """Include newly frozen siblings even when loading an older explicit spec.
+
+    Existing references are retained verbatim so a changed artifact fails strict
+    validation rather than silently adopting a replacement shard.
+    """
+    references=spec.get('external_campaigns',[])
+    seen={Path(row['manifest']['path']).resolve() for row in references}
+    for experiment in ('e3','e2'):
+        shard=Path(spec['output_dir']).parent/(spec['campaign']+'_generation_'+experiment)/'EXPERIMENT_MANIFEST.json'
+        if shard.exists() and shard.resolve() not in seen:
+            spec.setdefault('external_campaigns',[]).append({'manifest':artifact(shard)})
+            seen.add(shard.resolve())
     return spec
 
 
 def freeze_all(spec, *, client_factory=model_client_factory):
-    spec=copy.deepcopy(spec)
+    spec=attach_core_shards(copy.deepcopy(spec))
     corpus = Path(spec['corpus_dir'])
     queries, units, corpus_artifact = verified_corpus(corpus)
     lengths = document_lengths(corpus)

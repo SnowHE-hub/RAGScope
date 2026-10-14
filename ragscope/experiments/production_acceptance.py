@@ -62,8 +62,10 @@ def expected_conditions(manifest, queries, squad_queries, scope):
             for model in models:
                 expected[(experiment, model, method)] = ids
 
-    if scope == 'main':
+    if scope in {'main','e2'}:
         add('E2', ('R0', 'R1', 'R2', 'R3'), MAIN_MODELS, queries['test'])
+    if scope == 'e2':
+        return expected
     add('E3', ('oracle', 'no_context'), MAIN_MODELS, queries['test'])
     if scope == 'e3':
         return expected
@@ -148,12 +150,12 @@ def validate_production_manifest(manifest, inputs, queries, squad_queries, scope
 
 def accept_campaign(directory, corpus, *, scope='main'):
     """Return truthful state; a complete shard never grants main completion."""
-    require(scope in {'main', 'e3'}, 'Unknown acceptance scope')
+    require(scope in {'main', 'e2', 'e3'}, 'Unknown acceptance scope')
     directory, corpus = Path(directory).resolve(), Path(corpus).resolve()
     result = {'schema_version': 'production-acceptance-v1', 'scope': scope,
-              'scope_limitation': 'E3 shard only; not main production acceptance' if scope == 'e3' else 'Complete prescribed generation matrix',
+              'scope_limitation': scope.upper()+' shard only; not main production acceptance' if scope != 'main' else 'Complete prescribed generation matrix',
               'status': 'PENDING', 'integrity_valid': None, 'audit_generation_calls': 0,
-              'required_core_n': 1200 if scope == 'e3' else 3600, 'n_observed': 0, 'n_failed': 0}
+              'required_core_n': {'e2':2400,'e3':1200,'main':3600}[scope], 'n_observed': 0, 'n_failed': 0}
     if not (directory/'EXPERIMENT_MANIFEST.json').is_file():
         result['reason'] = 'Frozen production manifest not present; prerequisites still pending'
         if (directory/'FREEZE_READINESS.json').is_file():

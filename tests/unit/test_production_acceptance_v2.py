@@ -54,9 +54,10 @@ def campaign_fixture(tmp_path, scope='e3', block_all=False):
                     group['input_ids'].append(iid)
             groups.append(group)
 
-    if scope == 'main':
+    if scope in {'main','e2'}:
         add('E2', ('R0','R1','R2','R3'), MAIN_MODELS, queries['test'], block_all)
-    add('E3', ('oracle','no_context'), MAIN_MODELS, queries['test'], block_all)
+    if scope in {'main','e3'}:
+        add('E3', ('oracle','no_context'), MAIN_MODELS, queries['test'], block_all)
     if scope == 'main':
         add('E4', ('hybrid',), MAIN_MODELS, squad['test'], block_all)
         add('E5', ('bm25','hybrid'), ('lfm',), subset(queries['test'],100), block_all)
@@ -88,6 +89,17 @@ def test_actual_scope_and_full_fixed_denominators(tmp_path):
     assert result['status']=='PENDING' and result['integrity_valid'] is True
     assert result['n_expected']==1200 and result['n_missing']==1200
     assert accept_campaign(run, corpus, scope='main')['integrity_valid'] is False
+
+
+def test_e2_shard_acceptance_requires_all2400_and_is_not_main(tmp_path):
+    run,corpus=campaign_fixture(tmp_path,scope='e2')
+    result=accept_campaign(run,corpus,scope='e2')
+    assert result['integrity_valid'] is True and result['n_expected']==result['n_missing']==2400
+    assert result['required_core_n']==2400 and result['status']=='PENDING'
+    assert len(result['conditions'])==12 and 'not main' in result['scope_limitation']
+    assert accept_campaign(run,corpus,scope='main')['status']=='FAILED_VALIDATION'
+    rewrite_manifest(run,lambda m:m['groups'].pop())
+    assert accept_campaign(run,corpus,scope='e2')['status']=='FAILED_VALIDATION'
 
 
 @pytest.mark.parametrize('change', [

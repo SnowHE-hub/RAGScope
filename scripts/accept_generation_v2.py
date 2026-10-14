@@ -12,7 +12,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--campaign-dir', type=Path, required=True)
     parser.add_argument('--corpus', type=Path, default=runtime_home()/'corpora/20261014_v2')
-    parser.add_argument('--scope', choices=['main', 'e3'], default='main')
+    parser.add_argument('--scope', choices=['main', 'e2', 'e3'], default='main')
     parser.add_argument('--output', type=Path)
     args = parser.parse_args()
     output = args.output or args.campaign_dir/f'PRODUCTION_ACCEPTANCE_{args.scope.upper()}.json'

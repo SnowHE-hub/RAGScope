@@ -68,7 +68,8 @@ def main():
     lease=Path(args.lease) if args.lease else rootrun/'gpu_lease.json'
     service=Path(args.service_receipt) if args.service_receipt else rootrun/'generation_service.json'
     queries,units,_=verified_corpus(spec['corpus_dir'])
-    _,squad_units,_=verified_corpus(Path(spec['corpus_dir'])/'squad_e4'); units.update(squad_units)
+    if any(task['experiment_id']=='E4' and task['model_id']==args.model_id for task in manifest['tasks']):
+        _,squad_units,_=verified_corpus(Path(spec['corpus_dir'])/'squad_e4'); units.update(squad_units)
     client,_=model_client_factory(spec['models'][args.model_id],{row['query_id'] for row in queries['dev']})
     if client.identity!=manifest['models'][args.model_id]:
         raise ValueError('Frozen model identity changed')

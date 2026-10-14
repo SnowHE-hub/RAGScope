@@ -4,9 +4,11 @@ Updated for the reported host restart at 2026-10-14 07:03 Australia/Sydney. This
 
 ## Current execution boundary
 
+Deadline update: user requires completion by 2026-10-14T10:29:06.606796Z (21:29 Sydney), recorded in EXECUTION_DEADLINE.json. E2 now has an independent unchanged2400-task core shard; see [E2_CORE_SHARD.md](E2_CORE_SHARD.md). After R3 TEST200 is sealed and root grants resources, stress22→E2 may run in one serial GPU window while the remaining R3 CPU4 work continues. This supersedes waiting for all660 R3/auxiliary sources before core generation. No GPU/model has been started by this engineering change.
+
 No generation model or service has been started by this recovery preflight. Do not treat any pre-restart PID, service receipt, port state, GPU measurement or ACQUIRED lease as current authority. Original workloads remain USER_MANUAL_RESUME; never restart them or their daily jobs. WSL configuration remains unchanged.
 
-Parent coordinates this resource order: data full structured sources/test/global/ROUTE → CPU R3 → our 22-call 2B context stress → Laya → remaining SQuAD/simple sources → main freeze. Await an explicit post-R3 handoff, a freshly validated lease and the existing effective 3 GiB host-RAM guard before stress. Do not poll/operate data worker handles or consume network recovery attempts.
+Parent coordinates current resource ownership. Await explicit R3 TEST200 readiness and GPU/RAM handoff, a freshly validated lease and the existing effective3GiB host-RAM guard before stress/E2. R3 auxiliary CPU4 work may continue only under the agreed concurrent resource conditions. Laya and remaining SQuAD/simple sources precede the full main freeze, but do not block E2. Do not poll/operate data worker handles or consume network recovery attempts.
 
 Current-boot validation now rejects old leases at training, service, formal HTTP/UI, pilot and PowerShell GPU entry points. Required new fields are host_platform=sys.platform, host_boot_time_unix=psutil.boot_time(), validated_at=time.time(); finite numeric timestamps, boot difference ≤2 s, validation at/after boot and not future. Root owns read-only safety inspection, old-lease archival and fresh issue. This agent did not change the actual lease.
 

@@ -185,6 +185,10 @@ def freeze_campaign(output_dir, models, groups, inputs, *, seed=42, generation_c
               "reference_set_rule": "best_fullset_then_fullunit_then_continuous",
               "parse_repair_attempts": 0, "tasks": tasks, "input_hashes": {key: row["input_hash"] for key, row in validated.items()}}
     config["manifest_hash"] = signature(config)
+    if config['provenance'].get('external_campaigns'):
+        # Reject incompatible shard ownership before writing an immutable main
+        # manifest; the same validator also protects later reads/execution.
+        list(iter_record_sources(output_dir, config, validated))
     path = output_dir / "EXPERIMENT_MANIFEST.json"
     if path.exists():
         existing = json.loads(path.read_text(encoding="utf-8"))
