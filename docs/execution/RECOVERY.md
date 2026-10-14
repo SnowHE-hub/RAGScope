@@ -27,3 +27,11 @@ campaign：`20261014_v2`；runtime：`D:/RAGScope_Runtime`。
 下一条准确命令：`Get-Content D:/RAGScope_Runtime/runs/20261014_v2/gpu_lease.json -Raw`
 
 当前内部资源交接顺序：structured全库和ROUTE正常完成，核验退出后释放本项目embedding；R3五组完成退出；4K/8K共22请求压力诊断完成退出GPU服务；Laya有界运行；再归还CPU给SQuAD/simple索引。每次按实际PID、创建时间、命令及来源核验，仅操作本项目进程，不重启原11434、WSL或日更程序。
+
+2026-10-14 12:39只读重查确认电脑最近启动为07:03:31.5+11:00；此前20816/19112均不存在，索引最后写06:59:17，5976/6551观察保留。启动原因未知，本任务未发出重启命令，不能推断是系统更新或用户操作。WSL当前没有运行的分发，Windows可用约4.42GiB；不为“释放缓存”启动或重启WSL。主run/HOST_RESTART_OBSERVATION_20261014_1239.json保存完整观测。原任务手动续跑政策仍生效，也不能把重启前的日更状态当成重启后的已验证状态。
+
+本次按外部主机重启处理正常checkpoint重入：先核验缓存完整行、内容哈希、锁与端口，再启动同模型CPU服务和剩余工作。历史3次连接重置及上限不改写、不清零。新AGENTS要求后续CPU进程4线程，必须记录该性能配置变化，不能把历史12线程墙钟结果改名为4线程。恢复是否成功以新PID/create/argv、真实健康检查及新增落盘为准，不依据一次旧状态文件。
+
+12:41实际启动CPU4服务6016和worker3312/session37283，原模型/二进制hash不变，真实1024维控制检查通过；root另重核服务PID/create/argv及health200。缓存重放保留5976条既有观察，HOST_RESTART_REENTRY.json与启动脚本保存新来源/性能配置。12:45重放仍在原断点之前，尚不能以恢复控制成功替代最终索引完成。
+
+用户曾提出暂时减少WSL的10GB额度，核对后又明确“先不动那个wsl的内存上限”；**未写入任何WSL设置，也无需恢复配置**。原.wslconfig仍memory=12GB、swap=8GB、processors=12，SHA d995d866826cbfd36c261689ba27c1673108016d38fe8be20af067234bb3e686。WSL未运行；官方说明该配置是VM容量设置且在WSL启动时读取（https://learn.microsoft.com/en-us/windows/wsl/wsl-config），不声称12GB在当前主机上被预留占住。没有因诊断而启动/关闭WSL、结束其他进程或删除任何缓存文件。

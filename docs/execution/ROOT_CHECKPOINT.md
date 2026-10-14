@@ -1,5 +1,13 @@
 # 主执行器恢复点
 
+**12:50更新：** 同一CPU4 worker已经实际新增104条，durable6080/6551，manifest未发布；RAM1.47GiB并已通知data观察。generation_evaluation原代理已followup恢复，仅允许轻量离线执行预检、不加载模型，继续等R3释放后22调用stress。给用户的全项目8–16小时为粗略估计；资源反复中断可能24小时以上。WSL配置继续原样。
+
+**12:45新增实际恢复结果：** data_preparation已启动CPU4服务6016/create1791942102.6736171、worker3312/create1791942111.7390096/session37283。root另以psutil重核服务完整argv/create吻合、health200。5976完整观察与末16条cache/vector hash、固定权重/二进制、锁/端口经data核验；新脚本reenter_structured_after_host_restart.py，源SHA及perf hash a316fc68…在HOST_RESTART_REENTRY.json。旧3/3失败journal字节/SHA未改。12:45:42缓存读取5608/6551，durable5976未丢，host3.23GiB；不要把重放控制台较小数字当成果丢失。仍由data独占session，不重复启动。
+
+用户询问WSL内存，随后明确“先不动那个wsl的内存上限”。**没有修改WSL配置，没有待恢复的WSL配置变更。** 当前WSL未运行，C:/Users/lenovo/.wslconfig仍memory=12GB/swap=8GB/processors=12，原SHA d995d866826cbfd36c261689ba27c1673108016d38fe8be20af067234bb3e686保持一致。只读Windows进程工作集统计存MEMORY_OCCUPANCY_20261014_1244.json；ChatGPT/Edge/Codex工具后台为主要应用占用，不能把WSL容量上限当物理常驻占用。不要停浏览器/安全工具/工具服务；用户未请求这项操作。
+
+**2026-10-14 12:39恢复轮次的权威状态，覆盖下方旧进程快照：** 主机Win32 LastBootUpTime为07:03:31.5+11:00，晚于旧worker启动；20816与19112均经psutil确认不存在。原因UNKNOWN，本任务没有执行电脑/WSL重启。5976/6551观察最后写于06:59:17；当前host约4.42GiB，`wsl --list --running --quiet` exit0且结果为空，WSL未运行。证据主run/HOST_RESTART_OBSERVATION_20261014_1239.json。data_preparation已被同一子任务followup唤醒，负责校验缓存尾行/锁/端口/模型后单次正常checkpoint重入；这次是主机重启恢复，不把历史3/3网络失败上限清零或冒称第4次网络失败。新AGENTS已替换旧指令：后续S1/S2进程CPU-only显式4线程；此前12线程保留历史记录，不修改旧结果哈希。root不与data竞争启动资源；等其报告新PID/句柄后更新。其他两个已有子任务待正式交接时再followup，不创建新goal/代理/聊天。
+
 2026-10-14 06:47 Australia/Sydney。Goal ACTIVE、无预算、未终验。用户禁止阶段等待；还有可执行核心任务，不能提前完成或标整体BLOCKED。不要创建新goal/线程/代理。原训练由用户手动续跑，gpu_lease=USER_MANUAL_RESUME；日更不动，结束只释放自己的资源并通知。
 
 **当前恢复已发生，覆盖下面暂停快照：一次受监督备选真实成功，CPU服务19112/create1791920756.4124439。加载9次采样最低host1.62GiB，8-token控制健康请求1024维PASS；这是加载/小健康请求阶段，不是所有正文请求峰值。monitor已join后才resume旧worker，旧socket WinError10054随后真实exit1/session60616已结束。已记第三/最后一次有界缓存重放：新worker20816/create1791920803.708412/session22849，仍归data_preparation所有。5088→5090 durable observations；新控制台的较小计数是重新读取缓存的位置，不是丢失结果。STRUCTURED_THIRD_REPLAY_STARTUP.json实测了此次启动源码hash。host约1.58GiB、服务不重启，按structured→ROUTE→R3交接继续。不要再执行一次性resume脚本/消费第二次备选。**
