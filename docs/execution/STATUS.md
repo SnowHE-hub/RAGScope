@@ -1,13 +1,13 @@
 # RAGScope v2 执行状态
 
-更新：2026-10-14 13:07 Australia/Sydney。campaign_id：`20261014_v2`；主目标 **ACTIVE，尚未最终验收**。下面是当前快照，历史过程保存在运行记录和同目录恢复文档。
+更新：2026-10-14 13:12 Australia/Sydney。campaign_id：`20261014_v2`；主目标 **ACTIVE，尚未最终验收**。下面是当前快照，历史过程保存在运行记录和同目录恢复文档。
 
 ## 当前正在运行
 
-- data_preparation独占CPU4 embedding服务6016/create1791942102.6736171、worker3312/create1791942111.7390096/session37283。最近02:05:45UTC观测为 **6416/6551** 条持久编码观察，完整index manifest尚未发布；同模型/二进制哈希不变。
+- data_preparation独占CPU4 embedding服务6016/create1791942102.6736171、worker3312/create1791942111.7390096/session37283。最近02:12:12UTC独立观测为 **6551/6551** 条持久编码观察，完整index manifest已经发布；同模型/二进制哈希不变。后续检索结果仍须正常完成，不由编码完成推导整阶段完成。
 - 随后完成structured的TEST/global及ROUTE结果，正常退出并核验释放自身embedding，再交接R3五组660条。chunking_core已做轻量入口核验，没有提前加载模型。
 - 后续顺序：R3退出 → 2B的22调用4K/8K诊断 → GPU服务退出 → Laya有界尝试 → SQuAD与simple索引 → 主生成矩阵、路由、LoRA同精度对照及最终交付。
-- 目前没有本项目GPU模型驻留。02:04:42UTC资源核验时WSL运行列表为空，11435/18501关闭，GPU compute-apps仅列Codex桌面；没有操作原任务。内存有波动，02:05:45UTC可用约2.00GiB；不能把这个快照当永久值。
+- 目前没有本项目GPU模型驻留。02:04:42UTC资源核验时WSL运行列表为空，11435/18501关闭，GPU compute-apps仅列Codex桌面；没有操作原任务。内存有波动，02:09:58UTC一度0.30GiB，02:12:12回升1.13GiB；只读观测曾见原Windows Ollama桌面应用约3.82GiB工作集，未操作它。不能把这些快照当永久值。
 
 ## 已完成并有真实证据
 

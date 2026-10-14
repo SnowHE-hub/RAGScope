@@ -1,5 +1,7 @@
 # 主执行器恢复点
 
+**13:12模型切换前持久恢复点：** 用户咨询能否在本对话暂停后切换GPT-6.1 Sol，尚未明确发出Goal暂停指令，root没有自行暂停/完成目标。02:12:12UTC独立只读确认structured观察 **6551/6551，index manifest已经发布**，host1.13GiB；data仍拥有worker3312/session37283，须查实际状态后继续TEST/global/ROUTE，不能重复启动。13:10曾观察可用RAM0.30GiB，后回升；当时Windows ollama app.exe PID20072/create1791922078.7872417 RSS3.823GiB，是非本项目原桌面应用，未操作。data短间隔身份与资源观察已落盘，当前没有第四次网络重试。两个其他原代理已完成轻量预检/提交，R3与stress均未启动。当前重要提交9325431、eedb5d9（boot租约50测试）、4fe1c07（精简STATUS/真实新lease）。
+
 **13:04新增签收：** 新boot租约guard50项CPU定向测试通过，旧真实lease拒绝exit2。root已在GPU锁内重新只读核WSL/端口/GPU并归档40961B旧lease（SHA003f52ad…77eb30），新lease SHA884715ec4556624cd069b461b1b9cfc3483f0bab32f6f77c6cf2165f6d6b0cac，validator实际PASS；收据GPU_LEASE_REVALIDATION_20261014.json。USER_MANUAL_RESUME继续，原作业零动作，未启动GPU模型。generation代理负责提交其修复与测试。chunking_core原代理也已followup恢复，仅轻量核对R3入口，等待data正常释放；四个原任务已经恢复，无新建代理。02:02 durable6336/6551，host3.45GiB。
 
 **12:59最新：** durable6272/6551，同worker3312/service6016正常，host3.48GiB。generation_evaluation已发现并正在最小修复GPU租约跨主机重启仍被接受的缺口；涉及共享Python校验与runtime_env.ps1 -Gpu，禁止改冻结stress语义。root持有真实lease，待明确新schema后归档旧文件并按当前WSL/GPU/服务证据重新签发，再在实际GPU交接前复查。不要直接运行旧ACQUIRED租约；12:58只读设备12MiB/0%、11435关闭、WSL空列表证据在PRE_GPU_REVALIDATION_20261014_1258.json。CPU执行不受影响。最新root文档提交9325431。
