@@ -58,3 +58,17 @@ S5独立CPU诊断：全部972样本数值mask/EOS/JSON/引用ID可见性0失败�
 块Dense初始81708已actualexit1，完整批次4352向量与额外缓存全部保留；可用2974576640B跌破3GiB，属于守卫停批，不声明GPU显存OOM或确定内存泄漏。CPU tokenizer审计在该时段重叠，但不据时间相关认定因果。所有审计进程已终态后31519同身份单次resume，只补缺失缓存/批次；后续不给长GPU编码并行加载CPU模型或tokenizer。若同样阻断再出现，最多一个资源兼容替代，再记录BLOCKED，不无限重启。
 
 第二次块编码31519 actualexit1，可用2822684672B低于3GiB，完整10816块/169批次保留，额外成功缓存亦保留。此次未并行CPU tokenizer，不能只归因于审计。最后且唯一资源兼容：resource_v3固定每1024向量新子进程/私有后端，数学模型/输入/4K不截断参数不变，已成功缓存直接校验复用；原两个日志/旧批次journal不覆盖。任一分段失败终态BLOCKED，不再retry。新S3编码仍单GPU串行，目标两条件/19673块各一遍，未扩实验组合。
+
+全库Dense兼容59311 actualexit1/segment11，有界尝试已尽；V3完整189批次/12096向量保留，原10816及额外缓存不删。第三异常只service.parent_exception RuntimeError，Windows子进程输出未进重定向日志，具体原因UNKNOWN，不能直接写RAM leak。所有服务EXITED；WSL --list --running明确没有运行分发，没启动/重启WSL。当前前台/浏览器/系统安全进程内存占用只读核验，未停止。
+
+独立PAPER_GIVEN小足迹替代完成141开发论文、真实scope向量；这不等于全库Dense完成。仅加载用户scope对应文件，20论文固定子进程，复用可核验的已有缓存；保持同一GPU向量空间，生成输入不读gold。440两条件上下文冻结，实际最大prompt2318+输出512<4096，无预检失败。B0名称明确frozen v2 policy with GPU embedding bridge，不能声称原CPU部署成本复现。
+
+S3首40题真实80生成+3预热全部成功；独立word重算零差，32可答：neighbor .389403→core-first .453152（delta+.06375，论文bootstrap95% [.000116,.151739]，仅开发诊断）。完整参考覆盖.6875→.75、连续.6875→.7734375，两条件各1可答拒答。frozen-context P50不是在线E2E；关键事实/支持/引用语义仍未测，promotion阻断。明确漏斗与word诊断收益支持扩100开发确认，不允许直接发布。
+
+D_confirm25952在77正式+3预热后RAM2491547648B守卫actualexit1，原成功全部保留。唯一修复：stream/fresh-process20固定输入，不改数学协议，45993续跑未执行123；旧记录去除wrapper record_hash/config_hash/recorded_at后保留原值作provenance，避免重现嵌套旧hash缺陷。每子进程日志直接捕获，不丢stderr。
+
+S4可见输入三维规则标签220题已冻结，selected60；规则只识别compare5/explain49/fact161/other5，未识别summary，置信概率/材料充分性均null。没有人工确认、不伪造少数类、不按路径结果定义任务；60工作流真实效用仍待执行，禁止提前训练router。
+
+2026-10-15：S3 D_confirm 独立100题审计完成。core-first文字F1增量约+0.01235、论文聚类区间跨零；主要claim/support/citation指标仍未知，不能发布。BGE真实12组夹具11组正确，max/top2同GPU权重，仅工程校准；句柄已失效且进程不存在，历史OS exit code保持UNKNOWN。S5固定D_confirm排序前24题，三条件同BF16/eager/greedy512、prompt-only，不依据输出选题。旧adapter只作诊断。EOS沿用实际generation_config，逐条保存输出IDs；8条监督烟雾采用官方配对答案及train:引用命名空间核对，最多1 optimizer step，不是正式重训。
+
+2026-10-15 S5：同24个D_confirm基础/未合并各24+1预热均actualexit0。两者im_end后均仅2token，正常EOS；基础8条引用失败全保留。输出P50 67→171，冻结生成P50 5.749→19.880秒。固定64-token微基准各3正式+1预热实际完成，未合并约8.5–8.6tokens/s低于基础约12.5；同步回调开销同协议，不能当在线E2E。合并数值门槛失败（max_abs0.50–0.625/relativeL2约0.033–0.050），原门槛不放宽，未写合并快照。首次监督烟雾1步因warmup初始LR0无更新；新_v2沿用8夹具两次形成2 optimizer steps、228张量更新、均值loss−0.061489、完整恢复核验PASS，不是泛化成绩。原失败checkpoint/journal保留。任务书第11.4指定Markdown/JSON报告并禁上传，因此报告技能仅用于证据与结构，不生成MCP/HTML/Sites旁支。

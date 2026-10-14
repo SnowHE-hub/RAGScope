@@ -39,6 +39,19 @@ def main():
                     'scripts/v3/smoke_private_embeddings.py', 'scripts/v3/build_document_dense.py',
                     'scripts/v3/bridge_and_prepare_query_vectors.py', 'scripts/v3/build_chunk_sparse_indices.py',
                     'scripts/v3/build_chunk_dense_index.py', 'scripts/v3/build_chunk_dense_index_resource_v3.py',
+                    'scripts/v3/prepare_scoped_vectors.py', 'scripts/v3/run_scoped_generation.py',
+                    'scripts/v3/run_scoped_generation_resource.py', 'scripts/v3/calibrate_bge_reranker.py',
+                    'scripts/v3/run_lora_runtime_diagnostics.py',
+                    'scripts/v3/run_lora_supervision_smoke.py', 'scripts/v3/run_lora_fixed_token_benchmark.py',
+                    'scripts/v3/run_lora_diagnostic_sequence.py',
+                    'scripts/v3/run_lora_supervision_smoke_v2.py',
+                    'scripts/v3/run_workflow_generation.py',
+                    str(PROJECT/'scripts/v3/run_workflow_generation.py').replace('\\','/'),
+                    str(PROJECT/'scripts/v3/run_lora_runtime_diagnostics.py').replace('\\','/'),
+                    str(PROJECT/'scripts/v3/run_lora_supervision_smoke.py').replace('\\','/'),
+                    str(PROJECT/'scripts/v3/run_lora_fixed_token_benchmark.py').replace('\\','/'),
+                    str(PROJECT/'scripts/v3/prepare_scoped_vectors.py').replace('\\','/'),
+                    str(PROJECT/'scripts/v3/run_scoped_generation_resource.py').replace('\\','/'),
                     str(PROJECT/'scripts/v3/build_chunk_dense_index_resource_v3.py').replace('\\','/')} and str(run).replace('\\', '/') in [a.replace('\\', '/') for a in argv]:
                 live.append(info)
         except (psutil.NoSuchProcess, psutil.AccessDenied):
@@ -227,6 +240,112 @@ def main():
         status['completed_evidence']['S5_train_supervision_checked']=lora['train_n']
         status['completed_evidence']['S5_actual_decoded_targets']=len(lora['decoded_cases'])
         status['stages']['S5']='SOURCE_DIAGNOSIS_DONE_MANDATORY_RUNTIME_MICRO_PENDING'
+    if (run/'S3_DENSE_BLOCK_CLOSURE.json').exists():
+        dense_block=json.loads((run/'S3_DENSE_BLOCK_CLOSURE.json').read_text('utf-8'))
+        status['tasks']['S3.3_full_corpus_dense']='BLOCKED_BOUNDED_ATTEMPTS_EXHAUSTED'
+        status['completed_evidence']['S3_partial_dense_vector_rows']=dense_block['v3_verified_vector_rows']
+    if (run/'S3_SCOPED_VECTOR_COMPLETION.json').exists():
+        compact=json.loads((run/'S3_SCOPED_VECTOR_COMPLETION.json').read_text('utf-8'))
+        status['tasks']['S3.4_compact_paper_vectors']=compact['status']
+        status['completed_evidence']['S3_compact_papers']=compact['paper_n']
+        status['completed_evidence']['S3_compact_vector_chunks']=compact['chunk_n']
+    if (run/'S3_SCOPED_CONTEXT_MANIFEST.json').exists():
+        contexts=json.loads((run/'S3_SCOPED_CONTEXT_MANIFEST.json').read_text('utf-8'))
+        status['tasks']['S3.6_scoped_context_freeze']=contexts['status']
+        status['completed_evidence']['S3_scoped_maximum_prompt_tokens']=contexts['maximum_actual_prompt_tokens']
+    for split in ('D_search','D_confirm'):
+        completion=run/('S3_SCOPED_GENERATION_'+split+'_COMPLETION.json')
+        if completion.exists():
+            generated=json.loads(completion.read_text('utf-8'))
+            status['tasks']['S3.6_scoped_generation_'+split]=generated['status']
+            status['completed_evidence']['S3_generation_'+split]=generated['formal_records']
+    if (run/'S3_SCOPED_GENERATION_D_confirm_COMPLETION.json').exists():
+        status['tasks']['S2.3_D_confirm_generator_stability']='ACTUAL_200_GENERATIONS_COMPLETE_INDEPENDENT_AUDIT_PENDING'
+    if (run/'S3_SCOPED_GENERATION_D_confirm_ANALYSIS.json').exists():
+        independent=json.loads((run/'S3_SCOPED_GENERATION_D_confirm_ANALYSIS.json').read_text('utf-8'))
+        if independent['status']=='PASS_INDEPENDENT_PAIRED_DIAGNOSTIC':
+            status['tasks']['S2.3_D_confirm_generator_stability']='PASS_INDEPENDENT_PAIRED_100_QUESTION_AUDIT'
+            status['stages']['S2']='DIAGNOSTIC_COMPLETE_D_CONFIRM_AUDITED'
+    if (run/'S3_BGE_RELEVANCE_CALIBRATION.json').exists():
+        bge=json.loads((run/'S3_BGE_RELEVANCE_CALIBRATION.json').read_text('utf-8'))
+        status['tasks']['S3.5_bge_12_fixtures']=bge['status']
+        status['completed_evidence']['S3_bge_fixture_correct_n']=bge['correct_max_n']
+    if (run/'S4_DEVELOPMENT_TASK_LABELS.json').exists():
+        workflow_labels=json.loads((run/'S4_DEVELOPMENT_TASK_LABELS.json').read_text('utf-8'))
+        status['tasks']['S4.1_visible_task_labels']='PASS_RULE_PROXY_LABELS_FROZEN_NOT_HUMAN'
+        status['completed_evidence']['S4_labeled_development_questions']=workflow_labels['question_n']
+        status['completed_evidence']['S4_workflow_selected_questions']=workflow_labels['selected_n']
+    live_scoped_generation=any(p['cmdline'][1].replace('\\','/').endswith(('run_scoped_generation.py','run_scoped_generation_resource.py')) for p in live)
+    if live_scoped_generation:
+        status['current_stage']='S3_COMPACT_ALTERNATIVE_REAL_GENERATION'
+        status['next_action']='Observe live D_confirm fixed20-record resource recovery. Original77 successful responses retained; do not reissue. Full corpus Dense remains BLOCKED. After terminal, independently audit and execute BGE/LoRA runtime diagnostics.'
+        status['next_tool_call']={'tool':'write_stdin','args':{'session_id':45993,'chars':'','yield_time_ms':1000,'max_output_tokens':1000}}
+    live_lora_runtime=any(p['cmdline'][1].replace('\\','/').endswith(('run_lora_runtime_diagnostics.py',
+        'run_lora_supervision_smoke.py','run_lora_supervision_smoke_v2.py',
+        'run_lora_fixed_token_benchmark.py','run_lora_diagnostic_sequence.py')) for p in live)
+    for condition in ('base','unmerged','merged'):
+        completion=run/('S5_RUNTIME_'+condition+'_COMPLETION.json')
+        if completion.exists():
+            runtime_result=json.loads(completion.read_text('utf-8'))
+            status['tasks']['S5.2_runtime_'+condition]=runtime_result['status']
+            status['completed_evidence']['S5_runtime_'+condition+'_formal_n']=runtime_result['formal_n']
+    if live_lora_runtime:
+        status['current_stage']='S5_REAL_BF16_RUNTIME_DIAGNOSTICS'
+        status['tasks']['S5.2_same_BF16_24_runtime']='RUNNING'
+        status['next_action']='Observe verified-live S5 BF16 runtime job; do not start another GPU model. Record actual EOS/output IDs and terminal result, then run pending adapter conditions and mandatory supervision smoke.'
+        handle_path=run/'CURRENT_LORA_RUNTIME_JOB.json'
+        handle=json.loads(handle_path.read_text('utf-8')) if handle_path.exists() else {}
+        status['next_tool_call']={'tool':'write_stdin','args':{'session_id':handle.get('session_id',62708),'chars':'','yield_time_ms':1000,'max_output_tokens':1000}}
+    if (run/'S5_RUNTIME_INDEPENDENT_ANALYSIS.json').exists():
+        independent=json.loads((run/'S5_RUNTIME_INDEPENDENT_ANALYSIS.json').read_text('utf-8'))
+        status['tasks']['S5.2_runtime_independent_recount']=independent['status']
+    if (run/'S5_MERGE_LOGIT_GATE.json').exists():
+        merge=json.loads((run/'S5_MERGE_LOGIT_GATE.json').read_text('utf-8'))
+        status['tasks']['S5.2_merge_function_gate']='PASS' if merge['passed'] else 'FAILED_NUMERICAL_GATE_MERGED_COMPARISON_NOT_RUN'
+    smoke_path=run/'S5_SUPERVISION_SMOKE/COMPLETION.json'
+    if smoke_path.exists():
+        smoke=json.loads(smoke_path.read_text('utf-8'))
+        status['tasks']['S5.1_eight_fixture_train_update_resume']=smoke['status']
+        status['completed_evidence']['S5_smoke_optimizer_steps']=smoke['optimizer_steps']
+    compatible_smoke=run/'S5_SUPERVISION_SMOKE_v2/COMPLETION.json'
+    if compatible_smoke.exists():
+        smoke=json.loads(compatible_smoke.read_text('utf-8'))
+        status['tasks']['S5.1_initial_one_step_smoke']='FAILED_NO_UPDATE_DUE_ZERO_LR_WARMUP_RETAINED'
+        status['tasks']['S5.1_eight_fixture_train_update_resume']=smoke['status']
+        status['completed_evidence']['S5_smoke_optimizer_steps']=smoke['optimizer_steps']
+        status['completed_evidence']['S5_smoke_changed_tensor_n']=smoke['changed_tensor_n']
+    if (run/'S4_WORKFLOW_CONTEXT_MANIFEST.json').exists():
+        workflow=json.loads((run/'S4_WORKFLOW_CONTEXT_MANIFEST.json').read_text('utf-8'))
+        status['tasks']['S4.2_real_workflow_contexts']=workflow['status']
+        status['completed_evidence']['S4_workflow_context_inputs']=workflow['formal_inputs_n']
+    for condition in ('base','unmerged','merged'):
+        completed=run/('S5_FIXED64_'+condition+'_COMPLETION.json')
+        if completed.exists():
+            fixed=json.loads(completed.read_text('utf-8'))
+            status['tasks']['S5.2_fixed_token_'+condition]=fixed['status']
+    if (run/'S5_SEQUENCE_COMPLETION.json').exists() and not live_lora_runtime:
+        sequence=json.loads((run/'S5_SEQUENCE_COMPLETION.json').read_text('utf-8'))
+        status['stages']['S5']=sequence['status']
+        status['tasks']['S5.2_serial_diagnostic_sequence']=sequence['status']
+        status['current_stage']='S4_WORKFLOW_UTILITY_PENDING'
+        status['next_action']='S5 serial sequence is terminal; inspect actual exits and independent diagnostics, preserve failed merge gate. Run the frozen180 S4 workflow generations, then compare full utility vectors before any router training.'
+        status['next_command']=". ./scripts/runtime_env.ps1\n& 'D:/RAGScope_Runtime/envs/core/Scripts/python.exe' scripts/v3/run_workflow_generation.py --campaign '"+str(run).replace('\\','/')+"' --resume"
+        status['next_command_status']='ACTUAL_FROZEN_S4_WORKFLOW_GENERATION_AFTER_VERIFIED_GPU_RELEASE'
+    if (run/'S5_LORA_REPORT_SOURCE_NOTES.json').exists():
+        status['tasks']['S5.3_formal_retraining']='NOT_RUN_GATE'
+        status['tasks']['S5.5_deployment_conversion']='NOT_RUN_GATE_NO_QUALIFIED_NEW_ADAPTER'
+    if (run/'S4_WORKFLOW_GENERATION_COMPLETION.json').exists():
+        workflow=json.loads((run/'S4_WORKFLOW_GENERATION_COMPLETION.json').read_text('utf-8'))
+        status['tasks']['S4.3_actual_workflows']=workflow['status']
+        status['completed_evidence']['S4_actual_workflow_generations']=workflow['formal_n']
+    live_workflows=any(p['cmdline'][1].replace('\\','/').endswith('run_workflow_generation.py') for p in live)
+    if live_workflows:
+        status['current_stage']='S4_ACTUAL_MATCHED_WORKFLOW_GENERATION'
+        status['tasks']['S4.3_actual_workflows']='RUNNING_SERIAL_FRESH20_BLOCKS'
+        status['next_action']='Observe the verified-live S4 matched60/three-workflow actual generation. Preserve failures; audit full per-question utility vectors after terminal completion before any router training.'
+        status['next_command']=". ./scripts/runtime_env.ps1\n& 'D:/RAGScope_Runtime/envs/core/Scripts/python.exe' scripts/v3/checkpoint_campaign.py --campaign '"+str(run).replace('\\','/')+"'"
+        status['next_command_status']='OBSERVE_RUNNING_S4_DO_NOT_RESTART'
+        status['next_tool_call']={'tool':'write_stdin','args':{'session_id':27341,'chars':'','yield_time_ms':1000,'max_output_tokens':1000}}
     status['unresolved']=['S1 full claim/support/citation metrics BLOCKED after bounded resource attempts',
         'S2 generator D_confirm stability; S3 new retrieval indices/candidates and generation gates',
         'S4 workflow utility, S5 mandatory LoRA microdiagnosis, S6 locked holdout/online/report/acceptance']
