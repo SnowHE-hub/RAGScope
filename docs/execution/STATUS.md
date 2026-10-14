@@ -1,6 +1,8 @@
 # RAGScope v2 执行状态
 
-更新：2026-10-14 04:36 UTC / 15:36 Sydney。Goal **ACTIVE，未最终验收**；campaign `20261014_v2`。硬截止 **10:29:06 UTC / 21:29:06 Sydney**，主run/EXECUTION_DEADLINE.json。
+更新：2026-10-14 05:08 UTC / 16:08 Sydney。Goal **ACTIVE，未最终验收**；campaign `20261014_v2`。硬截止 **10:29:06 UTC / 21:29:06 Sydney**，主run/EXECUTION_DEADLINE.json。
+
+**当前覆盖下方早期快照：** GPU360已独立PASS/0error/13222窗/max512/实际worker退出，CPU300+partial29原SHA不变；validation b10cb5b52bb54606eada1fccfbedcb0a302c22a4bfdd6acd0c5f77563fbdef89。Laya CPU4真实load75.774s/3devwarmups PASS，session76916/PID11880，1080正式现300，尚未全完。root main spec907282...9f66已配置，main freeze session73845/PID24476正在真实算统一预算，不重复启动；gen无服务/HOLD，FROZEN后fresh≥3GiB再执行主2B优先队列。S3.1接口55相关JUnit/8当前generation源核验和S2.4有效660真实R3组合已各签收，仍不是最终15验收。详细当前活进程/下一准确工具命令以ROOT_CHECKPOINT顶部为准；不要据下方历史“GPU正在运行”或“Laya等待”段重启模型。
 
 ## 最新授权和资源
 
