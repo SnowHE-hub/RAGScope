@@ -1,5 +1,19 @@
 # 主执行器恢复点
 
+**当前实际双CPU运行与E2入口：** R3 session83335/PID30108已dev74/100、累计74/660、0error，CPU4/batch2，owner chunking_core，不能root轮询/抢重启。data已启动独立aux session99141/PID30192、CPU4 llama33428，身份/源hash在aux/SERVICE_LIFETIME.json；SQuAD1212chunks/204332 Qwen正文tokens，328+向量逐条落盘，之后simple777。aux从不打开主retrieval Campaign，使用独立ledger和squad_chunks/scoped_chunks锁；主writer锁仍由R3持有。host约2.04–2.25GiB，data有请求边界1GiB guard、R3保持1.25GiB，不能另加载模型。aux完成后data将独立磁盘load/readback留证并正常释放。
+
+gen已提交bb2c874：freeze_e2_v2.py、E2生产验收、main自动引用E2+E3（包括旧显式spec）及54项CPU契约PASS；R0/R1/R2各200 READY，R3 TEST200未齐，0新生成。R3 test200封存通知后，先corepython scripts/freeze_e2_v2.py --campaign 20261014_v2 --check-only，再去check-only完整freeze，输出20261014_v2_generation_e2；实际GPU窗口由root核RAM≥3GiB/当前boot lease/原程序/端口后交接gen：先原stress22串行并卸载，再E2 qwen_2b→4b→9b各800+3warmups。写E2/EXECUTION_CONDITIONS.json记录CPU并行身份/线程及资源；不等global/ROUTE660全完成，不重复E3/E2。精确命令E2_CORE_SHARD.md。Gen当前completed需followup唤醒原代理，无需新代理。
+
+**最新硬截止与并行调度：** 用户要求从现在起8h完成，已记录deadline2026-10-14T10:29:06.606796Z（悉尼21:29），EXECUTION_DEADLINE.json。Goal仍ACTIVE，无token预算。R3旧32476确实不存在、0正式行，未执行合作暂停，原因未知；旧证据在R3_RUNTIME/history/interrupted_pid32476_attempt1/。新session83335、worker30108/create1791944791.4540648、CPU4/batch2，LOAD_STATE attempts2/backend_failures0，真实加载68.24秒；前25题0error、473真实query-inclusive窗口，平均17.18秒/题，source/window验收PASS。不要重复启动或清零attempts。
+
+为满足截止，不等所有CPU工作才启动生成：gen正在实现freeze_e2_v2.py（独立2400E2、同未来main task/input/model/prompt/预算，main引用E2+E3严格ownership，不重跑），等待四个TEST_CONTEXT200完整来源；mainrunner只在需要时读SQuAD。data正在实现/核验独立aux_preencode索引-only任务（SQuAD/scoped-simple777），不写R3持有锁的主campaign，保证原index身份/路径/缓存模型语义完全一致。R3先按原dev100→test200顺序，TEST全量就绪即发通知，余下global/ROUTE可与单卡串行E2重叠；所有RAMguard/CPU4保留。若锁隔离无法确认不双写。Laya保持未加载，待资源归还；旧串行交接顺序由本次硬截止调度覆盖，实验语义未改。
+
+**用户已经恢复，覆盖下方PAUSED指令：** 用户随后明确`/goal resume`，Goal工具确认ACTIVE。root已通知R3原owner核验session55504/PID32476真实状态后继续同660条；若进程仍活跃则不得重复启动，若已安全退出则核已保存记录/锁后续原断点，暂停历史与失败预算保留。data仍等待R3→stress→Laya后归还CPU。目标继续，不创建新goal/代理，不改WSL。
+
+**用户明确暂停，覆盖下方ACTIVE与继续执行指令：** `/goal pause`已应用，Goal工具返回PAUSED。root仅落实安全收尾，不继续实验；已通知chunking_core停止新增R3请求、当前记录落盘后释放模型/锁并保存恢复命令，通知data保持无worker/model状态。R3暂停前实际已启动session55504、worker32476/create1791944469.3008657（CPU4），新退出证据尚待owner报告，不凭暂停Goal推断后台进程已退出。不得启动stress、Laya、SQuAD/simple或主矩阵；恢复需用户`/goal resume`，届时先核当前进程及收据，禁止重复启动。
+
+**当前最新交接，覆盖下方CPU编码运行快照：** structured900和ROUTE520均真实exit0/完整行ID与hash/0error；6551全库索引已发布。data精确drain后退出服务6016，worker3312/10584也不存在，11436关闭；正式收据retrieval/STRUCTURED_ROUTING_RESOURCE_HANDOFF.json SHA d9dca64ec3f03cbcad80f7e9d9dadf623fc4bdad2fac4ebb83ff479adf2cbe08。root已独立复核hash、PID/端口、RAM6.20GiB，并通过send_message正式授权已有chunking_core执行固定R3五组660（CPU4、BGE，原资源guard/失败预算）；尚待其报告新PID与session。root/data不要再启动embedding、simple/SQuAD。R3退出→root唤醒gen22 stress→退出→Laya→data恢复CPU4的SQuAD/simple。用户只咨询模型切换，未请求暂停Goal，目标仍ACTIVE。
+
 **13:12模型切换前持久恢复点：** 用户咨询能否在本对话暂停后切换GPT-6.1 Sol，尚未明确发出Goal暂停指令，root没有自行暂停/完成目标。02:12:12UTC独立只读确认structured观察 **6551/6551，index manifest已经发布**，host1.13GiB；data仍拥有worker3312/session37283，须查实际状态后继续TEST/global/ROUTE，不能重复启动。13:10曾观察可用RAM0.30GiB，后回升；当时Windows ollama app.exe PID20072/create1791922078.7872417 RSS3.823GiB，是非本项目原桌面应用，未操作。data短间隔身份与资源观察已落盘，当前没有第四次网络重试。两个其他原代理已完成轻量预检/提交，R3与stress均未启动。当前重要提交9325431、eedb5d9（boot租约50测试）、4fe1c07（精简STATUS/真实新lease）。
 
 **13:04新增签收：** 新boot租约guard50项CPU定向测试通过，旧真实lease拒绝exit2。root已在GPU锁内重新只读核WSL/端口/GPU并归档40961B旧lease（SHA003f52ad…77eb30），新lease SHA884715ec4556624cd069b461b1b9cfc3483f0bab32f6f77c6cf2165f6d6b0cac，validator实际PASS；收据GPU_LEASE_REVALIDATION_20261014.json。USER_MANUAL_RESUME继续，原作业零动作，未启动GPU模型。generation代理负责提交其修复与测试。chunking_core原代理也已followup恢复，仅轻量核对R3入口，等待data正常释放；四个原任务已经恢复，无新建代理。02:02 durable6336/6551，host3.45GiB。

@@ -1,12 +1,15 @@
 # RAGScope v2 执行状态
 
-更新：2026-10-14 13:12 Australia/Sydney。campaign_id：`20261014_v2`；主目标 **ACTIVE，尚未最终验收**。下面是当前快照，历史过程保存在运行记录和同目录恢复文档。
+更新：2026-10-14，用户在短暂停后明确执行`/goal resume`，Goal工具已确认 **ACTIVE，尚未最终验收**。campaign_id：`20261014_v2`。R3执行器先核验暂停/进程及已落盘断点，再接续原固定实验，禁止重复启动。历史过程保存在运行记录和同目录恢复文档。
+
+用户新增8小时硬截止：**2026-10-14 21:29:06 Australia/Sydney / 10:29:06UTC**，主run/EXECUTION_DEADLINE.json。原实验范围、CPU4/CPU-only与真实结果标准不缩减。R3当前恢复session83335、worker30108/create1791944791.4540648，已真实加载、前25正式题0error，均值17.18秒；旧32476中断归档且attempts保留为2。独立aux索引预编码与E2先行分片工程正在落实，以减少串行等待；执行身份与实际启动须看各模块凭据，不把工程准备当已运行。
 
 ## 当前正在运行
 
-- data_preparation独占CPU4 embedding服务6016/create1791942102.6736171、worker3312/create1791942111.7390096/session37283。最近02:12:12UTC独立观测为 **6551/6551** 条持久编码观察，完整index manifest已经发布；同模型/二进制哈希不变。后续检索结果仍须正常完成，不由编码完成推导整阶段完成。
-- 随后完成structured的TEST/global及ROUTE结果，正常退出并核验释放自身embedding，再交接R3五组660条。chunking_core已做轻量入口核验，没有提前加载模型。
-- 后续顺序：R3退出 → 2B的22调用4K/8K诊断 → GPU服务退出 → Laya有界尝试 → SQuAD与simple索引 → 主生成矩阵、路由、LoRA同精度对照及最终交付。
+- **6551/6551**全库编码及完整index manifest已完成；structured TEST/global共900条、ROUTE train200/dev60的BM25/Hybrid共520条，均完整ID/hash核验、0error、两个命令真实exit0。
+- data精确排空并退出CPU embedding服务6016；3312/10584/6016均不存在，11436关闭。root独立核验释放收据SHA及进程/端口，host可用6.20GiB后，已正式交接chunking_core执行固定R3五组660条、CPU4。其新运行身份以模块receipt为准，不能沿用旧PID。收据为retrieval/STRUCTURED_ROUTING_RESOURCE_HANDOFF.json，SHA d9dca64ec3f03cbcad80f7e9d9dadf623fc4bdad2fac4ebb83ff479adf2cbe08。
+- 当前并行依赖：R3按原顺序执行；独立aux索引-only worker30192/session99141与CPU4服务33428在SQuAD/scoped-simple目标锁内预编码，不写主retrieval campaign。SQuAD实际1212chunks/204332正文tokens，已有328+真实向量；完成后做磁盘readback并释放服务。R3 test200封存后冻结原2400 E2分片，在RAM/租约核验后单卡串行stress22→E2，与余下CPU R3重叠。R3释放主writer锁后物化aux最终检索，再冻结main并引用E2+E3；Laya、路由/LoRA对照和终验继续按实际资源窗口执行。
+- E2分片工程提交bb2c874，54项CPU契约PASS，R0/R1/R2各200来源READY，R3等待中；本轮尚无E2生成，统一预算仍1421/10000。源码入口scripts/freeze_e2_v2.py，命令与条件见E2_CORE_SHARD.md。工程支持不代表实际2400条已完成。
 - 目前没有本项目GPU模型驻留。02:04:42UTC资源核验时WSL运行列表为空，11435/18501关闭，GPU compute-apps仅列Codex桌面；没有操作原任务。内存有波动，02:09:58UTC一度0.30GiB，02:12:12回升1.13GiB；只读观测曾见原Windows Ollama桌面应用约3.82GiB工作集，未操作它。不能把这些快照当永久值。
 
 ## 已完成并有真实证据
