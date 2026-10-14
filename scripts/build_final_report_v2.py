@@ -183,7 +183,7 @@ def build(campaign, analysis_path, output, *, allow_incomplete=False):
             f"{fmt(abstain['recall'])}|{fmt(abstain['f1'])}|")
     parts += ["", "生成P50/P95从冻结上下文开始计时，不含检索；路由组件重放之和与真实在线总时间分开。非流式调用无实测首token，保持N/A。显存是整个设备的采样量，包含其他进程；采样可能漏瞬时峰值，不能写成模型最低显存。CPU并行任务和历史负载条件不同，耗时是各运行条件下的描述性观测。", "",
         "## 路由与微调是否值得启用", "",
-        "路由只读取问题和用户选择的范围等可见元数据。训练标签来自同一最小模型的三条真实路径，F1差≤0.01时优先较低实测成本，其后才是证据覆盖。它是文字重合与成本的代理最优标签，不能称为真实任务最优。所有策略的test决策在访问test路径分数之前固定。",
+        "路由只读取问题和用户选择的范围等可见元数据。训练标签来自同一最小模型的三条真实路径，F1差≤0.01时优先较低实测成本，其后才是证据覆盖。它是文字重合与成本的代理最优标签，不能称为真实任务最优。路由测试评测必须在七个策略的dev/test决策全部冻结后读取测试路径分数；train/dev训练入口不打开test journals。完整性校验及历史操作者工具曾接触测试摘要，未据此训练、调参或选择默认，不能声称所有操作者从未见过测试字段。",
         "UI改变默认路径需要完整60dev质量下降≤0.01及至少30条真实在线P50改善≥10%，且实际部署条件吻合。未达门槛继续固定路径，不用test挑默认。",
         observed(training / "training_result.json", "BF16 LoRA训练", ("status", "actual_optimizer_steps", "best_dev_loss", "best_checkpoint_available", "seed"), sources),
         observed(training / "paired_test100/SUMMARY.json", "相同BF16基础模型与adapter的100题对照", ("status", "expected_n_per_condition", "baseline", "adapted", "completed", "pending", "error", "identity", "adapter"), sources),
@@ -196,6 +196,9 @@ def build(campaign, analysis_path, output, *, allow_incomplete=False):
                 json.dumps({split: g["summary"] for split, g in data["groups"].items()}, ensure_ascii=False, indent=2), "```", ""]
         else:
             parts += [f"路由 `{name}`：实际回放结果UNAVAILABLE；入口实现不计为实验完成。", ""]
+    parts += [observed(routing / 'online/SUMMARY.json', '真实在线配对验证与部署门槛',
+        ('status', 'groups', 'deployment', 'stop_reason', 'load_timings_ms', 'warmup_records',
+         'test_used', 'note'), sources)]
     parts += ["## 错误分析与支持性代理", "",
         "逐条错误、timeout、长度截断JSON及拒答均保留；没检到文档、漏证据、预算丢证据、排序噪音、证据齐但文字F1低、缺引用、无效JSON和资源错误分开。无法确认的语义原因标uncertain，不把低F1直接当作幻觉。",
         "Oracle只提供已标注证据，证据覆盖1并不保证参考答案所有事实已在提示中。No Context作为独立诊断，其空上下文引用覆盖不适用；不能移除这类行来抬高总体成绩。",
