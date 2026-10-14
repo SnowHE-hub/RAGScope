@@ -88,6 +88,9 @@ def main():
         ". ./scripts/runtime_env.ps1\n"
         "& 'D:/RAGScope_Runtime/envs/core/Scripts/python.exe' scripts/v3/checkpoint_campaign.py --campaign '" + str(run).replace('\\', '/') + "'")
     status['next_command_status'] = 'READ_ONLY_OBSERVATION_AND_CHECKPOINT; no model call'
+    status['next_tool_call'] = {'tool': 'write_stdin', 'args': {'session_id': 24620,
+        'chars': '', 'yield_time_ms': 1000, 'max_output_tokens': 1500}}
+    status.pop('resume_command_after_verified_exit', None)
     observation = {'observed_utc': now.isoformat(), 'live_processes': live, 'budget': budget,
                    'atomization': progress, 'process_observation_not_terminal_exit_receipt': True}
     observation['observation_hash'] = signature(observation)
