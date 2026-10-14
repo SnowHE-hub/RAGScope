@@ -11,7 +11,7 @@
 | TF-IDF + LogisticRegression | sklearn真实运行18条离线合成夹具的train/dev功能验证；版本化JSON+npz往返一致 | 200train/60dev真实生成标签；100test正式结果 |
 | TF-IDF + SVD + MLP | 小MLP部分拟合、最多20epoch、dev log-loss选最佳、patience3；真实运行合成夹具测试 | 同上，不能把夹具预测当作效果成绩 |
 | 小LSTM | CPU/lazy torch入口、词表仅train、<2M参数上限、固定seed42；隔离models环境已实际训练18条合成夹具、前向/反向、JSON+npz往返与哈希篡改拒绝验证 | 正式200train/60dev生成代理标签训练与100test评估未完成；夹具测试不是任务质量成绩 |
-| Laya | 官方来源/revision/license/下载范围核验；已下载并校验固定官方模型、encoder配置和tokenizer，共6文件846,218,761字节；3候选顺序置换、概率验证、低信心/非法输出/截断回退；本地loader哈希与offline边界用明确Mock验证 | 未加载模型权重；同dev/test真实推理、3种顺序分布、校准分析仍未完成 |
+| Laya | 原官方SDK/固定权重已实际运行CPU4 FP32：360题×3顺序=1080条，0调用错误、646低信心回退，3条dev预热单列；完整逐条独立验收PASS，模型已退出 | 原始概率真实执行完成；相对真实路径代理标签的dev/test校准与质量重放待ROUTE780生成完成 |
 | 在线部署门槛 | 禁止用重放估计当成真实在线延迟；dev质量容差0.01、P50至少降低10%、至少30条实际在线记录的门槛 | 尚无真实生成在线记录，默认固定路径，不部署学习路由 |
 
 ## 固定协议与接口
@@ -20,9 +20,9 @@
 
 `RoutingRequest.from_query` 只提取 question、显式用户scope和白名单元数据 document_length_tokens/document_type/language。学习特征不使用scope中的文档ID作为捷径，也不使用答案、gold_doc_id、证据坐标、test分数。文档类型与语言限制为明确类别；问句长度不作为规则判定简单任务的条件。
 
-`freeze_query_ids` 在任何路由成绩产生前以seed42固定200train、60dev、100test（不足时明确actual_counts）。`build_proxy_labels` 对每个冻结问题强制要求三条路径完整记录，包括失败；要求 `real_model=true`、统一 `comparison_config_hash`（排除路径这个实验变量）。缺一条就报错，不能生成随机标签替代。
+正式200train、60dev、100test来自主run的`ROUTING_QUERY_MANIFEST.json`与正式生成manifest，使用同一sort-ID后seed42抽样协议，不重新调用早期通用`freeze_query_ids`助手另抽样。`build_proxy_labels` 对每个冻结问题强制要求三条路径完整记录，包括失败；要求 `real_model=true`、统一 `comparison_config_hash`（排除路径这个实验变量）。缺一条就报错，不能生成随机标签替代。
 
-离线标签按最大答案文字重合F1确定，差≤0.01的路径先选实测总成本更低者，成本仍相同再选证据覆盖更高者，最终按固定路径顺序。所有路径都失败时仍保留该问题且标记all_paths_failed，F1均为0。标签是 **基于文字重合与成本的代理最优路径**，并非真实任务绝对最优策略。不可回答的证据指标为N/A，不能当作覆盖0或1。
+可回答题的离线标签按答案文字重合F1确定；不可回答题的F1保留N/A，单独采用正确拒答0/1作为代理质量。质量差≤0.01的路径先选实测总成本更低者，成本仍相同再选证据覆盖更高者，最终按固定路径顺序。所有路径都失败时仍保留该问题且标记all_paths_failed，其适用代理质量均为0。标签是 **基于质量代理与成本的路径选择**，并非真实任务绝对最优策略。不可回答的证据指标为N/A，不能当作覆盖0或1。
 
 训练检查train/dev查询和论文不重叠，test禁止进入fit；模型保存配置、样本IDs/哈希、标签分布、单类塌缩、警告与训练历史。若train只有一类，保留诚实的单类常数回退 `PASS_FALLBACK_SINGLE_CLASS`，不伪造三类平衡。LSTM只是学习性对照，不能将其与生成LLM混成架构排名。
 
@@ -54,14 +54,14 @@ Laya返回合法choice不代表任务路由正确。项目使用三种循环候�
 
 已按固定Git提交下载必要源码，用`--no-deps --no-build-isolation`在独立models CPU环境安装Laya0.4.6。44个安装源码文件与下载manifest逐个SHA匹配；`verify_sdk_installation()`通过importlib.metadata读取路径并复验文件，不import Laya/Torch。实际验证二者均未出现在sys.modules。详情见`docs/execution/MODELS_ENV_ADDITIONS.md`和models环境`laya_sdk_installation.json`。
 
-`load_local`现在在SDK导入前强制检查实装源码凭据。加载期间同时启用HF_HUB_OFFLINE、TRANSFORMERS_OFFLINE和HF_HUB_DISABLE_IMPLICIT_TOKEN，之后恢复原值；始终传本地完整检查点，避免官方远程checkpoint分支读取HF_TOKEN。实际offline loader保护测试1 passed，23 deselected，1.96秒，日志`D:/RAGScope_Runtime/logs/laya_fixed_sdk_guard_tests.log`。此轮仍未调用SDK或加载Laya权重，不能记真实路由质量。
+`load_local`现在在SDK导入前强制检查实装源码凭据。加载期间同时启用HF_HUB_OFFLINE、TRANSFORMERS_OFFLINE和HF_HUB_DISABLE_IMPLICIT_TOKEN，之后恢复原值；始终传本地完整检查点，避免官方远程checkpoint分支读取HF_TOKEN。实际offline loader保护测试1 passed，23 deselected，1.96秒，日志`D:/RAGScope_Runtime/logs/laya_fixed_sdk_guard_tests.log`。此安装核验阶段未调用SDK或加载权重；后续真实1080条执行见本目录LAYA_REAL_RUN.md。安装测试本身不能记真实路由质量。
 
 ## 离线验证与缺口
 
 当前测试文件：`tests/unit/test_routing_v2.py`。24项离线测试已通过，包括泄漏字段不进特征、冻结ID、F1容差与成本优先、失败标签留存、真实记录门槛、train/dev论文不重叠、线性/MLP/LSTM小夹具实际拟合、二分类概率、JSON+npz序列化、单类塌缩、LSTM预算、三顺序Laya测试对象、加载路径哈希/offline控制、概率校准计算、重放与在线计时区分、部署拒绝。模型环境中的小LSTM只用64词上限、4维embedding/hidden、最多3epoch，全部CPU；这验证代码执行，不证明真实路由质量。
 
-最近覆盖率报告：`D:/RAGScope_Runtime/runs/routing_models_coverage.json`，隔离环境Python `D:/RAGScope_Runtime/envs/models/Scripts/python.exe`。24 passed in61.23s；整体92%，core94%、evaluate91%、Laya适配器96%、learned96%、LSTM97%、CLI0%。没有隐藏正式CLI未执行分支。先前core环境22项测试也通过，旧报告仍保留。此次测试期间Windows平台信息WMI查询打印0x8007000e内存不足诊断，但进程继续，最终24项全部通过；该诊断不被当作模型实验结果。完整reranker/Laya模型仍须等待embedding结束、资源协调后串行加载，正式标签与真实Laya推理仍待补验。
+最近覆盖率报告：`D:/RAGScope_Runtime/runs/routing_models_coverage.json`，隔离环境Python `D:/RAGScope_Runtime/envs/models/Scripts/python.exe`。24 passed in61.23s；整体92%，core94%、evaluate91%、Laya适配器96%、learned96%、LSTM97%、CLI0%。没有隐藏正式CLI未执行分支。先前core环境22项测试也通过，旧报告仍保留。此次测试期间Windows平台信息WMI查询打印0x8007000e内存不足诊断，但进程继续，最终24项全部通过；该诊断不被当作模型实验结果。上述是早期功能测试阶段的记录；后续Laya已实际完成1080条，正式代理标签质量评估仍等待ROUTE780真实生成。
 
 ## 正式结果接线与防泄漏补充
 
-ROOT新增`ragscope/routing/campaign.py`与`scripts/run_routing_v2.py`，早期querymanifest位于主run/ROUTING_QUERY_MANIFEST.json，实际冻结200train/60dev/100test，来源SPLIT_MANIFEST哈希核验。只有真实正式生成完整260×3时才输出labels；不可答F1仍N/A，使用明确的correct_abstention代理单列。全部7个必需策略测试决策写成不可变带哈希DECISIONS文件后才允许读取test路径分数做replay。回放只报告实际组件计时之和，在线门槛另等真在线实验。当前正式generationmanifest未就绪，因此READINESS为WAITING_FOR_FROZEN_GENERATION，不声称路由实验已有质量结果。
+ROOT新增`ragscope/routing/campaign.py`与`scripts/run_routing_v2.py`，早期querymanifest位于主run/ROUTING_QUERY_MANIFEST.json，实际冻结200train/60dev/100test，来源SPLIT_MANIFEST哈希核验。只有真实正式生成完整260×3时才输出labels；不可答F1仍N/A，使用明确的correct_abstention代理单列。全部7个必需策略测试决策写成不可变带哈希DECISIONS文件后才允许读取test路径分数做replay。回放只报告实际组件计时之和，在线门槛另等真在线实验。初期READINESS为WAITING_FOR_FROZEN_GENERATION；目前正式生成manifest已冻结，ROUTE780仍在执行，因此尚不声称已获得路由质量结果。Laya真实原始决策已完成，详见[LAYA_REAL_RUN.md](LAYA_REAL_RUN.md)。
