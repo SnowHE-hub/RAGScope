@@ -1,4 +1,4 @@
-# S4.1–S4.4 路由实现与待执行实验账本
+# S4.1–S4.4 路由结果与在线验收草稿
 
 日期：2026-10-14（客户端 Australia/Sydney）。本文件保留实现/验证历史；正式200train/60dev训练、100test重放及Laya校准已完成，真实数字与完整来源见[ROUTING_REAL_RESULTS.md](ROUTING_REAL_RESULTS.md)。在线60次验证仍待独立执行，不宣称已部署。
 
@@ -67,3 +67,19 @@ Laya返回合法choice不代表任务路由正确。项目使用三种循环候�
 ROOT新增`ragscope/routing/campaign.py`与`scripts/run_routing_v2.py`，早期querymanifest位于主run/ROUTING_QUERY_MANIFEST.json，实际冻结200train/60dev/100test，来源SPLIT_MANIFEST哈希核验。只有真实正式生成完整260×3时才输出labels；不可答F1仍N/A，使用明确的correct_abstention代理单列。全部7个必需策略测试决策写成不可变带哈希DECISIONS文件后才允许读取test路径分数做replay。回放只报告实际组件计时之和，在线门槛另等真在线实验。初期READINESS为WAITING_FOR_FROZEN_GENERATION；目前正式生成manifest、ROUTE780、三个学习模型训练、七策略冻结及八策略质量重放、Laya三顺序校准均已完成。在线60次仍待独立窗口；来源/数字见[ROUTING_REAL_RESULTS.md](ROUTING_REAL_RESULTS.md)，Laya加载与原始1080记录见[LAYA_REAL_RUN.md](LAYA_REAL_RUN.md)。
 
 正式固定权重 train600 诊断已补齐，见 [ROUTING_TRAIN_DIAGNOSTIC.md](ROUTING_TRAIN_DIAGNOSTIC.md)。原权重和dev/test决策未变；分类gap与类别占比变化一并解释。
+
+## 训练诊断的准确解释
+
+这里的accuracy是匹配质量与成本代理标签的比例，不是生成答案F1。线性模型train accuracy为0.675、dev为0.516667；MLP和LSTM分别为0.64、0.516667。三者在dev/test全部选择BM25；训练集上只有线性模型选择了9次Hybrid，其余191次为BM25，MLP/LSTM的200次全为BM25。
+
+train的BM25标签占128/200=64%，dev占31/60=51.667%。因此MLP/LSTM的0.123333准确率差恰等于多数类占比变化，不能直接称为过拟合。线性模型训练集比多数类基线高3.5个百分点，dev仍未超出多数类基线；这是有限训练收益没有在这批dev中体现的观察，不是架构优劣或显著性结论。原dev损失曲线、早停和600条固定权重预测共同保留，不凭test重训。
+
+## 离线结果与部署措辞草稿
+
+三个固定策略、rules、linear、MLP、LSTM和Laya各有dev60/test100，共1280次完整重放选择；它们复用真实路径生成结果，不能计为1280次新生成，也不能称在线请求。dev答案F1分别为BM25 0.380598、Hybrid 0.429777、Rerank 0.370988、rules 0.426660；三个学习模型均为0.380598。rules相对Hybrid差−0.003117，处在预设0.01容差内，但重放P50几乎相同，尚无真实在线加速证据。
+
+Laya原order0在dev全部选择或回退Hybrid，F1同为0.429777，组件重放P50却由约1.218秒增加至1.900秒，57/60次为低信心回退。原1080条三顺序决策完整保留；dev三顺序raw choice变化59/60，最终路线变化26/60。order0的dev ECE约0.1254、Brier约0.7567，只相对本次代理标签解释；不能由SDK声明或合法概率输出推断本任务已可靠校准。默认order0未根据test更换。
+
+拟用于交付的当前结论是：**本轮学习路由未显示优于固定Hybrid的dev答案质量；rules虽满足预设质量容差，但实际在线速度门槛仍未验证，因此维持现有固定路径默认，暂不默认部署路由。** 这不是在线实验失败结论。S4.4当前仍为PENDING；已冻结的在线比较仅为fixed_hybrid与rules，在同30个dev题各执行一次，另有每策略3次独立预热，共计划60+6调用。实际执行并签收后，才根据完整dev质量容差、至少30次真实请求/策略和在线P50降低至少10%决定是否部署。
+
+该在线对照测量同一2B模型驻留、独立预热后的端到端时间；加载成本单列，不伪称包含冷启动。CPU Rerank与GPU ROUTE来源的成本差异仍按[真实结果报告](ROUTING_REAL_RESULTS.md)披露。在线RAM保护与实现重新绑定见[ONLINE_RAM_GUARD.md](ONLINE_RAM_GUARD.md)，不据代码或冻结成功改变PENDING状态。
