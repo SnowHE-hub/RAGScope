@@ -41,6 +41,8 @@ class FixtureRetriever:
 
 @pytest.fixture
 def setup(tmp_path, monkeypatch):
+    # Resource-failure tests replace this with the real guard and controlled RAM.
+    monkeypatch.setattr(online, 'require_ram', lambda *args, **kwargs: None)
     campaign, routing, output = tmp_path/'campaign', tmp_path/'routing', tmp_path/'online'
     unit = {'unit_id': 'u', 'doc_id': 'd', 'canonical_start': 0, 'canonical_end': 6, 'text': 'source'}
     chunk = {'chunk_id': 'c', 'doc_id': 'd', 'text': 'source', 'canonical_start': 0, 'canonical_end': 6,
@@ -174,6 +176,65 @@ def test_budget_failure_circuit_break_retains_pending(setup):
     assert result['status'] == 'PENDING' and result['stop_reason'] is not None
     assert s['clients'][0].calls == 6
     assert sum(group['n_pending'] for group in result['groups'].values()) == 59
+
+
+@pytest.mark.parametrize('completed_warmups', range(6))
+def test_ram_guard_before_each_warmup_does_not_start_unavailable_request(setup, monkeypatch, completed_warmups):
+    from types import SimpleNamespace
+    import psutil
+    from ragscope.experiments.runtime import require_ram
+    s = setup
+    retriever = FixtureRetriever(s['bundle'])
+    minimum = 1280*1024**2
+    monkeypatch.setattr(online, 'require_ram', require_ram)
+    monkeypatch.setattr(psutil, 'virtual_memory', lambda: SimpleNamespace(
+        available=minimum if retriever.calls < completed_warmups else minimum-1))
+    result = run(s, retriever=retriever)
+    assert result['status'] == 'INCOMPLETE_RESOURCE'
+    assert result['stop_reason']['purpose'] == 'router_online_warmup'
+    assert retriever.calls == s['clients'][0].calls == completed_warmups
+    assert s['budget'].state()['reserved_calls'] == completed_warmups
+    assert result['warmup_records'] == completed_warmups
+    assert sum(group['n_pending'] for group in result['groups'].values()) == 60
+    assert sum(group['n_pre_generation_failures'] for group in result['groups'].values()) == 0
+    assert not (s['output']/'records.jsonl').exists()
+
+
+def test_ram_guard_at_formal_boundary_preserves_existing_rows_and_resume(setup, monkeypatch):
+    from types import SimpleNamespace
+    import psutil
+    from ragscope.experiments.runtime import require_ram
+    s = setup
+    retriever = FixtureRetriever(s['bundle'])
+    minimum = 1280*1024**2
+    monkeypatch.setattr(online, 'require_ram', require_ram)
+    monkeypatch.setattr(psutil, 'virtual_memory', lambda: SimpleNamespace(
+        available=minimum if retriever.calls < 7 else minimum-1))
+    result = run(s, retriever=retriever)
+    assert result['status'] == 'INCOMPLETE_RESOURCE'
+    assert result['stop_reason']['purpose'] == 'router_online'
+    assert retriever.calls == s['clients'][0].calls == s['budget'].state()['reserved_calls'] == 7
+    assert sum(group['n_pending'] for group in result['groups'].values()) == 59
+    record_path = s['output']/'records.jsonl'
+    saved = record_path.read_bytes()
+    warmups = (s['output']/'warmups.jsonl').read_bytes()
+    # A second low-RAM invocation cannot change an existing row or count a call.
+    blocked = run(s, retriever=retriever)
+    assert blocked['status'] == 'INCOMPLETE_RESOURCE'
+    assert record_path.read_bytes() == saved
+    assert (s['output']/'warmups.jsonl').read_bytes() == warmups
+    assert retriever.calls == s['clients'][0].calls == s['budget'].state()['reserved_calls'] == 7
+    monkeypatch.setattr(psutil, 'virtual_memory', lambda: SimpleNamespace(available=minimum))
+    completed = run(s, retriever=retriever)
+    assert completed['status'] == 'COMPLETE'
+    assert record_path.read_bytes().startswith(saved)
+    rows = read_records(record_path)
+    assert len(rows) == len({row['record_id'] for row in rows}) == 60
+    assert all(row['error'] is None for row in rows)
+    assert s['budget'].state()['reserved_calls'] == 72  # 60 formal + two sessions' six warmups.
+    before = record_path.read_bytes()
+    assert run(s, retriever=retriever)['status'] == 'COMPLETE'
+    assert record_path.read_bytes() == before and s['budget'].state()['reserved_calls'] == 72
 
 
 def test_remote_gpu_service_guard_allows_cpu_only_client(tmp_path, monkeypatch):

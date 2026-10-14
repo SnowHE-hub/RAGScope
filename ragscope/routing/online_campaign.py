@@ -12,6 +12,7 @@ from filelock import FileLock
 from ragscope.evaluation.v2 import score_generation
 from ragscope.experiments.generation_campaign import CountedClient, load_campaign
 from ragscope.experiments.ledger import RecordStore
+from ragscope.experiments.runtime import require_ram
 from ragscope.generation.context import pack_context
 from ragscope.generation.pipeline import RAGPipeline
 from ragscope.indexing.identity import artifact, atomic_json, signature, verify_artifacts
@@ -238,9 +239,23 @@ def run_online(campaign, routing_dir, output, client, budget, retriever, routers
                 stop_reason = {'kind': 'online_circuit_break', 'last_error': error,
                                'consecutive_failures': consecutive_failures}
 
+        def resource_ready(name, qid, purpose):
+            nonlocal stop_reason
+            try:
+                require_ram(0, reserve_bytes=1280*1024**2)
+            except RuntimeError as exc:
+                # This request has not started: no record, budget ticket or failure.
+                stop_reason = {'kind': 'incomplete_resource', 'message': str(exc),
+                               'reserve_bytes': 1280*1024**2, 'policy': name,
+                               'query_id': qid, 'purpose': purpose}
+                return False
+            return True
+
         if pending:
             for name in names:
                 for number, qid in enumerate(frozen['query_ids'][:3]):
+                    if not resource_ready(name, qid, 'router_online_warmup'):
+                        break
                     row = execute(name, qid, 'router_online_warmup')
                     warmups.add(f'{session}:{name}:{number}', row)
                     breaker(row)
@@ -250,6 +265,8 @@ def run_online(campaign, routing_dir, output, client, budget, retriever, routers
                     break
         for name, qid in pending:
             if stop_reason or (max_tasks is not None and completed >= max_tasks):
+                break
+            if not resource_ready(name, qid, 'router_online'):
                 break
             row = execute(name, qid, 'router_online')
             store.add(f'{name}:{qid}', row)
@@ -280,7 +297,9 @@ def run_online(campaign, routing_dir, output, client, budget, retriever, routers
             gate['reason'] = 'full_dev_quality_and_actual_paired_latency' if gate['actual_request_minimum_met'] else 'fewer_than_30_actual_requests_per_policy'
         else:
             gate = {'deploy': False, 'default': 'fixed', 'reason': 'actual_online_comparison_incomplete'}
-        summary = {'status': 'COMPLETE' if complete else 'PENDING', 'online_hash': frozen['online_hash'],
+        status = ('COMPLETE' if complete else 'INCOMPLETE_RESOURCE'
+                  if (stop_reason or {}).get('kind') == 'incomplete_resource' else 'PENDING')
+        summary = {'status': status, 'online_hash': frozen['online_hash'],
             'groups': groups, 'deployment': gate, 'stop_reason': stop_reason, 'test_used': False,
             'load_timings_ms': getattr(retriever, 'load_timings_ms', {}),
             'warmup_records': len(warmups.records), 'budget': budget.state(),
