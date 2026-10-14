@@ -1,5 +1,10 @@
 # RAGScope v2 执行状态
 
+**07:27 UTC 最新覆盖（旧节保留历史）：** 主生成5520/5520已实际完成，32解析失败全部保留；E2 2400完整0错误，main9B100完整0错误。支持性judge200真实完成、1 UNKNOWN解析失败、人审均NOT_REVIEWED，原私有Ollama31596已正常卸载/关闭（Windows退出码1如实保留），11435空闲。当前唯一项目GPU任务是原gen的同BF16配对：PID9824/create1791962055.3476353/session4583；固定E2/R2同100输入/base100+adapter100+各3预热，67/100 baseline时1解析失败，余预计15–25min，不能据中间行称完成。根当前无exec/模型服务。当前源码完整离线回归：core700PASS/2skip + models24PASS，去重701PASS/1 symlink权限skip；219源前后同SHA。两个实际退出码0，最终receipt D:/RAGScope_Runtime/runs/20261014_v2/FULL_OFFLINE_REGRESSION_20261014_0658.json SHA55d9637ef34c9797ea20bccb7beef8c76e12e258fb6b58586aa22759ee232c0e。两次预载RAM拒绝另存，未开suite/模型。models CPU4实际测试与BF16前几条短重叠，不能声称所有GPU延迟为独占测量。
+
+**准确下一动作：** 等原gen BF16完整206 tickets审计并全部释放；根随后在CPU embedding仍OFF时执行全main生产验收和ANALYSIS/2000 paper-cluster CI/图表，保存fresh分析释放receipt；原data凭receipt才实际启CPU11436→原gen单2B/11435→原chunk真实online60+6→根IAB实际生成与发布UI→所有自身服务正常释放→四正式报告/最终反查/15验收/25签收/轻量zip/本地Git。原训练任务USER_MANUAL_RESUME，最终只通知用户GPU已释放，不自动恢复；WSL内存上限/原11434/日更不动。硬截止仍10:29:06.606796Z。
+
+
 **06:52UTC最新：** E2 9B完整行观察767/800/owner766，进入尾段，最终800哈希/token审计待owner签收。根的大对象主分析/图表将在BF16全部release且embedding未启动窗口执行；之后在线与最终UI服务，再全部释放才构建四报告/终验。新CPU embedding生命周期入口只读准备0load/0HTTP；不会抢占当前GPU或再次正文编码。本文下面0633行数是历史快照。Goal仍ACTIVE。
 
 更新2026-10-14 06:33UTC / 17:33 Sydney。Goal ACTIVE，未终验。硬截止10:29:06UTC /21:29 Sydney，campaign20261014_v2，详细恢复/准确命令见ROOT_CHECKPOINT.md。

@@ -1,5 +1,10 @@
 # 主执行器恢复点
 
+**07:27 UTC 最新覆盖（旧节保留历史）：** 主生成5520/5520已实际完成，32解析失败全部保留；E2 2400完整0错误，main9B100完整0错误。支持性judge200真实完成、1 UNKNOWN解析失败、人审均NOT_REVIEWED，原私有Ollama31596已正常卸载/关闭（Windows退出码1如实保留），11435空闲。当前唯一项目GPU任务是原gen的同BF16配对：PID9824/create1791962055.3476353/session4583；固定E2/R2同100输入/base100+adapter100+各3预热，67/100 baseline时1解析失败，余预计15–25min，不能据中间行称完成。根当前无exec/模型服务。当前源码完整离线回归：core700PASS/2skip + models24PASS，去重701PASS/1 symlink权限skip；219源前后同SHA。两个实际退出码0，最终receipt D:/RAGScope_Runtime/runs/20261014_v2/FULL_OFFLINE_REGRESSION_20261014_0658.json SHA55d9637ef34c9797ea20bccb7beef8c76e12e258fb6b58586aa22759ee232c0e。两次预载RAM拒绝另存，未开suite/模型。models CPU4实际测试与BF16前几条短重叠，不能声称所有GPU延迟为独占测量。
+
+**准确下一动作：** 等原gen BF16完整206 tickets审计并全部释放；根随后在CPU embedding仍OFF时执行全main生产验收和ANALYSIS/2000 paper-cluster CI/图表，保存fresh分析释放receipt；原data凭receipt才实际启CPU11436→原gen单2B/11435→原chunk真实online60+6→根IAB实际生成与发布UI→所有自身服务正常释放→四正式报告/最终反查/15验收/25签收/轻量zip/本地Git。原训练任务USER_MANUAL_RESUME，最终只通知用户GPU已释放，不自动恢复；WSL内存上限/原11434/日更不动。硬截止仍10:29:06.606796Z。
+
+
 **06:52UTC最新覆盖：** root只读完整行观察E2 9B767/800（未代替owner全hash/token验收），owner最近766、剩尾段；服务31596/worker23892身份及44959句柄同下。全主大对象accept/ANALYSIS/clusterCI/图表明确延后到gen BF16全部release之后且CPU embedding未启动之前；gen只继续E2scope封存/main9B本模型审计/judge/BF16，不提前main全5520分析。root当前无常驻进程。原data正在只读准备scripts/serve_online_embedding_v2.py（新增正确PID生命周期/同CPU4/-ngl0/11436/老embedding_identity SHA不改，0Popen/0HTTP），必须BF16 ports11435/11436和gpu/client/retrieval锁皆空后，根的分析释放消息才能实际启动；之后单2B GPU→原chunk online66→根最终UI→服务全部退出→四正式报告。最后由于真实路径修复/RAM安全修复/新服务入口需要一次current-source完整回归，不能引用旧679为新代码已全套。当前下一准确只读仍下列E2 OPERATOR_CHECKPOINT；不重复起活服务，旧ownercheckpoint行数可滞后，以新消息/真实进程/最终封存为准。
 
 更新 2026-10-14 06:33 UTC / 17:33 Sydney。Goal ACTIVE。硬截止 2026-10-14T10:29:06.606796Z（21:29 Sydney），不能重建goal/agent/聊天。旧完整恢复点和STATUS已逐字归档到主run/status_history，最新ROOT SHA7a69bb0510016fa6134e2fd896f0ad5358daf0c6e70765b71414bd898173ebe5，STATUS SHAf1af14dc1cfd808bb7960fc92b94b27a7ba1a510b7b9504dfa85b3d457b9d342。
