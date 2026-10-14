@@ -24,3 +24,21 @@
 ```
 
 输出强制限制在 runtime/ui_candidate 下，不能直接覆盖项目配置。刷新会再次检查服务/锁；当前收据只是当时状态。可通过 `RAGSCOPE_UI_CONFIG` 指向候选做 QA，发布由 root 在实际验收后完成。原四模型选择、单卡串行锁、生成预算、GPU lease、包字节核验、真实输入预算与原始请求落盘均由既有 UI 执行路径继续强制。
+
+
+## 实际离线应用启动QA（2026-10-14 04:49Z）
+
+`scripts/verify_ui_candidate_v2.py` 已用 models 环境中的真实 Streamlit AppTest 执行并exit0。它校验现有候选及其冻结source artifact，实际加载全509篇/6551块索引，在候选默认论文 `qasper:1503.00841` 上提出工程烟测问题“ What problem does this paper address? ”，执行BM25前10→neighbor打包，得到4片、2022个reference tokens；随后从真实E1 BM25文件校验并回放全部100条dev记录。问题由agent编写仅检验工程通路，不属于质量标签或新增实验组合。
+
+收据 `ui_candidate/OFFLINE_STARTUP_QA.json` SHA `19cb41475bd19e2643bfa1ba94b4a4d3413c1a863819711bb95a869f498630d2`，逐次真实检索结果在同目录 `OFFLINE_STARTUP_QA.retrieval.json`。HTTP attempts=0、model calls=0、Torch未导入、未启动服务器、未获取主campaign锁、项目ui.json未变。候选是04:01服务不可用的历史快照，本核验不把其状态冒称04:49服务实时就绪；未验证神经检索/生成，也没有浏览器像素检查。最终仍须root按新鲜服务窗口刷新候选、做浏览器与真实模型QA再发布。
+
+第一次QA session63667 exit1发生在AppTest构造时：全局socket.connect拦截误挡Windows asyncio的本地socketpair自管道，尚未render应用或调用模型，证据保存在 `OFFLINE_STARTUP_QA_FIRST_FAILURE.json`。修正为拒绝应用实际使用的requests/urllib两种HTTP运输、允许框架本地自管道后，真实QA正常通过。2项定向行为测试PASS（1.40秒），分别验证HTTP仍被拒绝以及Windows本地管道能正常工作；无新模型结果。
+
+准确复验命令必须使用新的输出收据路径，入口拒绝覆盖旧QA。示例：
+
+```powershell
+. ./scripts/runtime_env.ps1
+& 'D:/RAGScope_Runtime/envs/models/Scripts/python.exe' scripts/verify_ui_candidate_v2.py --output 'D:/RAGScope_Runtime/runs/20261014_v2/ui_candidate/OFFLINE_STARTUP_QA_after_changes.json'
+```
+
+只在源码或候选变化后需要复验；不要为了等待反复扫描或重跑。当前所有本代理进程已退出，无需再保留CPU模型。

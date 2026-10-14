@@ -2,7 +2,13 @@
 
 本文件是数据/检索子任务的当前准确恢复点；主STATUS/RECOVERY由root维护。不要根据下述旧PID操作其他进程，不自动恢复用户原任务。
 
-## 当前：SQuAD Hybrid100真实完成并释放，交回R3 GPU窗口（04:45Z）
+## 当前：所有本代理模型/worker已退出，UI离线工程QA完成（04:50Z）
+
+SQuAD100与simple600的完整检索上下文均已完成，退出/全部hash/ID核验见下文。新 `scripts/verify_ui_candidate_v2.py` 已实际exit0，现有runtime candidate冷启动、真实全509索引BM25 scoped查询/neighbor打包4片2022 tokens、真实dev100回放通过；HTTP/modelcalls0，Torch未导入，项目ui.json未发布。收据main/ui_candidate/OFFLINE_STARTUP_QA.json SHA19cb41475bd19e2643bfa1ba94b4a4d3413c1a863819711bb95a869f498630d2，2项HTTP/Windows管道定向行为测试PASS。首次本地框架socket guard失败也保留，详情见UI_CANDIDATE.md。此为软件/实际索引通路验证，不是生成质量或浏览器视觉验收。
+
+本代理当前没有模型、worker、campaign锁或需要poll的exec句柄。R3/GPU后续由root与chunking_core负责。下一准确准备命令是在root明确的最终服务QA窗口运行已有 `scripts/configure_ui_v2.py --output D:/RAGScope_Runtime/runs/20261014_v2/ui_candidate/ui_qa_refresh.json`（必须确认该新路径尚未用于旧快照）；仅metadata GET/固定资源hash检查，不开启模型。root负责实际浏览器/GPU QA后发布项目ui.json。不要重复启动SQuAD、simple或aux，不提前开启GPU服务，不启用未通过真实门槛的非fixed默认。
+
+## 已完成：SQuAD Hybrid100真实完成并释放，交回R3 GPU窗口（04:45Z）
 
 root提供4B完整退出收据后，按原命令执行session48604 **exit0**；自有worker33020/create1791953078.9461997、CPU4 service18392/create1791953081.5594678均已不存在。1212块封存索引一字未改、正文重编码0；100个query冷推理+3个检索预热后的cache hit共103条实际metrics，backend usage全部存在。正式100/100行、0error，完整query ID集合、scope、row/config hashes、真实模型标记、索引identity均独立通过。query固定3379 body tokens与global scope，没有读结果改选型。
 
