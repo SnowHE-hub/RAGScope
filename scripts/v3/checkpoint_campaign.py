@@ -44,15 +44,29 @@ def main():
                   active_model_processes=live, budget_snapshot=budget,
                   new_llm_requests=budget['requests_reserved'], atomization_progress=progress,
                   last_local_commit=subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=PROJECT, text=True).strip())
+    live_atom = any(p['cmdline'][1].replace('\\', '/').endswith('atomization.py') for p in live)
+    live_scoring = any(p['cmdline'][1].replace('\\', '/').endswith('score_claim_metrics.py') for p in live)
+    quotes_complete = progress.get('recorded_groups') == progress.get('expected_groups') == 558 and not live_atom
     status['tasks'].update({
-        'S1.2_actual_atomic_claim_scoring': 'RUNNING_SEGMENTATION' if live else 'SEGMENTATION_REQUIRES_TERMINAL_AUDIT',
+        'S1.2_actual_atomic_claim_scoring': 'RUNNING_FULL_SCORING' if live_scoring else 'RUNNING_SEGMENTATION' if live_atom else 'SEGMENTATION_COMPLETE_WITH_10_RETAINED_FAILURES' if quotes_complete else 'SEGMENTATION_REQUIRES_TERMINAL_AUDIT',
         'S1.3_qa_style_nli_calibration': 'FAIL_QA_WRAPPER_GATE_RETAINED',
         'S1.3_narrow_qa_completion_calibration': 'PASS_80_CONSTRUCTED_TESTS_NOT_NATURAL_ACCURACY',
     })
     status['completed_evidence'].update(quote_groups_recorded=progress.get('recorded_groups', 0),
         quote_groups_valid=progress.get('valid_groups', 0), quote_groups_failed=progress.get('failures', 0),
         nli_qa_style_tests=72, nli_narrow_completion_tests=80)
-    status['tasks']['S1.2_claim_support_citation_metrics'] = 'IMPLEMENTED_PENDING_REAL_FULL_SCORING'
+    status['tasks']['S1.2_claim_support_citation_metrics'] = 'RUNNING_REAL_FULL_SCORING' if live_scoring else 'IMPLEMENTED_PENDING_REAL_FULL_SCORING'
+    score_path = run/'claim_scores_cpu_v3/SUMMARY.json'
+    if score_path.exists():
+        scores = json.loads(score_path.read_text('utf-8'))
+        status['completed_evidence'].update(actual_claim_score_answers=scores['answers'],
+            actual_claim_score_relationships=scores['relationships'])
+        if scores['answers'] == scores['expected'] == 5720:
+            status['tasks']['S1.2_claim_support_citation_metrics'] = 'PASS_FULL_SCORING_WITH_UNCERTAINTY'
+    if (run/'NLI_GPU_SCORING_CALIBRATION.json').exists():
+        calibration = json.loads((run/'NLI_GPU_SCORING_CALIBRATION.json').read_text('utf-8'))
+        status['tasks']['S1.3_actual_gpu_stack_calibration'] = calibration['status']
+        status['completed_evidence']['actual_gpu_calibration_tests'] = sum(v['n'] for v in calibration['families'].values())
     if (run/'AUXILIARY_SPLIT_VALIDATION.json').exists():
         auxiliary = json.loads((run/'AUXILIARY_SPLIT_VALIDATION.json').read_text('utf-8'))
         if auxiliary['status'] == 'PASS_INDEPENDENT_SCHEMA_CORRECT_VALIDATION' and auxiliary['primary_overlap_n'] == 0:
@@ -67,9 +81,9 @@ def main():
         status['tasks']['S1.5_model_scale_length_and_lora_latency_decomposition'] = 'PASS_OLD_DESCRIPTIVE_DECOMPOSITION'
     if (run/'POLAR_PREFIX_DIAGNOSTIC.json').exists():
         status['tasks']['S1.5_yes_no_prefix_vs_word_score'] = 'PASS_DIAGNOSTIC_NOT_FACTUAL_ACCURACY'
-    status['next_action'] = ('Observe the exact existing atomization PID/session57682; do not relaunch while live. '
-        'After actual exit run GPU judge calibration, full old claim/context/citation scoring and '
-        'calibrated 9B context-only judging. H_tasks source-backed references remain pending. Then S2-S6.')
+    status['next_action'] = ('Observe the exact current CPU scoring worker/session24620; do not relaunch while live. '
+        'After full scoring actually exits, inspect 5720 records, UNKNOWN bounds and natural blind subset, then '
+        'run calibrated 9B context-only judging. H_tasks source-backed references remain pending. Then S2-S6.')
     status['next_command'] = (
         ". ./scripts/runtime_env.ps1\n"
         "& 'D:/RAGScope_Runtime/envs/core/Scripts/python.exe' scripts/v3/checkpoint_campaign.py --campaign '" + str(run).replace('\\', '/') + "'")
@@ -90,13 +104,13 @@ def main():
         + 'NLI QA 校准：完整句 24/24，短片段 6/24，问题答案包装 12/24；后两者不得承担自动事实门槛，人工 NOT_REVIEWED。\n\n'
         + '参考答案不可见的窄 QA 完句规则实际 80/80 构造校准通过；其余语法/短片段仍 UNKNOWN，不宣称自然语料准确率。严禁与分割同时加载 CPU 裁判，以免再次耗尽内存余量。\n\n'
         + '下一条准确命令：\n```powershell\n' + status['next_command'] + '\n```\n\n'
-        + 'V4实际终端句柄 session57682；只观察这个句柄或准确进程，不再重启分割。\n\n'
+        + 'V4实际终端session57682已exit2：558真实请求齐全，548有效、10契约失败保留；进程已不存在，私有服务卸载/退出。不得重跑分割。\n\n'
+        + '实际GPU裁判210构造检查全部通过，session46755 exit0。评分12条冒烟因均UNKNOWN没有关系调用；原空缓存汇总bug session29339 exit1，已保存源与日志，修复后复用12条且actualexit0。\n\n'
+        + 'GPU全量session80992/66941均actualexit1，分别在可用内存3153125376/3206303744字节触发3GiB守卫；其部分结果保留。流式修复后仍不足，GPU全量停止有界重试。\n\n'
+        + '唯一CPU兼容全量正在session24620执行，输出 claim_scores_cpu_v3/；使用已校准CPU依赖栈与相同FP32模型，不混入GPU部分分数。只观察实际PID/创建时间/argv，不并行加载任何裁判。\n\n'
         + '40范围题已封存，30任务来源论文已冻结且与主分割241篇零交叉；H_tasks参考未生成。117个独立问题/上下文输入已冻结。\n\n'
         + '分割确认完整558组并实际退出后，依次执行（一个GPU模型，严禁并发）：\n```powershell\n'
         + ". ./scripts/runtime_env.ps1\n"
-        + "& 'D:/RAGScope_Runtime/envs/v3_metrics/Scripts/python.exe' scripts/v3/calibrate_gpu_claim_judge.py --campaign 'D:/RAGScope_Runtime/runs/v3_20261015_014506' --resume\n"
-        + "& 'D:/RAGScope_Runtime/envs/v3_metrics/Scripts/python.exe' scripts/v3/score_claim_metrics.py --campaign 'D:/RAGScope_Runtime/runs/v3_20261015_014506' --resume --device cuda --max-records 12\n"
-        + "& 'D:/RAGScope_Runtime/envs/v3_metrics/Scripts/python.exe' scripts/v3/score_claim_metrics.py --campaign 'D:/RAGScope_Runtime/runs/v3_20261015_014506' --resume --device cuda\n"
         + "& 'D:/RAGScope_Runtime/envs/core/Scripts/python.exe' scripts/v3/run_context_judge.py --campaign 'D:/RAGScope_Runtime/runs/v3_20261015_014506' --resume\n```\n\n"
         + '每条实际终态和检查通过后才执行下一条。GPU工程门槛失败不能自动进入全量。S2–S6尚未执行，Goal active。\n')
     for destination in (PROJECT / 'docs/execution/v3/RECOVERY.md', run / 'RECOVERY.md'):

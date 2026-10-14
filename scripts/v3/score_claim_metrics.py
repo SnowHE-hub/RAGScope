@@ -107,10 +107,38 @@ def main():
             'unknowns': 'point estimate null; complete lower/upper retained; failed applicable QA zero',
             'torch': importlib.metadata.version('torch'), 'transformers': importlib.metadata.version('transformers'),
             'human_review_status': 'NOT_REVIEWED', 'new_llm_requests': 0}
-        folder = run/('claim_scores_'+args.device)
+        parent_folder = run/('claim_scores_'+args.device+'_v2')
+        if (parent_folder/'answers.jsonl').exists():
+            parent_config = json.loads((parent_folder/'answers.config.json').read_text('utf-8'))
+            if any(parent_config.get(k) != v for k, v in config.items() if k != 'runner'):
+                raise ValueError('Parent scoring semantics differ; no partial-result adoption')
+            config['reused_parent'] = {'answers': artifact(parent_folder/'answers.jsonl'),
+                'config': artifact(parent_folder/'answers.config.json'),
+                'relationships': artifact(parent_folder/'relationships.jsonl') if (parent_folder/'relationships.jsonl').exists() else None,
+                'repair': 'stream old rows instead of retaining all decoded payloads; same float32 model and scoring semantics'}
+        folder = run/('claim_scores_'+args.device+'_v3')
         folder.mkdir(exist_ok=True)
         store = RecordStore(folder/'answers.jsonl', config, max_records=5720)
         cache = RecordStore(folder/'relationships.jsonl', {**config, 'purpose': 'input-hash keyed NLI relationship cache'}, max_records=100000)
+        # An all-UNKNOWN smoke can legitimately execute zero relationships.
+        cache.path.touch(exist_ok=True)
+        if 'reused_parent' in config:
+            for number, row in enumerate(read_records(parent_folder/'answers.jsonl'), 1):
+                if row['config_hash'] != signature(parent_config):
+                    raise ValueError('Parent answer record configuration differs')
+                body = {k: v for k, v in row.items() if k not in ('record_id', 'record_hash', 'config_hash', 'recorded_at')}
+                body['inherited_source'] = {'path': str(parent_folder/'answers.jsonl'), 'line': number, 'record_hash': row['record_hash']}
+                store.add(row['record_id'], body)
+            if (parent_folder/'relationships.jsonl').exists():
+                expected_cache_config = {**parent_config, 'purpose': 'input-hash keyed NLI relationship cache'}
+                if json.loads((parent_folder/'relationships.config.json').read_text('utf-8')) != expected_cache_config:
+                    raise ValueError('Parent relationship cache configuration differs')
+                for number, row in enumerate(read_records(parent_folder/'relationships.jsonl'), 1):
+                    if row['config_hash'] != signature(expected_cache_config):
+                        raise ValueError('Parent relationship record configuration differs')
+                    body = {k: v for k, v in row.items() if k not in ('record_id', 'record_hash', 'config_hash', 'recorded_at')}
+                    body['inherited_source'] = {'path': str(parent_folder/'relationships.jsonl'), 'line': number, 'record_hash': row['record_hash']}
+                    cache.add(row['record_id'], body)
         db = sqlite3.connect('file:'+str(run/'S0_EVIDENCE.sqlite')+'?mode=ro', uri=True)
         lora_inputs = {x['query']['query_id']: x['context_bundle'] for x in json.loads(lora_path.read_text('utf-8'))['inputs']}
         @lru_cache(maxsize=32)
@@ -123,18 +151,21 @@ def main():
                 for condition in ('baseline', 'adapted'):
                     row = dict(pair[condition], record_id='LORA:'+condition+':'+pair['query_id'])
                     yield row
-        pending = [(r['record_id'], r) for r in old_rows() if r['record_id'] not in store.ids]
-        if args.max_records is not None:
-            if args.max_records < 1:
-                raise ValueError('Invalid smoke count')
-            pending = pending[:args.max_records]
+        target_count = 5720 if args.max_records is None else args.max_records
+        if target_count < 1 or target_count > 5720:
+            raise ValueError('Invalid bounded record count')
         started = time.monotonic()
-        if pending:
+        if len(store.ids) < target_count:
             with GpuSession(run) if args.device == 'cuda' else nullcontext() as gpu:
                 nli = WindowedNLI(chosen['directory'], device='cuda:0' if gpu else 'cpu')
                 judge = CachedJudge(nli, cache, completion_gate=completion['completion_eligible'], gpu=gpu)
                 try:
-                    for rid, row in pending:
+                    for row in old_rows():
+                        rid = row['record_id']
+                        if rid in store.ids:
+                            continue
+                        if len(store.ids) >= target_count:
+                            break
                         require_ram(2*1024**3)
                         if row['failed'] or row['model_abstained'] or not row['answer'].strip():
                             metrics = retained_failure_metrics('FAILED_OR_ABSTAINED_OR_EMPTY')
