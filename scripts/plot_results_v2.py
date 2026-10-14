@@ -220,20 +220,71 @@ def legacy_figures(source, output):
     save(fig, output, 'e0_reconstructed_retrieval', report['groups'], source)
 
 
+def stress_figures(source, output):
+    """Plot completed dev resource diagnosis, never main quality evidence."""
+    audit = json.loads(source.read_text(encoding='utf-8'))
+    if (audit.get('status') != 'PASS' or audit.get('formal_n') != 16
+            or audit.get('warmup_n') != 6 or not verify_artifacts(audit['artifacts'])):
+        raise ValueError('Complete independently checked stress22 source required')
+    records = {}
+    for window in (4096, 8192):
+        paths = [Path(a['path']) for a in audit['artifacts'] if Path(a['path']).name == f'window_{window}.jsonl']
+        if len(paths) != 1:
+            raise ValueError('Stress formal source is ambiguous')
+        rows = [json.loads(line) for line in paths[0].read_text(encoding='utf-8').splitlines() if line.strip()]
+        if any(r['record_hash'] != signature({k: v for k, v in r.items() if k != 'record_hash'}) for r in rows):
+            raise ValueError('Stress raw record hash differs')
+        if len(rows) != 8 or any(r.get('error') or r.get('real_model') is not True for r in rows):
+            raise ValueError('Stress formal population differs')
+        records[window] = {r['query_id']: r for r in rows}
+    ids = sorted(records[4096])
+    if set(ids) != set(records[8192]):
+        raise ValueError('Paired stress query populations differ')
+    data = []
+    fig, axes = plt.subplots(1, 3, figsize=(12, 4.7), layout='constrained')
+    for i, qid in enumerate(ids):
+        latency = [records[w][qid]['timings']['generation_ms']/1000 for w in (4096, 8192)]
+        axes[0].plot([0, 1], latency, marker='o', linewidth=.7, alpha=.7, color=BLUE)
+    for window in (4096, 8192):
+        rows = list(records[window].values())
+        peak = max(r['resources']['peak_sampled_device_total_used_bytes'] for r in rows)/2**30
+        minimum = min(r['resources']['minimum_sampled_host_available_bytes'] for r in rows)/2**30
+        data.append({'window': window, 'actual_input_tokens': rows[0]['expected_actual_input_tokens'],
+            'formal_n': len(rows), 'mean_generation_s': float(np.mean([r['timings']['generation_ms']/1000 for r in rows])),
+            'sampled_device_max_gib': peak, 'minimum_host_available_gib': minimum,
+            'record_hashes': [r['record_hash'] for r in rows]})
+    for ax, field, label in ((axes[1], 'sampled_device_max_gib', '采样全设备显存最大值（GiB）'),
+                            (axes[2], 'minimum_host_available_gib', '采样主机可用RAM最小值（GiB）')):
+        values = [r[field] for r in data]
+        ax.bar([0, 1], values, color=BLUE, width=.5)
+        ax.set_ylim(0, max(values)*1.3); ax.set_ylabel(label)
+        for i, value in enumerate(values):
+            ax.text(i, value+.06, f'{value:.3f}', ha='center')
+    axes[0].set_ylabel('正式请求生成时间（秒）'); axes[0].set_ylim(bottom=0)
+    axes[0].set_title('同8题配对的实际观测', loc='left', fontsize=11)
+    for ax in axes:
+        ax.set_xticks([0, 1], ['4K / 输入3584', '8K / 输入7680']); ax.grid(axis='y')
+    fig.suptitle('2B固定dev上下文诊断：时间与资源', x=.01, ha='left', fontsize=15, fontweight='bold')
+    fig.supxlabel('每窗口8正式请求；排除3次预热 · R3与辅助CPU4工作同时运行\n设备量含其他进程、采样可能漏峰值；这是资源诊断，不是质量排名或最低硬件要求。', fontsize=9)
+    save(fig, output, 'context_stress_resource', data, source)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--pilot', type=Path); parser.add_argument('--analysis', type=Path)
     parser.add_argument('--e3-analysis', type=Path)
     parser.add_argument('--training-audit', type=Path)
     parser.add_argument('--legacy-analysis', type=Path)
+    parser.add_argument('--context-stress', type=Path)
     parser.add_argument('--output', required=True, type=Path)
     args = parser.parse_args()
-    if not any((args.pilot, args.analysis, args.e3_analysis, args.training_audit, args.legacy_analysis)): parser.error('A verified source is required')
+    if not any((args.pilot, args.analysis, args.e3_analysis, args.training_audit, args.legacy_analysis, args.context_stress)): parser.error('A verified source is required')
     if args.pilot: pilot(args.pilot, args.output)
     if args.analysis: main_figures(args.analysis, args.output)
     if args.e3_analysis: e3_figures(args.e3_analysis, args.output)
     if args.training_audit: training_figures(args.training_audit, args.output)
     if args.legacy_analysis: legacy_figures(args.legacy_analysis, args.output)
+    if args.context_stress: stress_figures(args.context_stress, args.output)
 
 
 if __name__ == '__main__':

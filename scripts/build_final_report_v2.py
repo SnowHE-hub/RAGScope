@@ -183,7 +183,7 @@ def build(campaign, analysis_path, output, *, allow_incomplete=False):
         "## 本次报告来源", ""]
     figures = []
     for name, label in (("main_quality", "模型与方法F1"), ("quality_latency", "质量与生成耗时"),
-                        ("evidence_answer", "实际证据与答案F1")):
+                        ("evidence_answer", "实际证据与答案F1"), ("context_stress_resource", "4K/8K实际资源诊断")):
         figure = output.parent / "figures" / (name + ".png")
         if figure.is_file():
             sources.append(artifact(figure))
