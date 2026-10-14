@@ -32,7 +32,8 @@ def main():
             if info['name'].lower() == 'python.exe' and len(argv) > 1 and argv[1].replace('\\', '/') in {
                     'scripts/v3/run_atomization.py', 'scripts/v3/resume_atomization.py',
                     'scripts/v3/calibrate_gpu_claim_judge.py', 'scripts/v3/score_claim_metrics.py',
-                    'scripts/v3/run_context_judge.py'} and str(run).replace('\\', '/') in [a.replace('\\', '/') for a in argv]:
+                    'scripts/v3/run_context_judge.py', 'scripts/v3/run_protocol_study.py',
+                    'scripts/v3/build_task_references.py'} and str(run).replace('\\', '/') in [a.replace('\\', '/') for a in argv]:
                 live.append(info)
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             continue
@@ -81,15 +82,49 @@ def main():
         status['tasks']['S1.5_model_scale_length_and_lora_latency_decomposition'] = 'PASS_OLD_DESCRIPTIVE_DECOMPOSITION'
     if (run/'POLAR_PREFIX_DIAGNOSTIC.json').exists():
         status['tasks']['S1.5_yes_no_prefix_vs_word_score'] = 'PASS_DIAGNOSTIC_NOT_FACTUAL_ACCURACY'
-    status['next_action'] = ('Observe the exact current CPU scoring worker/session24620; do not relaunch while live. '
-        'After full scoring actually exits, inspect 5720 records, UNKNOWN bounds and natural blind subset, then '
-        'run calibrated 9B context-only judging. H_tasks source-backed references remain pending. Then S2-S6.')
+    if (run/'CLAIM_SCORING_RESOURCE_BLOCK.json').exists():
+        blocked = json.loads((run/'CLAIM_SCORING_RESOURCE_BLOCK.json').read_text('utf-8'))
+        status['tasks']['S1.2_claim_support_citation_metrics'] = 'BLOCKED_RESOURCE_BOUNDED_ATTEMPTS_EXHAUSTED'
+        status['tasks']['S1.3_natural_blind_review'] = 'PARTIAL_12_SCORE_ROWS_FULL_REFERENCE_SUPPORT_BLOCKED'
+        status['completed_evidence']['actual_claim_score_answers'] = blocked['actual_cpu_partial_answers']
+        status['completed_evidence']['actual_claim_score_relationships'] = blocked['attempts'][-1]['relationships']
+        status['stages']['S1'] = 'BLOCKED_REQUIRED_FULL_CLAIM_METRICS_OTHER_DIAGNOSTICS_PASS'
+    if (run/'CONTEXT_DIAGNOSIS.json').exists():
+        diagnosis = json.loads((run/'CONTEXT_DIAGNOSIS.json').read_text('utf-8'))
+        status['tasks']['S1.4_context_only_sufficiency_inputs'] = 'PASS_117_ACTUAL_CONTEXT_PROXY_JUDGEMENTS'
+        status['tasks']['S1.5_new_refusal_context_assessment'] = 'PASS_23_INDEPENDENT_PROXY_VERDICTS_NOT_HUMAN'
+        status['completed_evidence']['lora_refusal_context_counts'] = diagnosis['new_refusal_context_counts']
+    if (run/'S2_PROTOCOL_ANALYSIS.json').exists():
+        protocol = json.loads((run/'S2_PROTOCOL_ANALYSIS.json').read_text('utf-8'))
+        status['completed_evidence'].update(S2_main_matrix_records=protocol['matrix_n'], S2_G0_reused=144,
+            S2_actual_smoke_calls=72, S2_new_main_requests=720)
+        status['tasks']['S2.1_actual_direct_pipeline_smoke'] = 'PASS_72_CALLS_36_EQUAL_PAIRS_NO_TOKEN_OR_CHANNEL_MISMATCH'
+        status['tasks']['S2.2_G0_G3_frozen24_matrix'] = 'PASS_864_RECORDS_OLD_EXPOSED_DIAGNOSTIC_ONLY'
+        status['tasks']['S2.2_oracle_padded36'] = 'PENDING'
+        status['tasks']['S2.2_prior_extra6'] = 'PENDING_6_PRIOR_CALLS_DONE_6_ADDITIONAL_PLANNED'
+        status['stages']['S2'] = 'RUNNING_REQUIRED_SUPPLEMENT_PENDING'
+        status['current_stage'] = 'S2_AND_S0_AUXILIARY_REFERENCES'
+    if (run/'H_TASKS_CONSTRUCTION.json').exists():
+        construction = json.loads((run/'H_TASKS_CONSTRUCTION.json').read_text('utf-8'))
+        status['tasks']['S0.3_scope_tasks_synthetic_holdout'] = 'PASS_SYNTHETIC_SOURCE_CONSTRUCTION_WITH_RETAINED_TEACHER_FAILURES'
+        status['completed_evidence']['H_tasks_valid_tasks'] = construction['valid_task_n']
+        status['completed_evidence']['H_tasks_teacher_failed_or_blocked_papers'] = construction['failed_or_blocked_papers']
+    if (run/'H_TASKS_SOURCE_REPAIR.json').exists():
+        repaired = json.loads((run/'H_TASKS_SOURCE_REPAIR.json').read_text('utf-8'))
+        status['completed_evidence']['H_tasks_valid_tasks'] = repaired['valid_task_n']
+        status['completed_evidence']['H_tasks_invalid_task_branches_retained'] = repaired['failed_task_n']
+        status['tasks']['S0.3_scope_tasks_synthetic_holdout'] = 'PASS_40_SCOPE_20_SOURCE_VERIFIED_SYNTHETIC_TASKS_FAILURES_RETAINED'
+        status['stages']['S0'] = 'PASS_WITH_SYNTHETIC_SOURCE_FAILURES_RETAINED'
+    status['next_action'] = ('H_tasks teacher session71248 actually exited0; no model job remains. '
+        '20 source-verified synthetic task references frozen in questions_v2/gold_v2, 29 invalid branches preserved. Finish S2 required Oracle padded36 '
+        'and six extra prior-knowledge probes, then S3 retrieval funnel and core-first packing. No more old NLI reloads.')
     status['next_command'] = (
         ". ./scripts/runtime_env.ps1\n"
         "& 'D:/RAGScope_Runtime/envs/core/Scripts/python.exe' scripts/v3/checkpoint_campaign.py --campaign '" + str(run).replace('\\', '/') + "'")
     status['next_command_status'] = 'READ_ONLY_OBSERVATION_AND_CHECKPOINT; no model call'
-    status['next_tool_call'] = {'tool': 'write_stdin', 'args': {'session_id': 24620,
-        'chars': '', 'yield_time_ms': 1000, 'max_output_tokens': 1500}}
+    status['next_tool_call'] = {'tool': 'exec_command', 'args': {'cmd':
+        "Get-Content -LiteralPath 'D:/RAGScope_Runtime/runs/v3_20261015_014506/S2_PROTOCOL_INPUTS.jsonl' -TotalCount 1",
+        'max_output_tokens': 2200}}
     status.pop('resume_command_after_verified_exit', None)
     observation = {'observed_utc': now.isoformat(), 'live_processes': live, 'budget': budget,
                    'atomization': progress, 'process_observation_not_terminal_exit_receipt': True}
@@ -110,12 +145,12 @@ def main():
         + 'V4实际终端session57682已exit2：558真实请求齐全，548有效、10契约失败保留；进程已不存在，私有服务卸载/退出。不得重跑分割。\n\n'
         + '实际GPU裁判210构造检查全部通过，session46755 exit0。评分12条冒烟因均UNKNOWN没有关系调用；原空缓存汇总bug session29339 exit1，已保存源与日志，修复后复用12条且actualexit0。\n\n'
         + 'GPU全量session80992/66941均actualexit1，分别在可用内存3153125376/3206303744字节触发3GiB守卫；其部分结果保留。流式修复后仍不足，GPU全量停止有界重试。\n\n'
-        + '唯一CPU兼容全量正在session24620执行，输出 claim_scores_cpu_v3/；使用已校准CPU依赖栈与相同FP32模型，不混入GPU部分分数。只观察实际PID/创建时间/argv，不并行加载任何裁判。\n\n'
+        + 'CPU兼容session24620也actualexit1；335实际评分/230关系判断保留。全量旧NLI已到有界阻断，不再加载。所有5720条覆盖/UNKNOWN及盲评120条部分包保存，未执行行不冒充模型结果。\n\n'
         + '40范围题已封存，30任务来源论文已冻结且与主分割241篇零交叉；H_tasks参考未生成。117个独立问题/上下文输入已冻结。\n\n'
-        + '分割确认完整558组并实际退出后，依次执行（一个GPU模型，严禁并发）：\n```powershell\n'
-        + ". ./scripts/runtime_env.ps1\n"
-        + "& 'D:/RAGScope_Runtime/envs/core/Scripts/python.exe' scripts/v3/run_context_judge.py --campaign 'D:/RAGScope_Runtime/runs/v3_20261015_014506' --resume\n```\n\n"
-        + '每条实际终态和检查通过后才执行下一条。GPU工程门槛失败不能自动进入全量。S2–S6尚未执行，Goal active。\n')
+        + '9B上下文独立校准59/60。session21014在104/117后资源exit1，6771只续跑13条actualexit0；117条完成。23新增拒答：YES8/NO12/UNKNOWN3，均为proxy，不是人评。\n\n'
+        + 'S2输入冻结24题×2上下文，G0真实144复用。72新direct/pipeline调用session65647 exit0，36配对完全一致、无token/思考通道差异。主矩阵session84289 exit0，864完整记录（新720）独立计分验证；含6prior探针。\n\n'
+        + 'H_tasks整篇来源session71248 actualexit0，30请求全部完成；初版16有效任务/20失败论文。一次零生成成本的空白格式修复和独立任务验证后，20有效任务、29失败分支保留；H_tasks.questions_v2/gold_v2为当前辅助人造任务集，不是官方QASPER或操作者盲测。无后台模型进程。\n\n'
+        + '参考构建实际退出后，先核验 H_TASKS_CONSTRUCTION.json、全部失败与有效参考；再实现/执行尚未完成的S2 Oracle等长噪声36和额外prior6，之后S3–S6。不要重跑主矩阵或NLI。Goal active，execution_complete仍false。\n')
     for destination in (PROJECT / 'docs/execution/v3/RECOVERY.md', run / 'RECOVERY.md'):
         destination.write_text(recovery, encoding='utf-8')
     print(canonical_json(observation))
