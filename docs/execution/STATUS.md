@@ -4,6 +4,8 @@
 
 **当前覆盖下方早期快照：** GPU360已独立PASS/0error/13222窗/max512/实际worker退出，CPU300+partial29原SHA不变；validation b10cb5b52bb54606eada1fccfbedcb0a302c22a4bfdd6acd0c5f77563fbdef89。Laya CPU4真实load75.774s/3devwarmups PASS，session76916/PID11880，1080正式现300，尚未全完。root main spec907282...9f66已配置，main freeze session73845/PID24476正在真实算统一预算，不重复启动；gen无服务/HOLD，FROZEN后fresh≥3GiB再执行主2B优先队列。S3.1接口55相关JUnit/8当前generation源核验和S2.4有效660真实R3组合已各签收，仍不是最终15验收。详细当前活进程/下一准确工具命令以ROOT_CHECKPOINT顶部为准；不要据下方历史“GPU正在运行”或“Laya等待”段重启模型。
 
+**05:10UTC已正式FROZEN覆盖上句freeze进程：** root73845 exit0，main manifest ac56e65060b49d8d536fdaf1584727a1f0e736b4ab1266c1845c0c1d6383f07c，20 READY/5520tasks、无blocked/pending；E2/E3外部3600不重跑。ROOT_FROZEN_HANDOFF SHA00f60dffbfcbfa3f5d0e03951813df343b0f1bf4e4337d2442982cc94882a02f。gen已获即时正式GPU队列授权，freshguard通过后先main2B local1200产ROUTE780，其后4B420/LFM200/E2 9B800/main9B100/judge/BF16。实际新service/worker及质量结果以新receipt为准，FROZEN不是5520生成完成。Laya继续CPU4，最新540/1080；root无liveexec。后续仍须所有真实运行/15终验，不以输入冻结结束。
+
 ## 最新授权和资源
 
 用户明确“现在可以在任何阶段使用GPU，我没有任何进程跟你抢夺GPU资源”，覆盖任务书/AGENTS旧S1/S2 CPU-only限制。旧CPU结果保留原身份，新GPU执行明确设备/后端与可比性，仍单卡串行加载本项目模型。不操作原11434、日更、WSL、驱动和安全工具。
