@@ -1,23 +1,28 @@
 # Current generation / training handover
 
-Updated after completed E0 CPU handover, 2026-10-14 local date. This file contains current state only; historical measurements remain in TRAINING_REPORT.md and immutable runtime logs.
+Updated for the reported host restart at 2026-10-14 07:03 Australia/Sydney. This timestamp is a parent-provided restart notice, not a restart performed by this task. Exact commands and time-estimate assumptions: [GENERATION_RESUME_20261014.md](GENERATION_RESUME_20261014.md).
 
-## Current resource ownership
+## Current execution boundary
 
-E3 is COMPLETE: 1200/1200 real formal rows, three models × 400, zero request errors, 1200 actual token-count parity checks passed, and nine separate warmups. Both 4B exec78438 and 9B exec39846 exited 0.
+No generation model or service has been started by this recovery preflight. Do not treat any pre-restart PID, service receipt, port state, GPU measurement or ACQUIRED lease as current authority. Original workloads remain USER_MANUAL_RESUME; never restart them or their daily jobs. WSL configuration remains unchanged.
 
-Own Ollama11435 was explicitly unloaded and stopped. PID14564 is absent, port11435 is closed, gpu.lock was reacquired and released, GPU0 MiB / 0%, and host available RAM2,989,690,880bytes at 2026-10-13T17:21:27Z. GPU_RELEASE_RECEIPT.json records that Windows service terminate returned1 after successful explicit unload; this is separate from the successful formal generation processes.
+Parent coordinates this resource order: data full structured sources/test/global/ROUTE → CPU R3 → our 22-call 2B context stress → Laya → remaining SQuAD/simple sources → main freeze. Await an explicit post-R3 handoff, a freshly validated lease and the existing effective 3 GiB host-RAM guard before stress. Do not poll/operate data worker handles or consume network recovery attempts.
 
-COMPLETION_RECEIPT.json seals the original manifest, frozen inputs, every record/config/summary file and all1200 row hashes. Global budget is1421 total /1200 core. Root owns full E3 analysis in fresh analysis_complete; preserve the older2B analysis snapshot unchanged.
+Current-boot validation now rejects old leases at training, service, formal HTTP/UI, pilot and PowerShell GPU entry points. Required new fields are host_platform=sys.platform, host_boot_time_unix=psutil.boot_time(), validated_at=time.time(); finite numeric timestamps, boot difference ≤2 s, validation at/after boot and not future. Root owns read-only safety inspection, old-lease archival and fresh issue. This agent did not change the actual lease.
 
-CPU embedding11436 and retrieval matrix remain active under data_preparation. No project generation or training model is resident. Original workloads remain USER_MANUAL_RESUME; never restart them or their daily jobs.
+Root subsequently archived the old lease and issued a current-boot receipt, SHA884715ec4556624cd069b461b1b9cfc3483f0bab32f6f77c6cf2165f6d6b0cac. Its actual validator check passed; evidence is main run/GPU_LEASE_REVALIDATION_20261014.json. The new receipt records NOT_RUNNING_OBSERVED_WSL_OFF and USER_MANUAL_RESUME, linking the old lease as historical artifact rather than carrying old PIDs forward as active. This does not authorize starting stress before the separate resource handoff.
 
-Production acceptance is implemented and executed: scripts/accept_generation_v2.py --scope e3 returns COMPLETE1200/1200; --scope main returns PENDING because the final main manifest is not frozen. Ten contract tests passed. Integrity failures use FAILED_VALIDATION, evidence-backed resource blocks use BLOCKED. The audit itself makes zero generation calls. Root completed analysis_complete and an independent30-number check; do not overwrite the old2B snapshot.
+Recovery audit directory: D:/RAGScope_Runtime/runs/20261014_v2/recovery/generation_post_reboot_20261014. PREFLIGHT.json verifies 18 E3 sealed artifacts and 1200 original row hashes/tickets, the complete best LoRA checkpoint, candidate/context linkage, and frozen stress implementation/source hashes. GPU_LEASE_IMPLEMENTATION_AUDIT.json binds the 50 passing CPU tests and real OLD_LEASE_REJECTION.json. The old real lease was rejected with CLI exit2; PowerShell cleared its CUDA variable and rejected it; lease SHA stayed unchanged. No model requests, service starts or downloads.
 
-Next task, assigned by root: implement and freeze the S3.5 4K/8K context-window resource diagnostic, only2B Q4, at most20 dev questions selected by source feasibility, three warmups per condition, global budget. Context must actually approach each true-template window budget, with512 output reserved, canonical source coordinates and no injected answer labels. Do not start GPU until data_preparation has normally finished its11-group matrix plus bounded CPU batch benchmark and explicitly released the resource window. Then run only these two conditions, retain errors, unload and stop own service. Do not add this diagnostic to main quality rankings.
+E3 is COMPLETE1200/1200 (three models ×400, zero request errors, token parity1200, nine separate warmups). Do not rerun it. Main default_spec automatically references its immutable manifest; an in-memory E3-only parent import exercise passed exact task/input/model ownership checks. Full main import remains pending until its real manifest is frozen; this audit does not claim main completion. Preserve both old2B analysis and complete E3 analysis artifacts.
 
-Diagnostic implementation and realCPUfreeze are now done: scripts/run_context_stress_v2.py, ragscope/experiments/context_stress.py, six offline testsPASS. Frozen run 20261014_v2_context_stress selected8/100dev because92 papers are too short for near8K input; all exclusions and a100-question canonical length audit are retained. The16paired input counts are exactly3584/7680, each plus512output. Manifest_hash e87d506a9eab594eac0f088317d094df315c82097bc3eaa3ce0a56cbb04589c9. Do not modify these frozen implementation files before execution. No GPU call yet. Data completed11/11 and batch benchmark33240 exited0. One actual pre-service resource guard rejected without loading a model: require_ram(2GiB) requests additional2GiB plus default1GiB reserve, effective3GiB; available was2.714GB. EXECUTION_READINESS remainsPENDING; do not lower the frozen guard or repeatedly retry. Wait for normal structured+ROUTE CPU handover or confirmed effective3GiB availability, then safely archive only own generation.stop after confirming prior service EXITED, start serve_generation.py -Gpu, and run stress --mode run --window4096 then unload/check then window8192. Exact spaced commands are in CONTEXT_STRESS.md. Source-scope engineering guard failure was retained and fixed before successful freeze; it was not a model call.
-## E3 actual core experiments
+The read-only budget snapshot remains1421/10000 used,1200 core used:8579 total calls available and2400 protected for E2. Maximum remaining main formal calls4320 plus12 initial model warmups; stress22, pairedBF16206, online66 and judge≤200 leave3753 calls before additional restarts/retries, if every planned group is feasible. All further attempts remain counted; no budget was reserved by this audit.
+
+The 2B 4K/8K stress remains frozen and unrun. Eight dev questions ×two windows plus six warmups =22 calls; exact prompt counts3584/7680 plus512 outputs. Manifest e87d506a9eab594eac0f088317d094df315c82097bc3eaa3ce0a56cbb04589c9. Both frozen stress source files are unchanged by lease fixes. Historical single pre-load RAM rejection remains distinct from model OOM. Keep it PENDING, not hardware-BLOCKED merely because it is queued.
+
+LoRA formal training is COMPLETE122steps/972train/59dev; do not train again. Real CPU check-only reverified beststep122 checkpoint and returned exit2 WAITING_FOR_FROZEN_GENERATION. Paired100+100 BF16 evaluation has not run and waits for final main E2/R2 contexts plus its own resource handoff.
+
+## Completed E3 and historical resource measurements
 
 Shard directory D:/RAGScope_Runtime/runs/20261014_v2_generation_e3.
 Manifest_hash 8c6a71031d25f0a0218a85a3abbd9d8dc35d3c0f56dafa046e8249beeffb5599.
@@ -46,7 +51,7 @@ Earlier unseeded-initialization10steps and preload RAM failures are retained dia
 
 ## Pending same-precision comparison and online work
 
-Main E2/R2 finalcontexts remain pending completion of the active retrieval matrix and dev selection. Paired100BF16 evaluation has NOT run. RealCPUcheck-only wrote paired_test100/READINESS.json WAITING_FOR_FROZEN_GENERATION,weights_loaded=false,gpu_used=false,generation_calls0.
+Dev selections are already frozen: simple F512_O0, structured R512, both neighbor expansion. Main E2/R2 final contexts remain pending completion of full-corpus retrieval materialization and R3; this is not pending dev selection. Paired100BF16 evaluation has NOT run. RealCPUcheck-only wrote paired_test100/READINESS.json WAITING_FOR_FROZEN_GENERATION,weights_loaded=false,gpu_used=false,generation_calls0.
 When finalcontexts and a newGPUhandover are ready:
 
 ```powershell
@@ -59,4 +64,4 @@ Online runner: scripts/run_online_routing_v2.py --campaign <main> --routing-dir 
 
 Supportjudge implemented,notrun: scripts/run_support_judge_v2.py --campaign-dir <main> freezes≤200stratifiedE2IDs beforejudging; --run requires completeE2 andpinned4B/9B. Rawprompt/outputs/hashes preserved,failuresunknown,selfmodelbiasflagged,humanreviewNOT_REVIEWED.
 
-Currentsoftware verification:36generation-campaign/training/online testsPASS,pluslatest9onlineguardtestsPASS. Root unifiedcore suite414PASS/2explicit skips. Allunitfixtures stay outside actualexperimentrecords.
+Current focused recovery verification: 50 GPU-lease/training/online CPU contract tests passed in 7.45 s. Root maintains full-suite status separately. These fixtures are functional tests and never actual experiment results.

@@ -21,8 +21,11 @@ $env:OMP_NUM_THREADS='4'; $env:MKL_NUM_THREADS='4'; $env:OPENBLAS_NUM_THREADS='4
 $env:TOKENIZERS_PARALLELISM='false'; $env:HF_HUB_DISABLE_TELEMETRY='1'; $env:DO_NOT_TRACK='1'
 if (!$Gpu) { $env:CUDA_VISIBLE_DEVICES='' }
 else {
+ $env:CUDA_VISIBLE_DEVICES = ''
  $leasePath = Join-Path $env:RAGSCOPE_HOME 'runs/20261014_v2/gpu_lease.json'
- $lease = Get-Content -LiteralPath $leasePath -Raw | ConvertFrom-Json
- if ($lease.status -ne 'ACQUIRED' -or $lease.safety_verified -ne $true) { throw 'GPU lease is not acquired' }
- $env:CUDA_VISIBLE_DEVICES = [string]$lease.gpu_device
+ $leaseValidator = Join-Path $PSScriptRoot 'validate_gpu_lease.py'
+ $leasePython = Join-Path $env:RAGSCOPE_HOME 'envs/core/Scripts/python.exe'
+ $verifiedDevice = & $leasePython $leaseValidator --lease $leasePath --print-device
+ if ($LASTEXITCODE -ne 0) { throw 'GPU lease did not pass current-boot validation' }
+ $env:CUDA_VISIBLE_DEVICES = [string]$verifiedDevice
 }

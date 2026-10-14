@@ -183,7 +183,10 @@ def test_remote_gpu_service_guard_allows_cpu_only_client(tmp_path, monkeypatch):
     from ragscope.generation.llm_client import GenerationError
     monkeypatch.setenv('CUDA_VISIBLE_DEVICES', '')
     lease, receipt = tmp_path/'lease.json', tmp_path/'service.json'
-    atomic_json(lease, {'status': 'ACQUIRED', 'owner': 'ragscope', 'safety_verified': True, 'gpu_device': 0})
+    import time
+    import sys
+    atomic_json(lease, {'status': 'ACQUIRED', 'owner': 'ragscope', 'safety_verified': True, 'gpu_device': 0,
+                        'host_platform': sys.platform, 'host_boot_time_unix': psutil.boot_time(), 'validated_at': time.time()})
     identity = {'base_url': 'http://127.0.0.1:11435', 'backend_version': 'fixture',
         'backend_runtime_config': {'prompt_ram_cache_mib': 0, 'prompt_cache_policy': 'backend_history_disabled'}}
     service = {'status': 'READY', 'base_url': identity['base_url'], 'backend_version': 'fixture',

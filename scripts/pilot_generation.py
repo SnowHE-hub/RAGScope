@@ -9,7 +9,7 @@ import os
 import random
 import time
 import requests
-from ragscope.experiments.runtime import configure,runtime_home
+from ragscope.experiments.runtime import configure,runtime_home,validate_gpu_lease
 from ragscope.experiments.ledger import append_jsonl,read_records
 from ragscope.experiments.generation_campaign import GenerationBudget,CountedClient
 from ragscope.generation.llm_client import LocalLLMClient
@@ -20,9 +20,9 @@ from ragscope.generation.token_budget import Qwen35PromptCounter,LFMPromptCounte
 from ragscope.indexing.identity import atomic_json,signature
 
 parser=argparse.ArgumentParser(); parser.add_argument('--size',choices=['2b','4b','9b','lfm'],required=True); parser.add_argument('--limit',type=int,default=20); parser.add_argument('--attempt',type=int,choices=[1,2,3],default=1); parser.add_argument('--summarize-only',action='store_true')
-args=parser.parse_args(); configure(cpu_only=False); os.environ['CUDA_VISIBLE_DEVICES']='0'; root=runtime_home(); run=root/'runs/20261014_v2'
-lease=json.loads((run/'gpu_lease.json').read_text())
-if lease['status']!='ACQUIRED': raise RuntimeError('GPU lease required')
+args=parser.parse_args(); configure(cpu_only=True); root=runtime_home(); run=root/'runs/20261014_v2'
+validate_gpu_lease(run/'gpu_lease.json')
+os.environ['CUDA_VISIBLE_DEVICES']='0'
 if args.size=='lfm':
     source=json.loads((root/'models/generation/lfm2.5_q4_k_m.json').read_text())
     counter=LFMPromptCounter(root/'models/tokenizers/LFM2.5-1.2B-Instruct',root/'models/ollama/blobs/sha256-58e51bf3ff10a5f7ed85bdbcb131428218f367ffd9fd30915cd73e31d2edb904')

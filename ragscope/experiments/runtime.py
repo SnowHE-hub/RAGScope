@@ -2,6 +2,10 @@
 from __future__ import annotations
 import os
 import shutil
+import json
+import math
+import sys
+import time
 from pathlib import Path
 
 CACHE_PATHS = {
@@ -18,6 +22,39 @@ CACHE_PATHS = {
 
 def runtime_home() -> Path:
     return Path(os.environ.get("RAGSCOPE_HOME", "D:/RAGScope_Runtime" if os.name == "nt" else "/mnt/d/RAGScope_Runtime")).resolve()
+
+
+def validate_gpu_lease(path) -> dict:
+    """Read-only, fail-closed validation tied to this host's current boot.
+
+    This validates an operator-issued receipt; it does not acquire a lease or
+    infer that an original workload may be stopped/restarted.
+    """
+    import psutil
+    lease = json.loads(Path(path).read_text(encoding="utf-8-sig"))
+    if not isinstance(lease, dict) or lease.get("status") != "ACQUIRED" or lease.get("owner") != "ragscope" or lease.get("safety_verified") is not True:
+        raise ValueError("GPU lease is not safely acquired")
+    device = lease.get("gpu_device")
+    if device is None or isinstance(device, bool) or str(device) == "":
+        raise ValueError("GPU lease lacks a verified device")
+    if lease.get("host_platform") != sys.platform:
+        raise ValueError("GPU lease host platform is missing or differs")
+    for key in ("host_boot_time_unix", "validated_at"):
+        value = lease.get(key)
+        try:
+            finite = not isinstance(value, bool) and isinstance(value, (int, float)) and math.isfinite(value)
+        except OverflowError:
+            finite = False
+        if not finite:
+            raise ValueError(f"GPU lease requires a finite numeric {key}")
+    boot = psutil.boot_time()
+    if abs(lease["host_boot_time_unix"] - boot) > 2:
+        raise ValueError("GPU lease belongs to a different host boot")
+    if lease["validated_at"] < max(boot, lease["host_boot_time_unix"]):
+        raise ValueError("GPU lease validation predates this host boot")
+    if lease["validated_at"] > time.time():
+        raise ValueError("GPU lease validation is in the future")
+    return lease
 
 
 def configure(cpu_only: bool = True) -> dict:

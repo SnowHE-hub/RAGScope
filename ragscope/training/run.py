@@ -15,7 +15,7 @@ import time
 from pathlib import Path
 
 from ragscope.experiments.ledger import RecordStore, append_jsonl
-from ragscope.experiments.runtime import runtime_home, require_ram, require_disk
+from ragscope.experiments.runtime import runtime_home, require_ram, require_disk, validate_gpu_lease
 from ragscope.indexing.identity import atomic_json, file_hash, signature, verify_artifacts
 from ragscope.training.checkpoint import CheckpointStore
 
@@ -37,14 +37,9 @@ def validate_config(config):
 
 
 def verify_lease(path):
-    lease = json.loads(Path(path).read_text(encoding="utf-8"))
-    if lease.get("status") != "ACQUIRED" or lease.get("owner") != "ragscope" or lease.get("safety_verified") is not True:
-        raise ValueError("GPU lease is not safely acquired")
+    lease = validate_gpu_lease(path)
     if os.environ.get("CUDA_VISIBLE_DEVICES") == "":
         raise ValueError("CPU-only process cannot begin training")
-    device = lease.get("gpu_device")
-    if device is None or str(device) == "":
-        raise ValueError("GPU lease lacks a verified device")
     return lease
 
 

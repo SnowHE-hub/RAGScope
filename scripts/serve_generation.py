@@ -12,13 +12,12 @@ import time
 import psutil
 import requests
 from filelock import FileLock
-from ragscope.experiments.runtime import configure,runtime_home
+from ragscope.experiments.runtime import configure,runtime_home,validate_gpu_lease
 from ragscope.indexing.identity import atomic_json,file_hash
 
 def main():
     configure(cpu_only=False); root=runtime_home(); run=root/'runs/20261014_v2'
-    lease=json.loads((run/'gpu_lease.json').read_text())
-    if lease.get('status')!='ACQUIRED' or not lease.get('safety_verified'): raise RuntimeError('Original-task GPU lease not acquired')
+    validate_gpu_lease(run/'gpu_lease.json')
     binary=shutil.which('ollama')
     if not binary: raise RuntimeError('Installed Ollama not found')
     with socket.socket() as probe: probe.bind(('127.0.0.1',11435))

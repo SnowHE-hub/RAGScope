@@ -162,11 +162,15 @@ def test_attention_targets_discovered_from_actual_ancestry_only():
 
 
 def test_lease_rejects_cpu_stage_and_unverified_state(tmp_path, monkeypatch):
+    import psutil
+    import sys
+    import time
     path = tmp_path/"lease.json"
     path.write_text(json.dumps({"status": "PENDING"}))
     with pytest.raises(ValueError):
         verify_lease(path)
-    path.write_text(json.dumps({"status": "ACQUIRED", "owner": "ragscope", "safety_verified": True, "gpu_device": 0}))
+    path.write_text(json.dumps({"status": "ACQUIRED", "owner": "ragscope", "safety_verified": True, "gpu_device": 0,
+                               "host_platform": sys.platform, "host_boot_time_unix": psutil.boot_time(), "validated_at": time.time()}))
     monkeypatch.setenv("CUDA_VISIBLE_DEVICES", "")
     with pytest.raises(ValueError, match="CPU-only"):
         verify_lease(path)

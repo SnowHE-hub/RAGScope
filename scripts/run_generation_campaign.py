@@ -12,7 +12,7 @@ import os
 from filelock import FileLock
 from freeze_generation_v2 import model_client_factory, read_json, verified_corpus
 from ragscope.experiments.generation_campaign import GenerationBudget, load_campaign, run_model
-from ragscope.experiments.runtime import configure, runtime_home
+from ragscope.experiments.runtime import configure, runtime_home, validate_gpu_lease
 from ragscope.generation.llm_client import GenerationError
 from ragscope.generation.resources import MeasuredClient
 
@@ -21,11 +21,10 @@ def verify_owned_service(service_path, lease_path, identity):
     import psutil
     # GPU belongs to the independently guarded service. A CPU-only HTTP client
     # (including the online CPU reranker) need not expose a local CUDA device.
-    lease=read_json(lease_path)
-    if (lease.get('status')!='ACQUIRED' or lease.get('owner')!='ragscope'
-            or lease.get('safety_verified') is not True
-            or lease.get('gpu_device') is None or str(lease.get('gpu_device'))==''):
-        raise GenerationError('device_policy_error','GPU service lease is not safely acquired')
+    try:
+        validate_gpu_lease(lease_path)
+    except (OSError, ValueError) as exc:
+        raise GenerationError('device_policy_error',str(exc)) from exc
     service=read_json(service_path)
     if service.get('status')!='READY' or service.get('base_url')!=identity['base_url'] or service.get('backend_version')!=identity['backend_version']:
         raise GenerationError('service_not_ready','Owned service receipt is not ready or differs from frozen backend')
