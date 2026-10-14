@@ -1,0 +1,158 @@
+schema_version: 1
+campaign: ragscope_v3_diagnosis_first
+purpose: "实验约定；供Codex实现和校验，不是现有项目已可直接运行的配置"
+paths:
+  project_candidate: 'D:\MCS_26S1课程资料\个人项目\RAGScope'
+  runtime: 'D:\RAGScope_Runtime'
+  preserve_v2_campaign: '20261014_v2'
+  new_campaign: 'v3_<local_timestamp>'
+autonomy:
+  continuous_goal: true
+  ordinary_phase_confirmation: false
+  escalate_client_permissions: false
+  extra_paid_apis: false
+  remote_push_or_upload: false
+  recursive_agent_sessions: false
+  original_training_resume: USER_MANUAL_RESUME
+resource_policy:
+  cpu_threads: 4
+  minimum_available_host_ram_gib: 3
+  new_download_minimum_free_disk_gib: 20
+  new_download_minimum_free_disk_fraction: 0.10
+  gpu_allowed_when_needed: true
+  gpu_models_concurrent: 1
+  online_benchmark_exclusive_project_workload: true
+  terminate_unknown_processes: false
+  system_or_wsl_restart: false
+  change_driver_or_wsl_memory_cap: false
+budget:
+  new_llm_requests_total: 6000
+  new_llm_output_tokens_total: 4000000
+  rerank_query_window_pairs_total: 200000
+  count_failures_warmups_judges_labels_and_ui: true
+  stage_requests:
+    S0_S1_evidence_metrics: 800
+    S2_generation_protocol: 1000
+    S3_retrieval_packing: 600
+    S4_task_workflows_router: 800
+    S5_optional_lora: 500
+    S6_final_validation: 1800
+    technical_reserve: 500
+  protect_S6_budget: true
+  retries_per_failed_operation: 2
+  training:
+    formal_configs_max: 2
+    epochs_max_per_config: 1
+    optimizer_steps_max_per_config: 200
+    supervision_smoke_optimizer_steps_max: 20
+splits:
+  D_search:
+    max_questions: 120
+    exposure: EXPOSED_DIAGNOSTIC
+  D_confirm:
+    target_questions: 100
+    role: validation
+  H_QA:
+    target_questions: 200
+    target_min_papers: 70
+    role: sealed_test
+    exclude_prior_project_training_or_tuning_papers: true
+    indexing_source_documents_permitted: true
+    reading_gold_in_inference_forbidden: true
+  H_scope:
+    target_questions: 40
+    role: separately_reported_scope_test
+  H_tasks:
+    max_questions: 60
+    role: separately_reported_comparison_summary_test
+    synthetic_or_ai_labels_must_be_disclosed: true
+S2:
+  diagnostic_questions: 24
+  contexts: [retrieval_frozen, oracle_audited]
+  models: [qwen_2b, qwen_4b, qwen_9b]
+  protocols:
+    G0: legacy_v2
+    G1: concise_answer_otherwise_controlled
+    G2: same_G1_messages_without_grammar_constraint
+    G3: same_G1_with_model_card_non_thinking_sampling
+  seeds_G3: [42, 43, 44]
+  planned_requests_before_smoke: 864
+  initial_output_cap: 512
+  token_cap_increase_requires_observed_truncation: true
+  oracle_matched_noise_requests_max: 36
+S3:
+  reuse_chunkers: [R512, F512_O0, P256_1024]
+  max_incremental_candidates: 6
+  max_final_generation_candidates: 2
+  new_reranker_candidate: Qwen/Qwen3-Reranker-0.6B
+  document_candidate_k: [5, 10]
+  first_stage_candidate_k: 50
+  intermediate_rerank_k: 10
+  rrf_alpha_candidates: [0.25, 0.5, 0.75]
+  reference_context_tokens_initial: 2048
+  context_extension_candidate: 4096
+  core_budget_min_fraction: 0.75
+  neighbor_budget_max_fraction: 0.25
+  original_global_chunk_bypass: true
+S4:
+  task_labels: [fact, explain, compare, summarize, other]
+  evidence_scope_labels: [local, multi_section, whole_document, multi_document]
+  document_scope_labels: [specified, identifiable, ambiguous]
+  requires_useful_workflows_before_training: true
+  train_questions_initial_max: 300
+  learned_router_core: [linear, embedding_mlp]
+  optional_existing_router_max: 1
+S5:
+  requires_diagnosed_trainable_deficit: true
+  base_model: Qwen/Qwen3.5-2B
+  reuse_existing_bf16: true
+  min_verified_training_examples: 300
+  suggested_mixture:
+    sufficient_real_retrieval: 0.60
+    sufficient_with_distractors: 0.20
+    clean_oracle: 0.10
+    verified_insufficient_or_unanswerable: 0.10
+  requested_total_sequence_tokens: 2048
+  preserve_complete_target_and_eos: true
+  candidate_rank: 8
+  candidate_alpha: 16
+  candidate_dropout: 0.05
+  candidate_learning_rates: [0.00001, 0.00002]
+  seed: 42
+  checkpoint_selection: generation_quality_with_guards_not_loss_only
+S6:
+  final_conditions_max: 3
+  primary_comparison: [B0_frozen_v2, C1_best_untrained_v3]
+  optional_condition: C2_gated_router_or_adapter
+  test_rounds_after_candidate_lock: 1
+  online_paired_questions: 30
+  online_repeats_per_condition: 3
+  online_formal_requests_B0_C1: 180
+  answer_cache_main_test: false
+  cluster_bootstrap_repeats: 2000
+  confidence: 0.95
+promotion:
+  engineering_targets_not_guarantees: true
+  dev_claim_f1_proxy_gain_min: 0.02
+  final_quality:
+    claim_f1_proxy_gain_min: 0.05
+    paired_delta_ci_lower_min_exclusive: 0
+    legacy_answer_f1_loss_max: 0.01
+    support_proxy_loss_max: 0.01
+    citation_completeness_proxy_loss_max: 0.01
+    sufficient_context_wrong_abstention_increase_max: 0.02
+    request_or_format_failure_rate_max: 0.01
+    online_latency_p50_and_p95_ratio_max: 1.25
+  final_efficiency:
+    quality_delta_ci_lower_min: -0.01
+    online_p50_reduction_min: 0.15
+    online_p95_regression_allowed: false
+  human_review_absent:
+    human_review_status: NOT_REVIEWED
+    maximum_release_label: AUTO_VALIDATED_EXPERIMENTAL
+    metric_disagreement_action: KEEP_V2_DEFAULT_AND_EXPORT_REVIEW_PACKAGE
+termination:
+  no_infinite_tune_until_score_passes: true
+  terminal_task_states: [PASS, FAIL, BLOCKED, NOT_RUN_GATE]
+  required_blocked_means_execution_complete_false: true
+  preserve_v2_default_when_no_candidate_passes: true
