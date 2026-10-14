@@ -2,28 +2,36 @@
 
 Updated for the reported host restart at 2026-10-14 07:03 Australia/Sydney. This timestamp is a parent-provided restart notice, not a restart performed by this task. Exact commands and time-estimate assumptions: [GENERATION_RESUME_20261014.md](GENERATION_RESUME_20261014.md).
 
-## Latest queue override
+## Current authorized queue and execution boundary
 
-The latest explicit user authorization permits GPU at any phase and states no competing user GPU job. The current 4B run completed all 800 formal tasks and 3 warmups; its model and owned 11435 service have been released for the bounded GPU R3 window. HOLD 9B pending root's fresh resource handoff. Root is preparing a revised queue that prioritizes main qwen_2b local-owned routing/auxiliary tasks once the main manifest is frozen, followed by other main models and the remaining E2 9B work. Judge and same-BF16 paired evaluation remain pending that queue. No model is currently owned or loaded by this agent. Preserve frozen E2 and CPU R3 TEST200 sources unchanged.
+Root's main freeze completed with 20 READY groups and 5520 tasks. Main manifest_hash is `ac56e65060b49d8d536fdaf1584727a1f0e736b4ab1266c1845c0c1d6383f07c`; ROOT_FROZEN_HANDOFF.json SHA `00f60dffbfcbfa3f5d0e03951813df343b0f1bf4e4337d2442982cc94882a02f` binds its sources. Existing E2/E3 task ownership remains external: main never regenerates their rows, including missing E2 9B rows.
 
-## Current execution boundary
+Current: main qwen_2b completed all 1200 local-owned tasks plus 3 warmups; its integrity audit passed with one retained E6 output-length parse failure and all 1203 token counts matching. ROUTE 600 train + 180 dev records passed their separate full-source audit with zero errors and were delivered to the routing agent. The 2B model was normally unloaded. Main qwen_4b is now RUNNING 420 local-owned tasks after a fresh 6,202,109,952-byte available-RAM gate. Own portable Ollama 0.34.4 service PID 31596/create 1791954774.370308, supervisor session 55731; worker session 32158, with exact process identity recorded in OPERATOR_CHECKPOINT.json. Do not restart either live process. `generation/OPERATOR_CHECKPOINT.json` is the durable current execution entry.
 
-Latest at 2026-10-14 04:43 UTC: E2 is FROZEN with manifest_hash `6a2862e3fed696fb0224d23abc78437c5eaa318efb190c13b2422724ca3246e5`. Both qwen_2b and qwen_4b completed 800 formal tasks plus 3 warmups each, with zero errors and all 803 requests per model passing actual token parity. Both record/task/input/ticket audits passed. E2 is therefore 1600/2400 complete; qwen_9b remains pending. Global budget is 3049/10000 used, including 2800 core calls.
+Authorized serial queue: main qwen_2b 1200 → main qwen_4b 420 → main lfm 200 → E2 qwen_9b 800 → main qwen_9b 100 → E2 acceptance and fixed support judge 200 → normal owned-service shutdown → original same-BF16 paired100+100. Each switch requires completed-row integrity audit, normal unload, and a fresh unchanged effective 3 GiB available-RAM/current-boot lease/service identity check. No retraining, protocol changes or new combinations.
 
-The 4B worker session 36734 exited 0. Owned service PID 3644/create 1791948671.6012218 is verified exited after a normal requested stop; API was empty before stop, port 11435 is closed and bindable, and gpu.lock plus generation-client.lock were successfully reacquired and released. Fresh release observation: 4,221,313,024 host-available bytes, GPU 12 MiB/0%. `generation_e2/RELEASE_4B_SERVICE_FOR_GPU_R3.json` SHA `8aa39f2d3b707f85cd3cc0a4d7fec204c68c78d972f9776047615f20d67752f3` preserves the service receipt and model audit. The supervisor's Windows exit 1 is an intentional requested service termination, confirmed by EXITED/request/unloaded=true; it is not a generation error.
+Main 2B preload observed 3,904,196,608 available bytes; after the empty service was ready, the second gate observed 3,359,588,352 bytes. Laya CPU4 overlapped initial generation and completed/exited during it. At main 2B row242 observation, its exact PID11880 was absent and host available RAM recovered to 4,234,321,920 bytes. `generation/EXECUTION_CONDITIONS.jsonl` and PARALLEL_CONDITION_CHANGE_LAYA_EXIT.json preserve this boundary. Root also performed a bounded CPU4 functional regression during main 2B (2026-10-14T05:24:11.942188Z start; completion receipt at05:28:55.912527Z); PARALLEL_CONDITION_CHANGE_ROOT_TESTS_EXIT.json links the exact evidence. Earlier timing is not relabeled as exclusive.
 
-`generation_e2/OPERATOR_CHECKPOINT.json` records WAITING_ROOT_GPU_HANDOFF_AFTER_R3. Do not restart while the GPU belongs to R3. When root grants a new generation window, verify the old owned service exited, port 11435 is available, its own stop marker is archived, and the original resource/current-boot lease guards pass. Use the pinned portable binary:
+E2 remains 1600/2400 complete: qwen_2b and qwen_4b each completed 800 formal tasks plus 3 warmups, with zero errors and all 803 requests per model passing token parity. Their task/input/record/ticket audits passed. The earlier PID3644 service was normally released for GPU R3, confirmed by RELEASE_4B_SERVICE_FOR_GPU_R3.json; that historical service must not be confused with the current PID31596. The E2 and CPU R3 TEST200 frozen sources are unchanged. GPU R3 completed its separate global100/train200/dev60 sources before main freeze.
+
+For a future service restart only after exact owned-process exit, free port11435, own stop-marker archival, resource and current-boot lease checks:
 
 ```powershell
 . ./scripts/runtime_env.ps1 -Gpu
 & D:/RAGScope_Runtime/envs/core/Scripts/python.exe scripts/serve_generation.py --binary D:/RAGScope_Runtime/tools/ollama-0.34.4/ollama.exe
 ```
 
-The initial E2 conditions were host RAM 5,001,850,880 bytes, R3 CPU4 active, auxiliary worker/service exited and no active pytest. R3 CPU exited under its own memory guard during the 4B run; `PARALLEL_CONDITION_CHANGE_R3_EXIT.json` preserves that latency/resource boundary. E2 timing and progress were monitored without reading test quality means or changing the protocol.
+Current worker command (do not run a duplicate while session32158 is active):
+
+```powershell
+& D:/RAGScope_Runtime/envs/core/Scripts/python.exe scripts/run_generation_campaign.py --campaign-dir D:/RAGScope_Runtime/runs/20261014_v2_generation --model-id qwen_4b
+```
+
+The explicit latest user authorization permits GPU at any phase and states no competing user GPU job. Project large models remain serial. Original workloads remain USER_MANUAL_RESUME; no original service or process was operated. Root coordinates final routing decisions and quality reporting; this agent monitors only execution integrity, timing and resources during generation.
 
 ## Historical recovery and authorization sequence
 
-The following paragraphs retain earlier resource observations and source waits. They are historical, superseded by the completed 2B/4B and released-service state above.
+The following paragraphs retain earlier resource observations and source waits. They are historical, superseded by the current main execution boundary above.
 
 Deadline update: user requires completion by 2026-10-14T10:29:06.606796Z (21:29 Sydney), recorded in EXECUTION_DEADLINE.json. E2 now has an independent unchanged2400-task core shard; see [E2_CORE_SHARD.md](E2_CORE_SHARD.md). After R3 TEST200 is sealed and root grants resources, stress22→E2 may run in one serial GPU window while the remaining R3 CPU4 work continues. This supersedes waiting for all660 R3/auxiliary sources before core generation. No GPU/model has been started by this engineering change.
 
