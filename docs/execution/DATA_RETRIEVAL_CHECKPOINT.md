@@ -2,7 +2,13 @@
 
 本文件是数据/检索子任务的当前准确恢复点；主STATUS/RECOVERY由root维护。不要根据下述旧PID操作其他进程，不自动恢复用户原任务。
 
-## 当前：所有本代理模型/worker已退出，UI离线工程QA完成（04:50Z）
+## 当前：在线/UI CPU服务准备完成，仍未启动
+
+新 `scripts/serve_online_embedding_v2.py --check-only`已在禁止HTTP/Popen的guard下实际exit0，8项新生命周期边界测试PASS。main/online_embedding/PREPARATION.json SHA c64ab31a1d2fe9aac15282483834c0e9cbe4b002f7e9645f5b405b605fe4c6b7；ENGINEERING_VALIDATION SHA0d3b62d966ac697f3f72d67a016d18fa72fa6331ea66725fabda4e79facb141d。当前没有本代理模型、服务、worker或锁；不复用旧一次性SQuAD/aux入口，不启动11436抢当前9B/后续BF16资源。
+
+下一准确动作：先等待BF16及11435真实退出，root再完成主5520任务的大对象验收/分析/图表并释放内存；收到root此后的fresh释放收据路径+SHA，才按`ONLINE_EMBEDDING_WINDOW.md`的`--run --handoff-receipt ... --handoff-sha256 ...`命令启动。原CPU4/同GGUF/-ngl0/loopback11436，fresh3GiB加载guard、1GiB加载底线，真实健康和1024维控制成功才签发service receipt。此后为在线/UI保持CPU服务，完成后用匹配stop请求正常drain/精确退出；不重新编码正文。四正式局部报告仍等待完整ANALYSIS，必须绑定新增固定train600路由诊断。
+
+## 已完成：所有本代理模型/worker已退出，UI离线工程QA完成（04:50Z）
 
 SQuAD100与simple600的完整检索上下文均已完成，退出/全部hash/ID核验见下文。新 `scripts/verify_ui_candidate_v2.py` 已实际exit0，现有runtime candidate冷启动、真实全509索引BM25 scoped查询/neighbor打包4片2022 tokens、真实dev100回放通过；HTTP/modelcalls0，Torch未导入，项目ui.json未发布。收据main/ui_candidate/OFFLINE_STARTUP_QA.json SHA19cb41475bd19e2643bfa1ba94b4a4d3413c1a863819711bb95a869f498630d2，2项HTTP/Windows管道定向行为测试PASS。首次本地框架socket guard失败也保留，详情见UI_CANDIDATE.md。此为软件/实际索引通路验证，不是生成质量或浏览器视觉验收。
 
