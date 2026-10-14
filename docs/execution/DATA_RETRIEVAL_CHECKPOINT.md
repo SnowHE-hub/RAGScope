@@ -2,7 +2,15 @@
 
 本文件是数据/检索子任务的当前准确恢复点；主STATUS/RECOVERY由root维护。不要根据下述旧PID操作其他进程，不自动恢复用户原任务。
 
-## 当前：SQuAD100入口已准备，尚未启动（04:40Z）
+## 当前：SQuAD Hybrid100真实完成并释放，交回R3 GPU窗口（04:45Z）
+
+root提供4B完整退出收据后，按原命令执行session48604 **exit0**；自有worker33020/create1791953078.9461997、CPU4 service18392/create1791953081.5594678均已不存在。1212块封存索引一字未改、正文重编码0；100个query冷推理+3个检索预热后的cache hit共103条实际metrics，backend usage全部存在。正式100/100行、0error，完整query ID集合、scope、row/config hashes、真实模型标记、索引identity均独立通过。query固定3379 body tokens与global scope，没有读结果改选型。
+
+`records/E4_CONTEXT_R512_hybrid_neighbor.jsonl` SHA b84f5dbec226213cdc84c7dbdc79796f70301fd7a193e7bebc4efc68293041b7；config SHA743a9ec6154071ff14a7ac0ea9398fa3ad7a4b67a832f6cc2fbf323beeb9fc95。`SQUAD_FINAL/EXIT_INDEPENDENT_VALIDATION.json` SHA e148257beb752393803918c23fcbd55b3c85947c0e5884949afcfc8c514d2c48保存所有逐条核验及资源退出证据；SERVICE_LIFETIME SHA3f69063ec5ee58f2319537619551c497866f98c783a287d6c0427541b62eb1ee。04:45:39Z：11435/11436均bind-free，主writer/GPU/client三锁实际acquire/release，GPU只读12MiB/0%，host available5900980224B。旧3/3后端失败journal字节未改。控制请求1次单列为服务核验，不计正式100题。
+
+这完成E4检索及上下文来源，**E4生成答案尚未运行**。simple600也已完成，无需重复。已把准确handoff同时交root与chunking_core；root已条件授权后者fresh复核后直接进行GPU重排。当前无本代理模型、worker或锁。下一准确动作是等待R3/生成来源成熟时按root调度继续UI候选资源绑定与CPU工程QA；不启动GPU服务、不调用模型、不启用尚未真实通过门槛的路由默认，也不重启本CPU服务。原用户GPU任务仍按USER_MANUAL_RESUME保护。
+
+## 历史：SQuAD100入口准备，尚未启动（04:40Z）
 
 `scripts/materialize_squad_v2.py` 的默认只读准备已实际exit0：冻结1212块dense索引、模型/二进制/分词器和aux handoff全部hash通过；原100个问题都需要新query向量，共3379 Qwen正文tokens、最长45，scope均为全官方SQuAD2 dev段落库。`retrieval/SQUAD_FINAL/PREPARATION.json` SHA dc3940129689c481dc97f394f1a4cadfe10a7a487b712a0d303cc4c14e0b3966；入口源码SHA fe251fe12db18fc04ff7d43141d9e2c3034a88568916503c667c1b08857f4aa5。3项离线边界行为测试PASS（1.80秒），不计真实模型结果。此时11436连接被拒绝，未加载模型、未写任何E4实验行、无自有worker或锁。
 

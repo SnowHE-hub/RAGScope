@@ -261,3 +261,10 @@ R3在329/660条后触发原RAM保护、已正常释放主writer；root授权本�
 04:29Z root明确批准仅复用上述3条历史N/A后，入口以`--allow-historical-usage`保存启动前decision/source快照，严格绑定3个cache key、向量/manifest SHA、原structured来源SHA与正文计数。未知缺失继续拒绝，不放宽向量或实验身份。实际新增Dense200和Hybrid200，全套simple三方法600条/0error，session90177 exit0；BM25200由账本复用不重复。406次真实缓存命中包括400正式和6检索预热，HTTP/socket尝试0、GPU0、新后端推理0。此处缓存来自已执行的真实Qwen embedding，绝非Mock；缓存读取延迟不能冒充冷查询推理延迟。
 
 完整记录均通过ID/config/row hash和每条神经cache_hit验证。3项backend_usage仍为null，向量/manifest字节与sidecar缺失状态未变，没有补写伪usage。RESULT SHA3d98ccdb2b8fee111b56cd97ff985b77615b324351b92c1a8c2b49ffe5f1448f与EXIT_OBSERVATION SHAf3fbdada10e4c5259e279715f002a209fcdd9d5f297844e67116e84728c28ab7位于SIMPLE_CACHE_ONLY/HISTORICAL_NA_REUSE。准确worker23220身份不存在、11436关闭、主writer已释放，资源交root。SQuAD最终上下文仍待短CPU窗口；E6生成问答也不因这600条检索完成而提前计为完成。
+
+
+## E4 SQuAD最终上下文实际完成（2026-10-14 04:45Z）
+
+原冻结100题以R512/neighbor/Hybrid真实执行完毕，100/100逐行记录、0错误。scope保持全官方dev的1204段落，复用已封存1212向量索引；新计算100个query向量，另3次warmup后的cache hit，正文重编码0。相同Qwen Q8_0 CPU4、原池化/归一化/指令/2048引用预算；科学论文检索指令用于SQuAD的领域偏差仍保留说明，未私自改输入。所有query ID、scope、index identity、real_model及row/config hashes已独立复算，失败分母没有删除。
+
+实际session48604 exit0，自有worker33020/service18392均已退出。EXIT_INDEPENDENT_VALIDATION收据在retrieval/SQUAD_FINAL，SHA e148257beb752393803918c23fcbd55b3c85947c0e5884949afcfc8c514d2c48；records/E4_CONTEXT_R512_hybrid_neighbor.jsonl SHA b84f5dbec226213cdc84c7dbdc79796f70301fd7a193e7bebc4efc68293041b7。11435/11436关闭、主writer/GPU/client锁均复取，GPU只读12MiB/0%；旧3/3失败journal不变。已交回root/R3使用资源。此结论仅为检索及context物化完成，E4答案生成及其质量比较仍待后续正式结果。
