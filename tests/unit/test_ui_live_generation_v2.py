@@ -60,6 +60,30 @@ def test_application_busy_lock_does_not_call_or_reserve(runtime):
     assert not checks and client.calls == budget.state()['reserved_calls'] == 0
 
 
+def test_cpu_ui_forwards_live_owned_gpu_authorization(runtime, monkeypatch):
+    client, retriever, execution, budget, checks, _ = runtime
+    monkeypatch.setenv('CUDA_VISIBLE_DEVICES', '')
+    client.num_gpu = 33
+    client.service_device_verified = 'gpu'
+    client.remote_gpu_authorizer = None
+    original_chat = client.chat
+
+    def guarded_chat(messages, **kwargs):
+        assert __import__('os').environ['CUDA_VISIBLE_DEVICES'] == ''
+        assert callable(client.remote_gpu_authorizer)
+        before = len(checks)
+        client.remote_gpu_authorizer(client.identity)
+        assert len(checks) == before + 1
+        assert checks[-1][2] is client.identity
+        return original_chat(messages, **kwargs)
+
+    client.chat = guarded_chat
+    record = answer_live(client, retriever, {'max_tokens': 100}, 'offline test', 1, None,
+                         execution, model_entry={})
+    assert client.calls == budget.state()['reserved_calls'] == 1
+    assert read_records(__import__('pathlib').Path(record['base_record_path']))[0]['call_ticket']['purpose'] == 'UI'
+
+
 def test_application_service_failure_and_mock_never_call(runtime, monkeypatch):
     client, retriever, execution, budget, _, _ = runtime
     def fail(*args):

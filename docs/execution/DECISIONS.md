@@ -108,3 +108,6 @@ E3错误报告明确全部200题75论文、可答182题72论文，修正副报�
 使用已有严格外部分片来源机制实现E2先行：只要R3 test200及其他三路径完整，冻结原2400核心E2，输入/任务/身份与未来main逐项一致；最终main同时引用不可变E2与E3，不复制改写、不重跑。该工程准备尚不代表E2运行。不同GPU模型仍串行；与余下CPU R3重叠时记录资源条件，不能声称独占机器性能。
 
 SQuAD与scoped-simple仅先做独立索引预编码，使用原模型和最终index身份/路径；只有已核验独立索引锁与独立记账、没有主campaign双写时才执行。R3释放主writer锁后再物化最终检索结果。Laya移到实际可用资源窗口，不为了截止降低其已签收内存底线或改变SDK算法。所有新增入口需要必要契约检查及真实运行凭据；工程支持不能代替最终完成。
+
+
+2026-10-14 最终交付覆盖：用户允许任意阶段GPU，单卡串行；原任务USER_MANUAL_RESUME。在线设备错误通过逐请求核验当前boot lease/私有服务PID/create/身份的CPU→remote GPU通道修复；CPU空CUDA与默认禁止GPU不变，3次旧拒绝预热/原源码/manifest精确保留。真实online60+6完整0error，提速5.0446%不达10%门槛，固定Hybrid/neighbor/2B默认不改。LoRA同BF16配对100+100完整：F1下降、P50升至3.62倍；不重训不启用adapter，原模型OS exit UNKNOWN而独立audit actual0。UI两条真实问答后发布配置，所有本项目CPU/GPU/UI进程和锁已释放，GPU12MiB是既有Codex。最终full711不同PASS/1Windows symlink权限skip，220源稳定。原断点仅验证历史租约哈希链，WSL kept off；没有自动起原训练/定时/日更，没有改.wslconfig，不能宣称原日志继续前进。普通应用重启及正常关闭命令见根LOCAL_RUN_V2.md；历史once-shot online wrapper不作为通用重启入口。完整失败账本保留，轻量包采用有原hash的全任务投影，不上传/push。

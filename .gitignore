@@ -21,3 +21,5 @@ venv/
 .pytest_cache/
 .hypothesis/
 configs/v2/paths.local.json
+reports/v2/ERROR_CASES.json
+reports/v2/FINAL_REPORT.build.json

@@ -54,3 +54,6 @@ campaign：`20261014_v2`；runtime：`D:/RAGScope_Runtime`。
 13:04该修复与真实签发已经完成：50项CPU定向测试通过；旧租约经CLI实际拒绝exit2，PowerShell拒绝后CUDA保持关闭。02:04:42UTC在gpu.lock内重新确认WSL空列表、本项目11435/18501关闭、compute-apps仅Codex桌面；原租约40961字节逐字节归档，SHA `003f52ad1159316e9a5e82ca4e8b830af77d238798531604e02a75658a77eb30`。新租约SHA `884715ec4556624cd069b461b1b9cfc3483f0bab32f6f77c6cf2165f6d6b0cac`绑定win32、host_boot_time_unix及validated_at，共享validator实际通过。收据`GPU_LEASE_REVALIDATION_20261014.json`。
 
 新租约用previous_lease artifact追溯原断点/历史PID，不复制历史PID为活进程。当前状态仅为`NOT_RUNNING_OBSERVED_WSL_OFF`，不冒称重新读取了原断点或检查日更存活；`USER_MANUAL_RESUME`保留。全过程空CUDA mask、没有加载模型、没有停止或恢复原任务。实际GPU模型交接仍需复查当时资源，当前凭据不代表已经执行stress或主实验。
+
+
+2026-10-14 最终交付覆盖：用户允许任意阶段GPU，单卡串行；原任务USER_MANUAL_RESUME。在线设备错误通过逐请求核验当前boot lease/私有服务PID/create/身份的CPU→remote GPU通道修复；CPU空CUDA与默认禁止GPU不变，3次旧拒绝预热/原源码/manifest精确保留。真实online60+6完整0error，提速5.0446%不达10%门槛，固定Hybrid/neighbor/2B默认不改。LoRA同BF16配对100+100完整：F1下降、P50升至3.62倍；不重训不启用adapter，原模型OS exit UNKNOWN而独立audit actual0。UI两条真实问答后发布配置，所有本项目CPU/GPU/UI进程和锁已释放，GPU12MiB是既有Codex。最终full711不同PASS/1Windows symlink权限skip，220源稳定。原断点仅验证历史租约哈希链，WSL kept off；没有自动起原训练/定时/日更，没有改.wslconfig，不能宣称原日志继续前进。普通应用重启及正常关闭命令见根LOCAL_RUN_V2.md；历史once-shot online wrapper不作为通用重启入口。完整失败账本保留，轻量包采用有原hash的全任务投影，不上传/push。

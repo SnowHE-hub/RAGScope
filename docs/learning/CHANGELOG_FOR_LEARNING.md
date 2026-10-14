@@ -113,3 +113,11 @@ R3有效五组已达660条：CPU dev/test300与GPU global/ROUTE360来源分开�
 验收准备脚本位于runtime的`acceptance_preparation/collect_verified_evidence.py`，只读重算4100条dev记录身份、509篇/34615单元坐标和679项去重测试，并复制保留实际中断fixture的半写尾行、恢复日志与5个唯一结果。759个绑定引用匹配，三处历史before-hash引用明确标为过时；不能用旧summary覆盖源变化。新增D盘`core_acceptance_20261014`环境从同锁文件离线安装74包，创建、安装、pip check和导入实际退出码均0。原env不变，未调用模型或重新跑套件。
 
 `VERIFIED_EVIDENCE.json`保留Windows symlink跳过、C盘既有程序只读例外、WSL没有模型环境、S3与剩余CPU检索时间重叠以及后续用户允许任意阶段GPU的范围变化。它是正式十五条验收的输入，不是最终验收文件；所有人类审核仍为`NOT_REVIEWED`。四份局部报告的构建入口`build_local_reports_v2.py`已经准备，实际完整报告仍等待主矩阵及其最终分析来源。
+## 2026-10-14 最终结果与当前源码验证
+
+主矩阵5,520条、39组、32条解析失败全部完成并保留；E2/E3旧分片引用不重跑。实际2000次论文聚类bootstrap、错误账本和三张主结果图已经生成，图表布局修复没有改变任何数据。四份正式子报告由真实冻结来源构建后发布，见`3e0cdad`和runtime发布收据。
+
+`d5ff133`给CPU调用方补齐逐请求核验的私有GPU服务通道，保留CPU空CUDA mask与缺省禁止GPU行为；第一次3次预热拒绝与原冻结来源精确归档。修复后60+6在线调用完成，规则P50提速5.04%未达部署门槛。UI沿同一校验通道完成两条真实回答，正式配置发布；全部自有服务随后退出。
+
+同BF16100+100配对完成，LoRA降低文字重合F1并增慢推理，不重训、不按test调默认。原配对工具句柄失效导致历史OS退出码UNKNOWN；独立完整206票据审计实际exit0，二者口径分开。最终220份Python源前后哈希稳定，core710PASS/2skip与models24PASS实际exit0，去重711PASS/1Windows权限skip；真实GPU集成用实验和UI凭据单列，没有编造不存在的integration/gpu pytest结果。
+

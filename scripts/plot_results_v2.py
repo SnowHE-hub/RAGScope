@@ -11,6 +11,7 @@ import matplotlib
 matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 from matplotlib import font_manager
+from matplotlib.lines import Line2D
 import numpy as np
 
 from ragscope.indexing.identity import artifact, atomic_json, signature, verify_artifacts
@@ -74,28 +75,32 @@ def main_figures(source, output):
             ax.errorbar(mean, i, xerr=[[mean-stats['low']], [stats['high']-mean]], fmt='o', color=BLUE, capsize=4)
             ax.text(mean+.015, i-.17, f"{mean:.3f} (N={stats['n_rows']})", fontsize=9)
         ax.set_title(model.replace('qwen_', 'Qwen3.5 ').upper()); ax.set_xlim(0, 1)
-        ax.set_yticks(range(4), ['BM25', 'Dense', 'Hybrid', 'Hybrid+重排']); ax.invert_yaxis(); ax.grid(axis='x')
+        ax.set_yticks(range(4), ['BM25', 'Dense', 'Hybrid', 'Hybrid+重排']); ax.set_ylim(3.5, -.6); ax.grid(axis='x')
         ax.set_xlabel('答案 token F1（文字重合代理）')
     fig.suptitle('模型规模与检索方法：答案 F1', x=.01, ha='left', fontsize=15, fontweight='bold')
     fig.supxlabel('每条件 200 test，F1仅对可答题适用、失败记零；论文聚类 2,000 次重采样的探索性 95% 区间', fontsize=9)
     save(fig, output, 'main_quality', groups, source)
     fig, ax = plt.subplots(figsize=(10, 6), layout='constrained')
     markers = dict(zip(methods, ['o', 's', '^', 'D']))
+    colors = dict(zip(models, [BLUE, '#B06C36', '#54806A']))
     plotted = []
     for mi, model in enumerate(models):
         for method in methods:
             g = lookup[model, method]; latency = g['observed_summary']['latency_ms']['p50']/1000
             f1 = g['estimates']['token_f1']['mean']
             memory = g['performance'].get('peak_sampled_device_total_used_bytes')
-            ax.scatter(latency, f1, marker=markers[method], edgecolor=BLUE, facecolor=BLUE if mi != 1 else 'white', s=50+mi*22)
-            label = model.removeprefix('qwen_').upper()+'/'+method
-            if memory is not None: label += f' / {memory/2**30:.1f} GiB'
-            ax.annotate(label, (latency, f1), xytext=(5, 6 if mi%2 else -12), textcoords='offset points', fontsize=8)
+            ax.scatter(latency, f1, marker=markers[method], edgecolor=colors[model], facecolor=colors[model], s=50+mi*22, alpha=.8)
             plotted.append({'model': model, 'method': method, 'generation_p50_s': latency, 'token_f1': f1, 'sampled_device_peak_bytes': memory})
     ax.set_xlim(left=0); ax.set_ylim(0, 1); ax.grid()
+    model_legend = ax.legend(handles=[Line2D([0], [0], marker='o', color='none', markerfacecolor=colors[model],
+        label='Qwen3.5 '+model.removeprefix('qwen_').upper()) for model in models], title='模型颜色', loc='upper right')
+    ax.add_artist(model_legend)
+    ax.legend(handles=[Line2D([0], [0], marker=markers[method], color='none', markeredgecolor=INK,
+        markerfacecolor='white', label=label) for method, label in zip(methods, ['BM25', 'Dense', 'Hybrid', 'Hybrid+重排'])],
+        title='检索标记', loc='upper left')
     ax.set_xlabel('冻结上下文后的生成 P50（秒；不含检索）'); ax.set_ylabel('答案 token F1')
     fig.suptitle('答案质量、生成耗时与显存', x=.01, ha='left', fontsize=15, fontweight='bold')
-    ax.set_title('12 个模型×检索条件；每条件 200 test · 标签显存为采样设备总量\n模型驻留、统一预算；不推断首 token 延迟或纯硬件速度', loc='left', fontsize=10, pad=14)
+    ax.set_title('12 个模型×检索条件；每条件 200 test · 显存设备总量另见资源表\n模型驻留、统一预算；不推断首 token 延迟或纯硬件速度', loc='left', fontsize=10, pad=14)
     save(fig, output, 'quality_latency', plotted, source)
     fig, axes = plt.subplots(1, 3, figsize=(12, 5), layout='constrained', sharey=True)
     plotted = []

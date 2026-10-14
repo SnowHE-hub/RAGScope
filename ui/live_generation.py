@@ -31,6 +31,8 @@ def answer_live(client, retriever, packing, question, k, scope, execution, *, mo
     with FileLock(str(runtime_home()/'runs/generation-client.lock'), timeout=0):
         verify_owned_service(service, lease, client.identity)
         verify_model_package(model_entry, service)
+        if getattr(client, 'num_gpu', 0) != 0 and getattr(client, 'service_device_verified', None) == 'gpu':
+            client.remote_gpu_authorizer = lambda identity: verify_owned_service(service, lease, identity)
         request_id = 'ui:'+uuid4().hex
         pinned = PinnedUIClient(client, model_entry, service)
         measured = MeasuredClient(GuardedClient(pinned, service, lease), service, gpu_device=0)
