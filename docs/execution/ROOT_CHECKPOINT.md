@@ -1,5 +1,17 @@
 # 主执行器恢复点
 
+**03:27UTCGPU后端漂移已发现，0调用，gen在有界恢复原固定版本：** root03:21创建PARALLEL_GPU_PREFLIGHT_20261014T032105Z.json：R3/aux三进程PID/create/fullargv MATCH，host4,142,514,176B约3.86GiB，GPU12MiB/0%，WSL空列表，11435/18501无监听；当前boot lease CLI PASS。同一gen原代理启动自有空服务后发现系统Ollama0.40.3，冻结身份要求0.34.4；未请求模型/预算未增。已授权其正常停止该空服务、核已有旧binary或有界下载官方Windows portable v0.34.4至D专用目录，不能改系统/原11434/冻结身份/混用新版GPU库。恢复后重新核有效3GiB及服务身份执行原22 stress，与CPU4 R3/aux并行；TEST200封存后直接E2。E2后judge200也可绑定E2来源但需root另交接；BF16仍另等GPU窗口。原任务USER_MANUAL_RESUME、WSL上限未改，截止10:29:06UTC。
+
+**03:13UTC最新实测与下一条命令：** R3 E1 dev100全量独立验收PASS（1826完整窗口/3预热/源hash/排序/预算/证据），TEST54/200、累计154/660、未观察错误，30108/session83335同身份在跑，host3.22GiB。SQuAD独立预编码1212/1212完成，冷模型1212/0cache hit，编码1350.93s；index sig5bdf788ee95cf8e78f4ac8b4a51db38f768ca716657caa6f17694ffb178f4075、manifest SHA45cbd9c90f261841d8255bcfa6441e482e48f6975232d22f3ad8ccff71d4ea25。simple777/377551正文tokens、起始cache2/冷775，03:10已72/777，同aux session99141继续。实际检索质量结果尚未物化，不能把预编码完成当E4/E6完成。最新root提交8f84bd6。
+
+root已直接审阅evaluate_lora_v2.py：只依赖训练best122与冻结E2/R2全200inputs，不依赖main其他组或任何QA输出。因此E2冻结后，可在核心GPU完成而main仍等CPU的空窗，用原CLI的`--campaign-dir D:/RAGScope_Runtime/runs/20261014_v2_generation_e2`运行原100×2同BF16对照；输入sort+seed42规则与未来main严格相同。冻结后的paired目录将永久绑定E2 manifest，不要后续再传main而触不可变输入hash冲突；这不是新实验组合。
+
+下一条准确只读命令（receipt后仍要psutil核PID/create/argv，禁止凭旧RUNNING重启）：
+```powershell
+Get-Content -LiteralPath D:/RAGScope_Runtime/runs/20261014_v2_retrieval/R3_RUNTIME/worker.json -Raw
+Get-Content -LiteralPath D:/RAGScope_Runtime/runs/20261014_v2_aux_preencode/SERVICE_LIFETIME.json -Raw
+```
+
 **当前实际双CPU运行与E2入口：** R3 session83335/PID30108已dev74/100、累计74/660、0error，CPU4/batch2，owner chunking_core，不能root轮询/抢重启。data已启动独立aux session99141/PID30192、CPU4 llama33428，身份/源hash在aux/SERVICE_LIFETIME.json；SQuAD1212chunks/204332 Qwen正文tokens，328+向量逐条落盘，之后simple777。aux从不打开主retrieval Campaign，使用独立ledger和squad_chunks/scoped_chunks锁；主writer锁仍由R3持有。host约2.04–2.25GiB，data有请求边界1GiB guard、R3保持1.25GiB，不能另加载模型。aux完成后data将独立磁盘load/readback留证并正常释放。
 
 gen已提交bb2c874：freeze_e2_v2.py、E2生产验收、main自动引用E2+E3（包括旧显式spec）及54项CPU契约PASS；R0/R1/R2各200 READY，R3 TEST200未齐，0新生成。R3 test200封存通知后，先corepython scripts/freeze_e2_v2.py --campaign 20261014_v2 --check-only，再去check-only完整freeze，输出20261014_v2_generation_e2；实际GPU窗口由root核RAM≥3GiB/当前boot lease/原程序/端口后交接gen：先原stress22串行并卸载，再E2 qwen_2b→4b→9b各800+3warmups。写E2/EXECUTION_CONDITIONS.json记录CPU并行身份/线程及资源；不等global/ROUTE660全完成，不重复E3/E2。精确命令E2_CORE_SHARD.md。Gen当前completed需followup唤醒原代理，无需新代理。
