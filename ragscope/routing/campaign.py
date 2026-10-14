@@ -104,6 +104,28 @@ def normalized_record(row, source, comparison_hash):
     return record
 
 
+def route_record_artifacts(campaign, validated_sources, experiment, model_id):
+    """Use the audited journal owner, including separately frozen E2 campaigns."""
+    name = f'{experiment}_{model_id}.jsonl'
+    matches = [item for item in validated_sources if Path(item['path']).name == name]
+    if len(matches) != 1:
+        raise ValueError(f'Missing or ambiguous validated routing journal owner: {name}')
+    journal = matches[0]
+    path = Path(journal['path']).resolve()
+    by_path = {Path(item['path']).resolve(): item for item in validated_sources}
+    config_path = path.with_suffix('.config.json')
+    if config_path not in by_path:
+        raise ValueError('Validated routing journal is missing its config provenance')
+    result = [journal, by_path[config_path]]
+    owner = path.parent.parent
+    if owner != Path(campaign).resolve():
+        for filename in ('EXPERIMENT_MANIFEST.json', 'FROZEN_INPUTS.json'):
+            if owner/filename not in by_path:
+                raise ValueError('External routing journal is missing frozen owner provenance')
+            result.append(by_path[owner/filename])
+    return result
+
+
 def load_route_records(campaign, protocol, splits):
     splits = tuple(splits)
     manifest, inputs = load_campaign(campaign)
@@ -111,8 +133,8 @@ def load_route_records(campaign, protocol, splits):
         raise ValueError('Routing source campaign changed')
     model_id = protocol['comparison']['model_id']
     experiments = {'train': 'ROUTE_TRAIN', 'dev': 'ROUTE_DEV', 'test': 'E2'}
-    rows, _ = validated_rows(campaign, manifest, inputs,
-                             experiments={experiments[split] for split in splits})
+    rows, validated_sources = validated_rows(campaign, manifest, inputs,
+                                             experiments={experiments[split] for split in splits})
     out, sources = [], []
     for split in splits:
         wanted = set(protocol['populations'][split]['query_ids'])
@@ -122,8 +144,7 @@ def load_route_records(campaign, protocol, splits):
         if pairs != Counter({(qid, route): 1 for qid in wanted for route in ROUTES}):
             raise ValueError(f'Routing {split} actual generation incomplete; expected {len(wanted)*3}, observed {len(selected)}')
         out.extend(normalized_record(r, inputs[r['input_id']], protocol['comparison_config_hash']) for r in selected)
-        path = Path(campaign)/'records'/f'{experiments[split]}_{model_id}.jsonl'
-        sources.extend([artifact(path), artifact(path.with_suffix('.config.json'))])
+        sources.extend(route_record_artifacts(campaign, validated_sources, experiments[split], model_id))
     return out, sources
 
 
