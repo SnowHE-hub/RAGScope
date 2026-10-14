@@ -1,5 +1,8 @@
 # 恢复记录
 
+2026-10-14 07:33UTC：根无驻留服务；唯一项目GPU配对PID9824/create1791962055.3476353/session4583由原generation_evaluation拥有，禁止根poll其句柄或重复起模型。该固定100+100实验的失败/206预算票据逐条保存；正常结束后owner核PIDgone、11435/11436可bind、gpu/client/writer锁和设备空闲，再把release路径SHA交根。随后根actual main生产验收→ANALYSIS/clusterCI→ERROR_CASES/图；新fresh分析release传原data的一次性CPU11436入口，不复用绑定旧online哈希的0608历史receipt。原任务恢复仍USER_MANUAL_RESUME，用户已说“我再续跑”，结束释放资源通知用户，不能启动原训练/定时器/日更。WSL配置不动。
+
+
 2026-10-14 06:42UTC：root无常驻服务或exec；完整统计44002和dev-only online freeze32492均actualexit0，reconcile23776 actualexit2（18PASS/1PASS_FALLBACK/6PENDING）。私有11435/gen31596和9B23892/session44959继续归原gen owner，最新599/800/0error，不能重复启动或poll其工具句柄。后续9B/main9B/judge/正常service退出/BF16已经授权连续执行。
 
 在线尚0run。旧manifest及0load准备/source完整归档routing/online/history/before_ram_boundary_guard；RAM安全修复后当前online_hash16a0c607082e95cd54336c86889cf7f887f8bbdaf32f4b6419b7339e0043a3f4，与旧策略/样本/配置一致。warmup及formal边界不足1.25GiB保存INCOMPLETE_RESOURCE和pending，不消耗请求票据；resume保留原完整行且不重复计数。原chunk新冻结15136实际exit0/gone、releasea3aad157...，旧root CPUreleasee5aa272...仅绑定当时旧manifest，不能用于新在线执行。等待gen BF16全释放后，根再协调原data CPU embedding11436与原gen单2B GPU服务的新真实身份/lease/端口/guard；仍不自动恢复原研究任务，USER_MANUAL_RESUME继续。

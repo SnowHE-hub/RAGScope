@@ -1,5 +1,11 @@
 # RAGScope v2 执行状态
 
+**07:46UTC owner最终覆盖：** 原gen重试仍容量失败，不再增加会话/代理/重试；根实际接手后处理。只读完整newline记录计数baseline100/1error、adapted55/1error、warmup6/0error，9824原create仍RUNNING/available3.700GB/SUMMARY尚无；这不是full hash验收。原session4583现在owner inactive，根只在精确9824+22624退出后取其实际工具completion，再运行既有recovery/generation_post_reboot_20261014/audit_paired_bf16.py；不重跑实验。根持有随后CPU11436与GPU11435生命周期，原chunk仍可运行并已实际模板exit0：FINAL_CRITERIA_TEMPLATE.json SHA41cac12d7fddfb0d759e13c8e25d6b582827086a2404144c6febeb619454f146、execution receipt074ebfc2acce1ad4c68d5e5ca09ab8f05bbaa1b368c794f950d3568c35829e81。GPU私服准确repo CLI是scripts/serve_generation.py --binary D:/RAGScope_Runtime/tools/ollama-0.34.4/ollama.exe；等BF16审计/根ANALYSIS release/CPU READY后归档旧stopmarker与service receipt再启。其他资源顺序不变，截止10:29:06.606796Z。
+
+
+**07:39UTC资源/owner覆盖：** data原agent连续2次模型容量拒绝，不创建替代会话；根接手实际CPU服务/四报告。gen remote compact容量错误，原BF16进程9824/create1791962055.3476353由根07:37:48只读核仍RUNNING（原argv不变/available3.538GB/adapted继续落盘/SUMMARY尚无），只对原gen有界重试一次，未停止/重起实验。chunk如可运行只接15criteria模板；不能把agent turn失败当GPU进程失败或重跑。根无活exec/服务；下一准确读取 paired_test100/OPERATOR_CHECKPOINT.json 与精确PID状态，等200+6/normalexit/audit后根全main accept→ANALYSIS→errors/plots。CPU embedding入口由根随后持有，等freshhandoff才启动。
+
+
 **07:27 UTC 最新覆盖（旧节保留历史）：** 主生成5520/5520已实际完成，32解析失败全部保留；E2 2400完整0错误，main9B100完整0错误。支持性judge200真实完成、1 UNKNOWN解析失败、人审均NOT_REVIEWED，原私有Ollama31596已正常卸载/关闭（Windows退出码1如实保留），11435空闲。当前唯一项目GPU任务是原gen的同BF16配对：PID9824/create1791962055.3476353/session4583；固定E2/R2同100输入/base100+adapter100+各3预热，67/100 baseline时1解析失败，余预计15–25min，不能据中间行称完成。根当前无exec/模型服务。当前源码完整离线回归：core700PASS/2skip + models24PASS，去重701PASS/1 symlink权限skip；219源前后同SHA。两个实际退出码0，最终receipt D:/RAGScope_Runtime/runs/20261014_v2/FULL_OFFLINE_REGRESSION_20261014_0658.json SHA55d9637ef34c9797ea20bccb7beef8c76e12e258fb6b58586aa22759ee232c0e。两次预载RAM拒绝另存，未开suite/模型。models CPU4实际测试与BF16前几条短重叠，不能声称所有GPU延迟为独占测量。
 
 **准确下一动作：** 等原gen BF16完整206 tickets审计并全部释放；根随后在CPU embedding仍OFF时执行全main生产验收和ANALYSIS/2000 paper-cluster CI/图表，保存fresh分析释放receipt；原data凭receipt才实际启CPU11436→原gen单2B/11435→原chunk真实online60+6→根IAB实际生成与发布UI→所有自身服务正常释放→四正式报告/最终反查/15验收/25签收/轻量zip/本地Git。原训练任务USER_MANUAL_RESUME，最终只通知用户GPU已释放，不自动恢复；WSL内存上限/原11434/日更不动。硬截止仍10:29:06.606796Z。
