@@ -1,5 +1,7 @@
 # 恢复记录
 
+2026-10-14 04:36UTC最新资源授权覆盖：用户允许任何阶段使用GPU，并确认没有原程序竞争，旧S1/S2 CPU-only阶段限制不再适用于新增工作。原结果设备/后端身份不回写。4B完整审计/正常11435退出→SQuAD CPU4短窗口完整100并退出→GPU BGE R3独立360/验证/释放→9B E2/judge/BF16。GPU串行及lease/锁/资源guard继续保留。R3 CPU已因写后RAM guard退出，329成功/0error及partial29完整归档；新GPU E8全100均匀条件，不能冒称旧29被重算/删掉。新GPU backend身份在R3_GPU_MIGRATION.json中明示，CPU E2 source原样。simple600已PASS/0HTTP、23220实际退出/锁释放，三历史usage N/A保持null。原任务恢复仍USER_MANUAL_RESUME、WSL配置不动；本项目结束释放并通知用户手动续跑。
+
 campaign：`20261014_v2`；runtime：`D:/RAGScope_Runtime`。
 
 **最新用户指示：原训练和定时检查均已停止，日更进程未动。RAGScope结束后释放自己的资源并通知用户，由用户手动续跑。禁止自动执行恢复命令。** 用户确认XGB63已完成6/9折，LGBM63已完成3折；原结果保留。租约`restoration_policy=USER_MANUAL_RESUME`，脚本restore已加拒绝保护。下面的历史恢复命令只作审计记录。

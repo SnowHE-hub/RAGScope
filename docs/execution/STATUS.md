@@ -1,60 +1,48 @@
 # RAGScope v2 执行状态
 
-更新：2026-10-14，用户在短暂停后明确执行`/goal resume`，Goal工具已确认 **ACTIVE，尚未最终验收**。campaign_id：`20261014_v2`。R3执行器先核验暂停/进程及已落盘断点，再接续原固定实验，禁止重复启动。历史过程保存在运行记录和同目录恢复文档。
+更新：2026-10-14 04:36 UTC / 15:36 Sydney。Goal **ACTIVE，未最终验收**；campaign `20261014_v2`。硬截止 **10:29:06 UTC / 21:29:06 Sydney**，主run/EXECUTION_DEADLINE.json。
 
-用户新增8小时硬截止：**2026-10-14 21:29:06 Australia/Sydney / 10:29:06UTC**，主run/EXECUTION_DEADLINE.json。原实验范围、CPU4/CPU-only与真实结果标准不缩减。R3当前恢复session83335、worker30108/create1791944791.4540648，已真实加载、前25正式题0error，均值17.18秒；旧32476中断归档且attempts保留为2。独立aux索引预编码与E2先行分片工程正在落实，以减少串行等待；执行身份与实际启动须看各模块凭据，不把工程准备当已运行。
+## 最新授权和资源
 
-## 当前正在运行
+用户明确“现在可以在任何阶段使用GPU，我没有任何进程跟你抢夺GPU资源”，覆盖任务书/AGENTS旧S1/S2 CPU-only限制。旧CPU结果保留原身份，新GPU执行明确设备/后端与可比性，仍单卡串行加载本项目模型。不操作原11434、日更、WSL、驱动和安全工具。
 
-- **6551/6551**全库编码及完整index manifest已完成；structured TEST/global共900条、ROUTE train200/dev60的BM25/Hybrid共520条，均完整ID/hash核验、0error、两个命令真实exit0。
-- data精确排空并退出CPU embedding服务6016；3312/10584/6016均不存在，11436关闭。root独立核验释放收据SHA及进程/端口，host可用6.20GiB后，已正式交接chunking_core执行固定R3五组660条、CPU4。其新运行身份以模块receipt为准，不能沿用旧PID。收据为retrieval/STRUCTURED_ROUTING_RESOURCE_HANDOFF.json，SHA d9dca64ec3f03cbcad80f7e9d9dadf623fc4bdad2fac4ebb83ff479adf2cbe08。
-- 当前并行依赖：R3按原顺序执行；独立aux索引-only worker30192/session99141与CPU4服务33428在SQuAD/scoped-simple目标锁内预编码，不写主retrieval campaign。SQuAD实际1212chunks/204332正文tokens，已有328+真实向量；完成后做磁盘readback并释放服务。R3 test200封存后冻结原2400 E2分片，在RAM/租约核验后单卡串行stress22→E2，与余下CPU R3重叠。R3释放主writer锁后物化aux最终检索，再冻结main并引用E2+E3；Laya、路由/LoRA对照和终验继续按实际资源窗口执行。
-- E2分片工程提交bb2c874，54项CPU契约PASS，R0/R1/R2各200来源READY，R3等待中；本轮尚无E2生成，统一预算仍1421/10000。源码入口scripts/freeze_e2_v2.py，命令与条件见E2_CORE_SHARD.md。工程支持不代表实际2400条已完成。
-- 03:13UTC最新进度：R3 dev100全量独立验收通过，test54/200、累计154/660；SQuAD预编码1212/1212完成，simple03:10已72/777。两个原执行器继续运行，RAM约3.22GiB；实际E4/E6检索/生成仍待物化，不能从向量数量推导QA实验完成。
-- 03:21:05UTC独立即时核验：R3/aux worker/aux服务的PID、创建时间及完整argv均匹配，host可用4,142,514,176B（约3.86GiB），GPU12MiB/0%，WSL运行列表为空，11435/18501无监听，当前boot租约CLI通过。证据主run/PARALLEL_GPU_PREFLIGHT_20261014T032105Z.json。root已授权gen在重新核资源后先执行既定stress22，与CPU任务并行；实际启动、驻留和完成以gen新生命周期凭据为准，不把交接授权当完成。
-- gen已实测系统Ollama漂移至0.40.3，空服务0请求即正常退出。官方专用portable0.34.4下载/82文件hash及原exe SHA一致性通过，服务3644/create1791948671.6012218，原11434未动。4K压力诊断实际8/8正式+3预热、0失败，卸载API ps空/GPU12MiB后RAM4.042GB再次guard通过，8K正在执行；最终22条全部完成仍待凭据。
-- stress22现已全部封存：两组各8正式+3预热，tickets1422–1443连续唯一，全部real/cacheoff/token一致、0失败。4K/8K正式均值1.366/1.920s，P95 1.648/2.319s；设备总显存采样max1,517,289,472/1,628,438,528B。COMPLETION_RECEIPT.json绑定全来源。预算1443/10000、核心1200；空服务3644继续等待E2，不驻留模型。用户已允许必要时用新版且模型复用；现继续可用旧版，不再次切换。
-- root新增scripts/build_final_report_v2.py，仅消费真实hash来源、保留missing/失败及作用范围，拒绝部分清单写整项目FINAL_REPORT。已从原E3封存1200行实际生成两个不可变预览，0模型调用；预览位于主run/recovery/report_builder_preview_20261014，**不是最终报告或最终验收**。
-- 新全套离线回归core584 PASS/2明确skip、models routing24 PASS，去重585不同测试PASS（23重叠），唯一剩余WinError1314测试软链接能力。194源hash前后吻合，FULL_OFFLINE_REGRESSION_20261014_1444.json。后续新增或改变源码要另核，不把这项功能测试算真实质量。
-- 03:47:53UTC R3 TEST200单组独立validator PASS：200/0error/3预热、3711完整窗口、max pair512，config/record/source hashes一致。原CPU继续global100→ROUTE260。E2实际FROZEN hash6a2862e3fed696fb0224d23abc78437c5eaa318efb190c13b2422724ca3246e5，三模型各800；gen2B session80850已开始，首50实际平均1.256s，已78/800时0error/token mismatch，之后日志235/800，尚非完成。E2_SOURCE_READINESS与EXECUTION_CONDITIONS绑定全部来源及实际资源。
-- aux1212+777全部磁盘readback PASS，1989向量cache逐项精确一致、float32/finite/L2/≤512正文budget/manifest及observations核验；worker30192/server33428真实不存在、11436关闭。AUX_INDEX_HANDOFF.json SHA de498e5a3980bc42ad56c3369a786b8b625a209c2fc9c0c1309c1cbbc2239113。E4/E6最终检索行仍0，不能将索引ready当QA完成。data现在准备独立UI candidate并最小修冻结embedding tokenizer字段接线，不调用模型，等root最终实际UI QA。
-- 2B E2实际800正式+3warmup COMPLETE，803 token parity/0error、task/input/context/store/tickets核验通过；AUDIT_qwen_2b.json。卸载API空/GPU12MiB后RAM4.687GB guard通过，4B session36734继续，首50均值2.447s/间隔2.457s，64时0error/token mismatch。统一预算此交接时2246总/2000core；9B/全E2仍未完成。模型摘要曾露出质量字段，未据此调协议或默认，后续白名单输出。
-- UI candidate实际核验完成（不是发布/最终QA）：main/ui_candidate/ui.json SHA73ef6704d26afeba4eb961057ad0a86e2d71d43c0bd21b7e2116746f78e5ff81，四模型weights/templates/client/tags与full509/6551索引一致，关闭11436与生成锁占用使相关ready=false。13定向UI checks PASS，源码/文档提交916de34，学习文档更新b93484e。root新增train/dev只读实验边界，50相关契约PASS，0模型调用；完整报告仍全量验证。
+WSL内存上限不改，配置SHA不变，当前WSL未运行。原训练恢复 **USER_MANUAL_RESUME**：结束释放本项目资源并通知用户，不自动续原作业。当前boot租约SHA 884715ec4556624cd069b461b1b9cfc3483f0bab32f6f77c6cf2165f6d6b0cac；每次加载另核实际PID/create/端口/锁/RAM/GPU。用户允许必要时新版后端；当前继续可用专用Ollama0.34.4复用已有模型。
 
-## 已完成并有真实证据
+## 当前执行和队列
 
-- E1：11组切块×3种检索×100dev，共3300条；另有8组上下文扩展×100dev。只按dev选择F512_O0与R512，两者neighbor。结果、图和负向指标见 `reports/v2/retrieval_interim/DEV_RESULTS.md`。
-- E3：3模型×200题×Oracle/No Context，**1200/1200，0请求错误**，另有9次预热。全部实际token计数一致，30个报告数字独立复算通过；原分片封存，主矩阵以后引用而不重跑。Oracle可答F1为2B 0.5785604、4B 0.5455298、9B 0.4704581，没有规模单调收益。No Context的9B全部拒答。
-- E0：固定官方版本CPU重建22254个向量，Dense/Hybrid共400条；原8索引哈希不变。旧历史权重UNKNOWN，不能声称精确复现旧模型。独立10数核验和文章聚类区间已完成。
-- LoRA：2B BF16正式seed42、972训练例、122步/1epoch、59dev；5→10→122完整状态恢复已实测，best122 dev loss 0.1356631。**100×2问答对照尚未运行**，不把loss下降写成质量改善。
-- 已有完整离线回归去重后528个不同测试通过，Windows symlink权限一项skip；后续simple、CPU恢复与GPU租约有各自定向验证，数字不能相加冒充去重总量，最终回归仍须重跑。
-- UI已做实际BM25查询、证据展开与E3回放；最终神经索引、真实实时生成及路由默认部署尚待验证。
-- E3错误子报告、资源报告、dev检索图、E0及LoRA图均已保存；人工审核字段仍是NOT_REVIEWED。代码支持与局部报告不代替终验。
+- E2冻结2400任务，manifest 6a2862e3fed696fb0224d23abc78437c5eaa318efb190c13b2422724ca3246e5。2B已800正式+3warmup，803 token一致/0error、AUDIT_qwen_2b.json。4B session36734继续完整800，自有服务3644/create1791948671.6012218归gen。9B尚0；4B完整审计后正常退出11435/释放gpu.lock，暂不加载9B。不要重复启动或poll其他agent句柄。
+- R3 CPU worker30108在04:15:58UTC写完global29后真实RAM guard/exit1：dev100/test200/global29共329行0error完整保留，CPU TEST200/3711窗口PASS并已用于E2，绝不改写。RESOURCE_PAUSE_PID30108.json SHA 8b6e9e388cab318355eed66315a3889c91e8ae6cf62b3d6559cd23bbb8b1d4b5，PID absent/主writer释放。LOAD_STATE attempts2/backend_failures0，不能把成功加载次数当backend失败上限。
+- GPU R3工程40 focused tests PASS，仅prepare无模型，READY_NOT_EXECUTED。同固定BGE-base权重/512窗口/overlap32/batch2/FP32/TF32关闭，直接TF CUDA后端，后端差异明示。独立E8完整100与ROUTE train200/dev60 GPU路径，旧300+partial29原样保留。R3_GPU_MIGRATION.json SHA db93e97ad60cfa30926a73615c19026befa8eec315e505b8abf3a416e07fa841。待4B服务和SQuAD窗口退出后执行，不能称已跑。
+- simple实际全部完成：BM25/Dense/Hybrid各200，600行0error。新增Dense/Hybrid400正式+6预热真实缓存命中，HTTP/socket尝试0。三条历史缺usage只允许精确三cache key，原样null、不伪造token；原manifest/vector字节不变。worker23220/session90177 exit0/身份absent/锁释放/11436关闭。HISTORICAL_NA_REUSE/RESULT SHA 3d98ccdb2b8fee111b56cd97ff985b77615b324351b92c1a8c2b49ffe5f1448f；来源在主records，可供E6。
+- SQuAD1212chunks真实预编码/readback PASS，最终Hybrid100查询尚未运行。4B退出后CPU4短窗口完成100及正常退出，再释放主writer给GPU R3。
+- 当前单卡队列：4B退出 → SQuAD100 CPU短窗口 → GPU R3完整360与验收释放 → gen9B E2 → E2scope验收 → judge200 → 同BF16 LoRA paired200。main冻结接入完整GPU ROUTE来源并引用E2/E3，不重复核心；其他E4/E5/E6/E7、路由标签/七策略/在线仍须真实完成。
 
-## 恢复与资源政策
+## 已完成且可追溯
 
-电脑07:03启动过，原因UNKNOWN，本任务没有发出重启命令。旧20816/19112已不存在；5976条完整观察保留，当前worker已继续新增。重启后按最新AGENTS用CPU4线程，旧CPU12性能记录保留；三个历史网络失败和上限未清零。入口和证据见 `HOST_RESTART_REENTRY.json`、`DATA_RETRIEVAL_CHECKPOINT.md`。
+- structured全6551向量/509论文index、TEST/global900、BM25/Hybrid ROUTE520全部0error。SQuAD1212+simple777共1989aux向量磁盘readback PASS，AUX_INDEX_HANDOFF SHA de498e5a3980bc42ad56c3369a786b8b625a209c2fc9c0c1309c1cbbc2239113。
+- E1 dev：11切块×3检索×100=3300，另8扩展×100=800；按dev选择F512_O0/R512，均neighbor。DEV_RESULTS真实41条件4100/0error，负向指标保留，不声称全部提升。
+- E3：三模型Oracle/NoCtx×200=1200+9warmup，0error/token mismatch，30报告数字独立复算PASS。Oracle可答F1 2B .5785604、4B .5455298、9B .4704581，不声称规模单调收益。原不可变分片以后引用。
+- E0：固定官方CPU重建22254向量、400检索/文章聚类CI/10数核验；旧8索引不变、旧历史权重UNKNOWN，不称精确旧模型复现。
+- LoRA：2B BF16/seed42/972train/122步/1epoch/59dev、best122 loss .1356631；5→10→122 optimizer/scheduler/RNG恢复已实测。paired100×2未运行，loss下降不代表QA收益。
+- 压力4K/8K各8正式+3预热，22真实/0error/tickets1422–1443，独立raw审核PASS；资源PNG/SVG/data与目视QA完成。共享CPU背景、设备总VRAM/TTFT N/A如实写。
+- 离线core584PASS/2skip、models24PASS，去重585不同PASS/23重叠，唯一remaining WinError1314 symlink能力skip。194源hash前后一致；新GPU/UI/路由代码须最终回归，旧receipt不覆盖新源。
+- UI candidate四models/full509 index metadata核验及13tests PASS，候选hash73ef6704d26afeba4eb961057ad0a86e2d71d43c0bd21b7e2116746f78e5ff81，ready=false真实保留。最终发布/live generation/UI QA尚待。
+- train/dev loader只打开ROUTE_TRAIN/DEV，不打开test journals；50定向tests PASS。历史操作者工具曾显示摘要质量字段，未据此调参，不声称从未见test字段。
+- final report builder/资源图/错误子报告/学习文档已有局部产物；E3预览不是最终报告，部分manifest写FINAL_REPORT的guard已实测拒绝。
 
-GPU租约跨启动周期的缺口已修复，50项CPU定向测试通过；旧真实租约经CLI/PowerShell拒绝。原40961字节租约原样归档，新凭据绑定当前win32启动时间并实际校验通过，收据为主run/`GPU_LEASE_REVALIDATION_20261014.json`。没有因此加载模型或修改旧实验。后续加载仍须资源交接与检查。
+## 尚须完成与验收
 
-用户最新要求 **不改WSL内存上限**。配置未修改，memory=12GB/swap=8GB/processors=12，原SHA保持一致。容量上限不等于当前常驻占用。原训练恢复政策为 **USER_MANUAL_RESUME**：最终只释放本项目资源并通知用户；不自动续原作业，不操作日更。
+E2剩余4B/9B；E4 300/E5 200/E6 400/E7最多240；E8 GPU R3完整100；ROUTE780真实标签、七策略冻结/重放/在线30×2/Laya能力；judge200/LoRA200；最终UI、主报告/聚类CI/图表/错误分析、最终学习说明、15条ACCEPTANCE、FINAL_REPORT随机至少10数反查、轻量包、存储和原件保护复核、全部项目GPU释放。最近runner reconcile9PASS/1RUNNING/15PENDING/exit2，不是最终15条验收；预算读当前budget文件，完成数按逐行数据核。核心范围和失败分母不缩减，阶段不等待。
 
-S1/S2实际计算保持CPU-only，但S3/S4与尚未结束的S2曾有时间重叠，最终criterion14必须披露，不能称为严格阶段串行。所有新模型/数据/环境/缓存/日志在D:/RAGScope_Runtime；最终磁盘与原件核验尚待执行。
+## 持久恢复
 
-## 仍须实际完成
+原目录/分支 `codex/ragscope-v2-autonomous-20261014`；MASTER_PLAN SHA157040e71eab86b44bb3007bf43c1ba25240403b892a7cd5f93c1fb37e280117，不改原书掩盖用户覆盖。整理前STATUS逐字节归档到主run/status_history/STATUS_before_compact_20261014T0434206158306Z.md，SHA b8bf76830fe9a3cec611c064514a4545aa1916fab5a040219773374fd83b5536。所有大件D:/RAGScope_Runtime，只stage本任务文件，不push。root无常驻exec句柄。
 
-E2 **0/2400**；E4 300、E5 200、E6最多400、E7最多240；E8全库4种检索；ROUTE780真实生成标签、七策略决策/重放、在线30×2；Laya实际能力；LoRA200条同BF16对照；支持度proxy最多200、最终UI；主报告/图表/错误分析、学习材料最终更新、15条ACCEPTANCE、从FINAL_REPORT随机至少10数回查、轻量结果包与最终资源释放。gen已经获得E2→judge→BF16连续资源执行授权，每段核原guard/身份，阶段结束不等待。
-
-统一生成预算目前 **1443/10000**，其中正式核心1200；E2的2400次仍受保护。03:46UTC实际reconcile-only返回2，25项任务账本9 PASS/1 RUNNING/15 PENDING，**不是第11节15条最终验收**。未执行任务命令/未请求模型。此前8–16小时粗估仅为历史；当前按用户21:29硬截止执行。
-
-## 项目与下一条命令
-
-分支：`codex/ragscope-v2-autonomous-20261014`。主任务书副本SHA-256：`157040e71eab86b44bb3007bf43c1ba25240403b892a7cd5f93c1fb37e280117`。原tracked源码、diff、HEAD及用户未跟踪清单保存在 `D:/RAGScope_Runtime/backups/20261014_baseline`。只stage本任务文件，不push。
-
-最新root调度提交8f84bd6；历史里程碑见 `docs/learning/CHANGELOG_FOR_LEARNING.md`。详细恢复点见 `ROOT_CHECKPOINT.md`、`DATA_RETRIEVAL_CHECKPOINT.md`、`GENERATION_HANDOVER.md`、`RECOVERY.md`。本次整理前STATUS原文逐字节归档至主run/`status_history/STATUS_before_compact_20261014T020704934468Z.md`，SHA ebfa1ea96b1d66d168e1966682f6f8c421aec862c37120679513847ac38eff81。
-
-下一条准确命令只读；不要重复启动data拥有的worker：
+下一条准确只读命令：
 
 ```powershell
-Get-Content -LiteralPath D:/RAGScope_Runtime/runs/20261014_v2_retrieval/R3_RUNTIME/worker.json -Raw
+Get-Content -LiteralPath D:/RAGScope_Runtime/runs/20261014_v2_generation_e2/EXECUTION_CONDITIONS.json -Raw
+Get-Content -LiteralPath D:/RAGScope_Runtime/runs/20261014_v2_retrieval/R3_GPU_MIGRATION.json -Raw
 ```
+
+详细身份/命令/收据见ROOT_CHECKPOINT、GENERATION_HANDOVER、R3_MATERIALIZATION、DATA_RETRIEVAL_CHECKPOINT、RECOVERY。

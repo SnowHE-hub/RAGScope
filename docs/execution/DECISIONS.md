@@ -1,5 +1,11 @@
 # 决策记录
 
+### 2026-10-14 04:36UTC：用户任意阶段GPU授权及R3迁移
+
+人类最新指示“现在可以在任何阶段使用GPU，我没有任何进程跟你抢夺GPU资源”，覆盖旧主书/AGENTS阶段CPU-only约束，不修改原任务书以掩盖覆盖。单卡串行、安全保护、原任务USER_MANUAL_RESUME/WSL不改仍有效。R3 CPU已04:15:58在global第29条写后触RAM guard真实exit1，329成功0error/完整CPU E2测试来源保留。使用现有CUDA train env TF5.19直接固定BGE-base分类器，FP32/eager/TF32off/sigmoid、同512窗/overlap32/batch2；CPU旧ST后端与新TF版本差异必须披露。同模型不代表设备数值与延迟完全相同。独立GPU E8全100+ROUTE200/60，不把CPU partial29拼成uniform GPU组，不改CPU test200用于E2。R3_GPU_MIGRATION及独立validator绑定保护哈希/全部IDs/新来源/资源；prepare和40功能测试不是360真实完成。4B先完整结束退出，再SQuAD100短CPU窗口，再GPU R3，释放后9B/judge/BF16；不重下模型、不结束未知应用或安全工具。LOAD_STATE backend_failures仍0，attempts2含成功加载，不能按成功次数误说已耗尽三backend失败重试。
+
+simple三种检索现600完整0error。cache-only曾因三历史key缺backend_usage而退出，这三vector均真实且全identity/hash/shape/finite符合，原structured相同六行本就cache_hit/usage=null。明确只允许这三key历史N/A复用，正式400+6预热全部真实缓存命中/HTTP socket尝试0，记录null不编usage、不改原vector/manifest，不把cache-only当新编码实验。四行为测试与完整RESULT/EXIT证据保留，未知其他缺usage仍拒绝。
+
 ## 2026-10-14 初始化
 - 以当前已打开且含 ragscope/、scripts/build_indexes.py 的目录为原项目，不搬迁。
 - 原 Git tracked 内容无修改，用户未跟踪文件按清单保留；只提交本轮明确文件。
