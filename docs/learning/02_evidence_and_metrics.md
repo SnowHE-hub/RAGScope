@@ -20,10 +20,14 @@ JSON 合法率、引用 ID 可见率、答案含引用率、引用金标准证�
 
 同一篇论文的几个问题不是独立抽样。`ragscope/evaluation/v2.py` 按论文整体重抽 2000 次，给出 95% cluster bootstrap 区间；配对比较必须保留同样的 query IDs，包括失败。区间不是保证，新方法无提升也必须报告。
 
-实际证据链：逐条 JSONL → `.config.json` → 配置哈希和记录哈希 → 汇总。离线回归见 `tests/unit/test_metrics_v2.py`；本模块与生成测试合计 50 项通过、97% 行覆盖，证据在 `D:/RAGScope_Runtime/runs/generation_coverage.json`。这些是软件测试结果，不是模型得分。
+实际证据链：逐条 JSONL → `.config.json` → 配置哈希和记录哈希 → 汇总。离线回归见 `tests/unit/test_metrics_v2.py`；早期本模块与生成测试合计50项通过、97%行覆盖，历史证据在 `D:/RAGScope_Runtime/runs/generation_coverage.json`。这是当时的软件测试结果，不是当前全套数量，也不是模型得分；最终完整回归以执行目录的最新签收为准。
 
 协议v2.2的引用ID可见率受每次请求的可见ID枚举schema约束。它用于确认实现正确性，不用于证明答案受证据支持，也不能作为faithfulness提升。真正的支持性代理只看回答陈述与实际引用片段，仍可能给出unsupported/unknown；人工复核导出字段初始保持NOT_REVIEWED。
 
 真实E3运行`20261014_v2_generation_e3`提供了一个指标边界例子：问题`qasper:0bd3bea892c34a3820e98c4a42cdeda03753146b`的参考答案列出领域n-gram，但标注的Oracle证据集未包含原文相邻段落`[14134,14483)`。即使完整参考证据覆盖为1，也不能保证参考答案每个事实都在已发送片段中。因此不能直接把这种低F1归因为模型推理或打包错误。八例原文核对、原始输出和坐标在该run的`analysis_complete/error_cases/CASE_PACKETS.json`与`E3_ERROR_REPORT.md`，它们是代理检查，人工状态仍为NOT_REVIEWED。
 
 引用的分母也要看问题条件：E3通用分类标记53条“缺引用”候选，其中49条上下文为空，本来没有可引用ID。它们仅在引用完整性这项标N/A，仍保留在全部1200条输出及相应答案/拒答分母中。有非空上下文、非拒答且无解析或请求错误的524条中缺引用4条；这个比例不能与“全部200条输出有引用的比例”混称同一个指标。
+
+最终主分析已完整核验5,520条冻结记录、39个组，32条失败留在分母；已有2,000次聚类bootstrap结果用于报告，本次学习说明不重算或追加对照。可从 `reports/v2/ANALYSIS.json`、`GENERATION_TABLES.md` 和 `ERROR_CASES.md` 反查指标、适用题数及原记录。Faithfulness没有被格式、引用合法率或代理检查冒充；人工审核状态仍为NOT_REVIEWED。
+
+同样要区分“请求失败”和“结论负向”。最终在线60条正式请求均正常完成，但规则路由的P50仅降低约5.04%，未达到预设10%门槛，因此保留固定Hybrid。这是有效的完整实验结果。首轮3条在生成前被设备保护拒绝的预热另行留存，不能因后续修复成功就删除它们或退回预算票。

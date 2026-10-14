@@ -14,21 +14,22 @@ Windows 主路径使用项目外的 `D:/RAGScope_Runtime`，模型、环境、�
 # 新机器首次安装隔离的 core 环境，按哈希锁文件验证依赖
 ./scripts/bootstrap_v2.ps1
 
-# 查看/推进 CPU 任务；检测正在运行或暂停的 worker，避免重复启动
-./scripts/run_v2.ps1 -Profile full -CpuOnly -Resume
+# 只读核对持久任务状态，不重新执行已完成的模型实验
+./scripts/run_v2.ps1 -Profile full -CpuOnly -Resume -ReconcileOnly
 
 # 单元测试不下载模型，不触发 GPU 推理
 . ./scripts/runtime_env.ps1
 & "$env:RAGSCOPE_HOME/envs/core/Scripts/python.exe" -m pytest tests/unit -q
 
 # 打开本地 UI；需要已完成并校验的 v2 索引
-./scripts/run_ui_v2.ps1
+./scripts/run_ui_v2.ps1 -Environment models -Port 8501
 ```
 
 runner 在任务未齐备时返回退出码 `2` 并留下具体原因；这不表示整套实验已经完成。
 GPU 服务、真实训练和正式生成另有资源交接及冻结清单校验，不会因为打开 UI 而自动下载或训练模型。
 UI 启动器先检查端口，只监听 `127.0.0.1`；可用 `-Port 18501` 指定其他本机端口，`-CheckOnly` 只检查依赖与端口。
 启动器优先使用已具备 Streamlit 的 CPU `models` 环境以支持重排，否则使用 `core`；可用 `-Environment core` 明确只运行轻量界面。所有模型在实际点击运行时仍检查就绪与资源。
+完整本机启动、普通CPU embedding服务、私有GPU服务和正常退出命令见 [LOCAL_RUN_V2.md](LOCAL_RUN_V2.md)。最终交付时本项目服务均已关闭；打开UI不会自动启动embedding或生成服务。GPU必须通过当前主机启动周期的租约校验并单卡串行；UI和CPU客户端保留空CUDA mask，仅向已核验的私有服务请求生成。原用户任务采用 `USER_MANUAL_RESUME`，不自动续跑。
 Linux 启动脚本要求单独的 Linux 环境，不能复用 Windows 虚拟环境；本轮未安装 Linux 模型环境。
 
 阅读实现与结果解释可从 [`docs/learning/00_project_map.md`](docs/learning/00_project_map.md) 开始。
