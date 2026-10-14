@@ -10,12 +10,12 @@ WSL内存上限不改，配置SHA不变，当前WSL未运行。原训练恢复 *
 
 ## 当前执行和队列
 
-- E2冻结2400任务，manifest 6a2862e3fed696fb0224d23abc78437c5eaa318efb190c13b2422724ca3246e5。2B已800正式+3warmup，803 token一致/0error、AUDIT_qwen_2b.json。4B session36734继续完整800，自有服务3644/create1791948671.6012218归gen。9B尚0；4B完整审计后正常退出11435/释放gpu.lock，暂不加载9B。不要重复启动或poll其他agent句柄。
+- E2冻结2400任务，manifest 6a2862e3fed696fb0224d23abc78437c5eaa318efb190c13b2422724ca3246e5。2B/4B各800正式+3warmup，均803 token一致/0error、两份AUDIT PASS；累计1600/2400。4B已正常卸载及请求停止服务3644/create1791948671.6012218/API11435，Windows supervisor实际exit1保留，卸载/stop_reason=request证明意图释放，不能冒称0。RELEASE_4B_SERVICE_FOR_GPU_R3 SHA8aa39f2d3b707f85cd3cc0a4d7fec204c68c78d972f9776047615f20d67752f3。9B尚0/HOLD，预算3049/core2800；不要重复启动或poll其他agent句柄。
 - R3 CPU worker30108在04:15:58UTC写完global29后真实RAM guard/exit1：dev100/test200/global29共329行0error完整保留，CPU TEST200/3711窗口PASS并已用于E2，绝不改写。RESOURCE_PAUSE_PID30108.json SHA 8b6e9e388cab318355eed66315a3889c91e8ae6cf62b3d6559cd23bbb8b1d4b5，PID absent/主writer释放。LOAD_STATE attempts2/backend_failures0，不能把成功加载次数当backend失败上限。
-- GPU R3工程40 focused tests PASS，仅prepare无模型，READY_NOT_EXECUTED。同固定BGE-base权重/512窗口/overlap32/batch2/FP32/TF32关闭，直接TF CUDA后端，后端差异明示。独立E8完整100与ROUTE train200/dev60 GPU路径，旧300+partial29原样保留。R3_GPU_MIGRATION.json SHA db93e97ad60cfa30926a73615c19026befa8eec315e505b8abf3a416e07fa841。待4B服务和SQuAD窗口退出后执行，不能称已跑。
+- GPU R3已真实加载运行：48 focused tests PASS，prepare旧receipt db93...归档，现迁移SHA697ce7ac3e0c213072359f03232a3b81d5ca4d8e33f0b4907f7ce58af77bbc51。session15599/PID22180/create1791953187.8157816、GPU加载33.73s、attempts3/backend_failures0，前global24/100零error。同BGE权重/512/overlap32/batch2/FP32/eager/TF32off，实际allocated1112257024B；CPU旧300+29不改。独立GPU E8全100+ROUTE200/60共360仍未全完。启动收据R3_GPU_RUNTIME/RESOURCE_HANDOFF_BEFORE_START SHAa91224c35ae1c54a3d30c5671b176fd1d7a3b58c3ecea6866268d95f4594a3de，host6045691904B/GPU12MiB/7888free。空GPU表仍列精确Codex on-device utility11276，不是display；仅PID/create/exe/type/subtype一致且used≤64MiB时允许，其他计算PID拒绝，不停止桌面。
 - simple实际全部完成：BM25/Dense/Hybrid各200，600行0error。新增Dense/Hybrid400正式+6预热真实缓存命中，HTTP/socket尝试0。三条历史缺usage只允许精确三cache key，原样null、不伪造token；原manifest/vector字节不变。worker23220/session90177 exit0/身份absent/锁释放/11436关闭。HISTORICAL_NA_REUSE/RESULT SHA 3d98ccdb2b8fee111b56cd97ff985b77615b324351b92c1a8c2b49ffe5f1448f；来源在主records，可供E6。
-- SQuAD1212chunks真实预编码/readback PASS，最终Hybrid100查询尚未运行。4B退出后CPU4短窗口完成100及正常退出，再释放主writer给GPU R3。
-- 当前单卡队列：4B退出 → SQuAD100 CPU短窗口 → GPU R3完整360与验收释放 → gen9B E2 → E2scope验收 → judge200 → 同BF16 LoRA paired200。main冻结接入完整GPU ROUTE来源并引用E2/E3，不重复核心；其他E4/E5/E6/E7、路由标签/七策略/在线仍须真实完成。
+- SQuAD Hybrid100已实际PASS/0error/session48604exit0；100冷query推理+3预热cache hit，全backend usage存在，1212正文chunks未重编码。33020/18392准确absent、11435/11436可bind、三锁复取，EXIT_INDEPENDENT_VALIDATION SHAe148257beb752393803918c23fcbd55b3c85947c0e5884949afcfc8c514d2c48。源records SHA b84f5dbec226213cdc84c7dbdc79796f70301fd7a193e7bebc4efc68293041b7，可供E4；生成仍未完成。
+- 当前后续单卡队列：GPU360验收/释放 → Laya无其他项目模型的CPU加载窗口（normal≥5GiB/原唯一4.5–5监督备选；3dev预热后核是否可与GPUgen并行）→ main冻结GPU ROUTE source并引用已有E2/E3 → gen优先main2B local-owned产真实ROUTE标签，其后main4B/LFM及9B E2+main → E2/main验收/judge/BF16。主模型单卡串行，不重复外部E2/E3任务；七路由train/dev训练和决策可与后续生成并行，test回放在七策略冻结之后。
 
 ## 已完成且可追溯
 
@@ -28,6 +28,8 @@ WSL内存上限不改，配置SHA不变，当前WSL未运行。原训练恢复 *
 - 离线core584PASS/2skip、models24PASS，去重585不同PASS/23重叠，唯一remaining WinError1314 symlink能力skip。194源hash前后一致；新GPU/UI/路由代码须最终回归，旧receipt不覆盖新源。
 - UI candidate四models/full509 index metadata核验及13tests PASS，候选hash73ef6704d26afeba4eb961057ad0a86e2d71d43c0bd21b7e2116746f78e5ff81，ready=false真实保留。最终发布/live generation/UI QA尚待。
 - train/dev loader只打开ROUTE_TRAIN/DEV，不打开test journals；50定向tests PASS。历史操作者工具曾显示摘要质量字段，未据此调参，不声称从未见test字段。
+- GPU来源接入脚本/统计接线21项定向PASS4.51s；必须360独立完整验收/worker退出/CPU保护hash不变才写显式MAIN_SPEC，真实未完成来源已实际拒绝exit1且无spec。第一次测试命令误写不存在的文件名exit4/no tests，日志保留后正确路径通过，不能把首轮计PASS。S2.5 dev选型正式receipt签收4100行/41条件/123独立数字/164来源hash，SHA0eac2014ab2c41cf938768f026bdd2635e0f29f2b806cb5bb355e89440c7197e，不授最终验收。
+- UI离线候选真实Streamlit AppTest启动/全509BM25 scope/neighbor4片2022参考tokens/dev历史回放PASS，零HTTP/模型/Torch；OFFLINE_STARTUP_QA SHA19cb41475bd19e2643bfa1ba94b4a4d3413c1a863819711bb95a869f498630d2。首次过宽socket隔离误拦Windows asyncio self-pipe失败保留；缩为禁止应用HTTP后一次PASS，不计模型失败。root最终浏览器/live GPU仍待执行。
 - final report builder/资源图/错误子报告/学习文档已有局部产物；E3预览不是最终报告，部分manifest写FINAL_REPORT的guard已实测拒绝。
 
 ## 尚须完成与验收

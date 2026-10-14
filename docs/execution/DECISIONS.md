@@ -1,5 +1,11 @@
 # 决策记录
 
+### 2026-10-14 04:52UTC：真实资源释放与路由标签优先
+
+4B800+3预热真实完整后正常卸载/请求退出自己的服务，Windows supervise实际exit1保留；unloaded=true/stop_reason=request/精确PID及端口/两锁释放才构成安全交接，不把非零意图停止改成0。SQuAD100已复用1212索引正式CPU4执行，100冷query+3cache预热、0error、实际exit0、三锁释放，全部原usage存在；不是重新编码正文。freshRAM约5.5GiB、GPU12MiB，GPU R3360按新用户授权真实启动，48功能测试不计真实360，已成功load/首24零error。
+
+R3_GPU_COMPLETION_VALIDATION完整360/退出/配置及保护CPU artifacts全部hash绑定后，主spec只显式替换ROUTE_TRAIN/DEV hybrid_rerank，E2仍原CPU test来源；全球E8只取uniform GPU100，CPU partial29保留历史不拼合。21定向测试及真实未完成来源拒绝已执行，0新增生成。第一次测试命令拼错已有测试文件名exit4/no tests，正确路径第二轮21PASS，两日志保留。新增CPU Laya原加载窗口若≥5GiB可先加载后稳态guard允许时与GPU生成并行，不降低原阈值或改变SDK算法。main2B优先local-owned1200最多，使780 ROUTE标签尽早就绪/七策略先冻结；后续模型仍固定完整分母，9B核心由原E2 owner执行，main不会补跑外部缺行。该优先级不使用test质量选模型或策略。
+
 ### 2026-10-14 04:36UTC：用户任意阶段GPU授权及R3迁移
 
 人类最新指示“现在可以在任何阶段使用GPU，我没有任何进程跟你抢夺GPU资源”，覆盖旧主书/AGENTS阶段CPU-only约束，不修改原任务书以掩盖覆盖。单卡串行、安全保护、原任务USER_MANUAL_RESUME/WSL不改仍有效。R3 CPU已04:15:58在global第29条写后触RAM guard真实exit1，329成功0error/完整CPU E2测试来源保留。使用现有CUDA train env TF5.19直接固定BGE-base分类器，FP32/eager/TF32off/sigmoid、同512窗/overlap32/batch2；CPU旧ST后端与新TF版本差异必须披露。同模型不代表设备数值与延迟完全相同。独立GPU E8全100+ROUTE200/60，不把CPU partial29拼成uniform GPU组，不改CPU test200用于E2。R3_GPU_MIGRATION及独立validator绑定保护哈希/全部IDs/新来源/资源；prepare和40功能测试不是360真实完成。4B先完整结束退出，再SQuAD100短CPU窗口，再GPU R3，释放后9B/judge/BF16；不重下模型、不结束未知应用或安全工具。LOAD_STATE backend_failures仍0，attempts2含成功加载，不能按成功次数误说已耗尽三backend失败重试。
