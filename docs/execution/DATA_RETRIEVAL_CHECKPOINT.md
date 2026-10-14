@@ -2,22 +2,17 @@
 
 本文件是数据/检索子任务的当前准确恢复点；主STATUS/RECOVERY由root维护。不要根据下述旧PID操作其他进程，不自动恢复用户原任务。
 
-## 当前低RAM受控暂停（不要启动第二个worker）
+## 当前已完成structured与ROUTE并归还资源（勿启动模型）
 
-正式QASPER结构候选R512全509篇索引因持续低RAM受控暂停；精确worker还在内存中，不是已退出，也不是实验完成。终端session60616；实际worker PID24020/create_time1791913376.0555313，launcher8052。暂停后逐块凭据5088/6551，下一批前2条cache已完整并验hash，在途HTTP结果未知；逐块首次观察和文本向量均落D盘，可恢复。实时身份在`D:/RAGScope_Runtime/runs/20261014_v2_retrieval/worker.json`，SUSPENDED_LOW_RAM/stage=final_structured_qasper。
+正式R512全509篇索引6551/6551已完成，manifest/count/artifact SHA实际验证PASS；structured TEST200/global100 × BM25/Dense/Hybrid共900行，ROUTE train200/dev60 × BM25/Hybrid共520行均正常exit0，全部row/config hashes、冻结query ID、0error已核。主机重启前5976条及所有旧结果保留；网络恢复历史仍3/3，没有伪造第四次错误或重置预算。
 
-当前自有CPU服务PID36892/create_time1791909754.8890424，loopback11436，12线程/12batch线程，CPU二进制、-ngl0/--no-op-offload、pooling last、L2、单slot。准确完整命令/模型和二进制SHA在`runs/20261014_v2/embedding_service.json`。该服务已在单slot drain barrier成功后精确停止，11436已关闭；worker仍暂停并持有campaign锁。尚未完成TEST/global/ROUTE来源，不向R3交接。
+structured实际worker3312/create1791942111.7390096/session37283和ROUTE worker10584/create1791944091.5318315/session25598均已退出。ROUTE身份在运行时工具实际观测，写RUNNING receipt前已正常退出，因此只记录真实观察和退出凭据，不伪造启动时落盘。STRUCTURED_WORKER_EXIT.json与ROUTING_WORKER_EXIT.json为准。
 
-当前先执行专用恢复流程，不能直接重放命令：先观察host可用RAM达到原3GiB guard，再运行 `. ./scripts/runtime_env.ps1` 和 `& 'D:/RAGScope_Runtime/envs/core/Scripts/python.exe' -u scripts/resume_structured_after_low_ram.py`。准确脚本artifact/hash与旧worker/server命令在STRUCTURED_LOW_RAM_PAUSE.json。新服务健康/真实1024维通过后该脚本只resume同一暂停worker；若出现可辨认连接reset并确认worker退出，才按剩余1次预算重放以下相同配置命令，并记录新启动源码实际hash。不可启动两个同campaign：
+单slot真实1024维drain barrier后，仅停止准确自有CPU4 service6016/create1791942102.6736171；确认PID不存在、11436关闭。主service receipt为EXITED_PLANNED_R3_HANDOFF。释放后available6705647616 bytes（约6.25GiB）。STRUCTURED_ROUTING_RESOURCE_HANDOFF.json SHA d9dca64ec3f03cbcad80f7e9d9dadf623fc4bdad2fac4ebb83ff479adf2cbe08保存全部退出、来源、sidecar、选择/index及恢复条件。当前没有本子任务活跃worker或模型。
 
-```powershell
-. ./scripts/runtime_env.ps1
-& 'D:/RAGScope_Runtime/envs/core/Scripts/python.exe' -u scripts/run_retrieval_v2.py --home 'D:/RAGScope_Runtime' --campaign 20261014_v2 --final-contexts --dataset qasper --family structured --embedding-url 'http://127.0.0.1:11436' --embedding-identity 'D:/RAGScope_Runtime/runs/20261014_v2/embedding_identity.json'
-```
+已把R3五组660条R512 neighbor Hybrid来源交root与现有chunking_core；由root统一发加载指令。顺序仍R3→压力诊断→Laya→本子任务SQuAD/simple。不得现在恢复embedding或并行启动下一索引。归还资源前可以做轻量已有报告工作；不要抢campaign单写锁，不重复全回归。
 
-完整索引目标6551 children；路径`indexes/20261014_v2/all_chunks/ba23a7f21f5bc3ed9fccb5778163c07a6b2fda530c769ff235e15d44dd5238f6/dense_397d90b3f4fbe03e`。`embedding_first_observations.jsonl`和content-addressed cache均按已完成观察落盘。不能把cache向量数量当作最终manifest已完成。
-
-最近19:21:47Z盘点：4880条durable observations、5293所需chunk已有cache、1258个独立文本/533192正文tokens尚需编码；最近100次冷调用341.17 tokens/s，剩余约24–30分钟只作当时编码估算，不包含查询物化；host可用1444884480 bytes（1.35 GiB）。最新状态文件`STRUCTURED_ENCODING_WORK_REMAINING.json`。
+下一条依赖性准确操作：等待root实际归还资源后，按handoff receipt完整CPU4命令、相同固定权重/binary、CUDA空串/-ngl0/--no-op-offload/CREATE_NO_WINDOW恢复独立服务，先确认host≥3GiB、11436free/无旧PID，再验证health和1024维。新服务PID/create/argv必须重新记账；不复用一次性HOST_RESTART_REENTRY脚本。随后执行下文既定SQuAD和scoped-simple两条命令。
 
 ## 已完成并冻结
 
@@ -26,30 +21,30 @@
 - E1主矩阵BM25/Dense/Hybrid 11组共3300行，0失败；扩展诊断另800行。早期初筛BM25 test400/global100单列探索历史；共44完成运行4600行。
 - 最终`CANDIDATE_SELECTION.json`：simple=F512_O0、structured=R512，Hybrid/dev-only，SHA fdb2a034acfb932caec71aff4a67fc02fc9154aa9b35d47e78c18a7184bc8c74。
 - `CONTEXT_SELECTION.json`两个候选均neighbor。早期BM25 simple=F512_O64以及none test不能冒充正式结果。
-- CPU batch1/2/4基准29次请求完成、向量/排名全部一致；batch2=1.00013倍、batch4=0.92875倍，保持原12thread/requestbatch1。凭据`cpu_batch_benchmark/RESULT.json`，不再增加优化组合。
+- CPU batch1/2/4基准29次请求完成、向量/排名全部一致；batch2=1.00013倍、batch4=0.92875倍，当时保持12thread/requestbatch1；最新AGENTS后续启动改为CPU4，批量仍为1。凭据`cpu_batch_benchmark/RESULT.json`，不再增加优化组合。
 - 独立审计PASS44runs/4600rows/18430pieces/132汇总数；11神经索引/5292vectors/220缓存对齐PASS。3098去重文本有backend usage、1639历史不可得保留N/A。辅助MRR/nDCG也PASS44runs/4600rows。
 - dev图表`reports/v2/retrieval_interim/DEV_RESULTS.md`三张PNG/SVG目视PASS；冻结`analysis_complete_dev/SOURCE_SNAPSHOT.json` SHA eb7de862fe1603e18cbea2a26459560d3aed4e818d7aafa6a34180fe61633429，41dev条件/4100行/16412pieces/123独立数字/seed42抽10/164源hash。新配对表说明R512 neighbor全覆盖8改善7退步净1，连续下降；F512_O0全覆盖16改善14退步净2，连续下降，不作显著性结论。
 
-## 当前命令正常结束后的下一条准确命令
+## 已完成的ROUTE命令（历史，不再执行）
 
-更新worker receipt COMPLETE/exit0并确认PID身份不再运行；然后立即物化已冻结ROUTE train200/dev60的BM25+Hybrid共520条，不另抽样：
+以下命令已实际exit0，固定ROUTE train200/dev60的BM25+Hybrid共520条已全部完成，不再执行。当前准确下一操作为等待root归还资源，再按后文CPU4服务条件与SQuAD/scoped-simple两条命令继续：
 
 ```powershell
 . ./scripts/runtime_env.ps1
 & 'D:/RAGScope_Runtime/envs/core/Scripts/python.exe' -u scripts/materialize_routing_contexts_v2.py --home 'D:/RAGScope_Runtime' --campaign 20261014_v2 --embedding-url 'http://127.0.0.1:11436' --embedding-identity 'D:/RAGScope_Runtime/runs/20261014_v2/embedding_identity.json' --routing-manifest-hash f1b6ae1ef21a44b720b53e1a6fffe6600a12d16d51e4b88aefe26a69c0ff952b
 ```
 
-随后既定**正常退出资源边界**：全部dev11、R512完整509、TEST200/global100与ROUTE260已齐，确认自身worker结束并持有campaign单写锁，记录已完成源hash与准确service PID/create/command，只停止本项目无在途请求的CPU embedding。保留cache与全部记录，保存释放/恢复凭据。不得自动进入simple索引。
+本轮已完成的**正常退出资源边界**（详见STRUCTURED_ROUTING_RESOURCE_HANDOFF.json）：全部dev11、R512完整509、TEST200/global100与ROUTE260已齐，确认自身worker结束并持有campaign单写锁，记录已完成源hash与准确service PID/create/command，只停止本项目无在途请求的CPU embedding。保留cache与全部记录，保存释放/恢复凭据。不得自动进入simple索引。
 
 R3由chunking_core处理，同retrieval Campaign单写锁。交接给其以下五组Hybrid源（全部neighbor）：
 
 - E1_R512_hybrid_neighbor.jsonl：dev100，已经就绪。
-- TEST_CONTEXT_R512_hybrid_neighbor.jsonl：test200，当前待物化。
-- E8_R512_hybrid_neighbor.jsonl：global100，当前待物化。
-- ROUTE_CONTEXT_TRAIN_R512_hybrid_neighbor.jsonl：train200，待物化。
-- ROUTE_CONTEXT_DEV_R512_hybrid_neighbor.jsonl：dev60，待物化。
+- TEST_CONTEXT_R512_hybrid_neighbor.jsonl：test200，已物化并验hash。
+- E8_R512_hybrid_neighbor.jsonl：global100，已物化并验hash。
+- ROUTE_CONTEXT_TRAIN_R512_hybrid_neighbor.jsonl：train200，已物化并验hash。
+- ROUTE_CONTEXT_DEV_R512_hybrid_neighbor.jsonl：dev60，已物化并验hash。
 
-必须保留raw50与真正selected10；历史缺selected字段的误差类型保持不确定。root最新冻结资源顺序：structured+ROUTE完成/停止embedding → R3五组完成退出 → generation_evaluation的22-call 2B 4K/8K诊断完成退出GPU → Laya正常5GiB门槛或有证据的一次4.5–5GiB预检备选 → 归还本子任务CPU槽。不要自行并载；压力诊断有效guard为3GiB，由root与generation协调。等待实际资源归还后，核验同一CPU12服务可靠恢复，再继续下列两个命令，不改冻结问题/算法/模型/扩展。simple已通过独立SIMPLE_SCOPE_PLAN预检：75篇/777chunks，保留509篇/5710chunks的BM25参考统计，test200的top50排名与分数全相等；省去4933个额外向量行（含cache复用，不是4933次冷调用）。后续simple使用scoped_chunks，明确拒绝global；准确证据位于runs/20261014_v2_simple_scope_preflight/。不再执行simple全509神经编码：
+必须保留raw50与真正selected10；历史缺selected字段的误差类型保持不确定。root最新冻结资源顺序：structured+ROUTE完成/停止embedding → R3五组完成退出 → generation_evaluation的22-call 2B 4K/8K诊断完成退出GPU → Laya正常5GiB门槛或有证据的一次4.5–5GiB预检备选 → 归还本子任务CPU槽。不要自行并载；压力诊断有效guard为3GiB，由root与generation协调。等待实际资源归还后，按最新AGENTS核验同一模型CPU4服务可靠恢复，再继续下列两个命令，不改冻结问题/算法/模型/扩展。simple已通过独立SIMPLE_SCOPE_PLAN预检：75篇/777chunks，保留509篇/5710chunks的BM25参考统计，test200的top50排名与分数全相等；省去4933个额外向量行（含cache复用，不是4933次冷调用）。后续simple使用scoped_chunks，明确拒绝global；准确证据位于runs/20261014_v2_simple_scope_preflight/。不再执行simple全509神经编码：
 
 ```powershell
 . ./scripts/runtime_env.ps1
@@ -67,7 +62,7 @@ R3由chunking_core处理，同retrieval Campaign单写锁。交接给其以下�
 
 ## 历史恢复与限制（仅证据，勿据旧PID操作）
 
-训练RAM边界曾暂停43932并停止自有39808；训练122步/972例完成后，按正式GPU_RELEASE_RECEIPT核验再恢复为当前36892。旧worker43932在途连接WinError10054后exit1，新worker28832从缓存恢复并已完成dev11/exit0。加上第一次CPU线程切换的连接重置，目前有界恢复已使用2/3；两个事件均存embedding_runtime_failures.jsonl，没有丢完成query。`PLANNED_TRAINING_RAM_PAUSE.json`、`TRAINING_RAM_RESUME.json`保留完整来源。一次性resume_embedding_after_training.py不能再次运行。
+训练RAM边界曾暂停43932并停止自有39808；训练122步/972例完成后，按正式GPU_RELEASE_RECEIPT核验再恢复为当前36892。旧worker43932在途连接WinError10054后exit1，新worker28832从缓存恢复并已完成dev11/exit0。加上第一次CPU线程切换的连接重置，当时有界恢复已使用2/3；两个事件均存embedding_runtime_failures.jsonl，没有丢完成query。`PLANNED_TRAINING_RAM_PAUSE.json`、`TRAINING_RAM_RESUME.json`保留完整来源。一次性resume_embedding_after_training.py不能再次运行。
 
 旧索引部分首次cold成本没完整保存，必须保留不可得，不能用warm/resumed成功时长冒充全cold。未来全库build_performance.json记录实际成功尝试及first observations。
 历史两个all509 BM25 chunkmanifest的preflight.split误写dev，其identity/数据/hash正确；CHUNK_PREFLIGHT_SCOPE_AUDIT明确PASS_WITH_METADATA_LIMITATION，旧manifest未改写，新构块用真实范围/样本文档ID。SQuAD沿用scientific-paper query指令且领域/长度不同，只作独立回归，不作长度因果解释。
