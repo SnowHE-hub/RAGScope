@@ -33,8 +33,10 @@ def ready_options(items):
 
 
 def validate_index_entry(entry):
-    from ragscope.indexing.identity import signature, verify_artifacts
+    from ragscope.indexing.identity import file_hash, signature, verify_artifacts
     path = Path(entry["manifest_path"])
+    if entry.get("manifest_sha256") and file_hash(path) != entry["manifest_sha256"]:
+        raise ValueError("索引 manifest 与已登记的固定版本不一致")
     manifest = json.loads(path.read_text(encoding="utf-8-sig"))
     if manifest["signature"] != signature(manifest["identity"]):
         raise ValueError("索引身份签名不一致")
@@ -155,7 +157,7 @@ class ScopedRetriever:
             config = self.entry["embedding"]
             if not config.get("ready") or config.get("service_device_verified") != "cpu":
                 raise ValueError("查询 embedding 必须是已核验的 CPU 本地服务")
-            tokenizer = HFJsonTokenizer(config["tokenizer_path"], config["identity"]["model"], config["identity"]["revision"])
+            tokenizer = HFJsonTokenizer(config["tokenizer_path"], config["tokenizer_id"], config["tokenizer_revision"])
             service = LocalEmbeddingService(config["base_url"], config["identity"], tokenizer,
                                             Path(config["cache_dir"]), config.get("max_input_tokens", 1100))
             query_vector, embedding_identity = service.embed_query(question), service.identity

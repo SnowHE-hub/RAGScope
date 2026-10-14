@@ -2,17 +2,45 @@
 
 本文件是数据/检索子任务的当前准确恢复点；主STATUS/RECOVERY由root维护。不要根据下述旧PID操作其他进程，不自动恢复用户原任务。
 
-## 当前已完成structured与ROUTE并归还资源（勿启动模型）
+## 当前：aux和UI候选已验证；等待root归还主writer（04:01Z）
+
+UI候选入口已实际完成，session1127 exit0：`main/ui_candidate/ui.json` SHA73ef6704d26afeba4eb961057ad0a86e2d71d43c0bd21b7e2116746f78e5ff81；`ui.verification.json` SHAeca75ef12397ee7643e8d7ed9574dcaf34ca094e6936196da609461bd2856d9f。全509/6551索引、四模型真实权重/模板、GET metadata通过；11436不可用，E2持生成锁，所以神经检索/交互生成标不可用。默认意图2B+fixed Hybrid/neighbor；非fixed不启用。项目ui.json字节未变；13定向UI检查PASS。详细依据和保留的一次回放文件名失败见UI_CANDIDATE.md。当前没有本子任务worker/模型。下一准确依赖操作仍是等待root明确主writer释放/资源交回，然后启动经核验CPU4服务并执行本文件下方既定SQuAD/simple最终上下文命令，不能自行抢R3锁；aux不能重复执行。
+
+aux session99141已**exit0**，worker30192与service33428的准确身份均已不存在，11436端口关闭。03:50:23Z独立退出观察available4863193088 bytes；`EXIT_INDEPENDENT_OBSERVATION.json`与`SERVICE_LIFETIME.json`（SHA85ee127ae1b75a0f51dea486c353891e49cf1da23e831f6d7049835e1bfd738c）保存证据。没有新增后端失败/重试，原3/3journal字节未变。当前本子任务**没有活跃模型或worker**，不得据下述历史PID或一次性启动脚本再次启动。
+
+SQuAD1212、simple777共1989向量全部完成。实际冷embedding calls分别1212/775，cache hits0/2；encoding分别1350.932秒/2537.883秒，不是独占资源性能基准。03:50:58Z独立readback session75664 **exit0/PASS**：正确expected identity/全部manifest artifacts、1989个float32/1024维/finite/unit norm、1989次逐项cache完全一致、全部正文<=512、完整1989条observations集合/row hashes。`INDEPENDENT_INDEX_READBACK.json`与`AUX_INDEX_HANDOFF.json`在独立aux run。SQuAD manifest SHA45cbd9c90f261841d8255bcfa6441e482e48f6975232d22f3ad8ccff71d4ea25；simple manifest SHAfb12663a59afd35fa1e105f67b45abbea273f2d5dd52d9bd3db777367facc03c。
+
+本次**新增quality experiment行数仍为0**，SQuAD/E6最终上下文尚待主campaign物化；不能把预编码写成实验完成。root确认R3仍持主writer锁（先前dev100/test200已完，继续global100/ROUTE260），必须等root正式锁释放通知才进入主campaign。不要重跑aux或readback。
+
+上述UI独立操作已完成，准确收据见顶部和UI_CANDIDATE.md；不是GUI最终验收。必要的后续QA由root统一安排。
+
+## 历史：8小时截止下的独立CPU4预编码启动（2026-10-14 02:43Z）
+
+用户已resume并新增10:29:06Z硬截止。root明确授权在R3持有主retrieval单写锁期间并行预编码SQuAD R512和scoped-simple777：只写各自索引及`20261014_v2_aux_preencode`独立campaign，不写主实验records/state，不改选择/语料/向量语义，不增加组合。下文旧的“等待全部R3→stress→Laya后才能开始索引”顺序已由本次授权取代；正式逐题物化仍必须等主锁释放。
+
+实际命令`. ./scripts/runtime_env.ps1; & 'D:/RAGScope_Runtime/envs/core/Scripts/python.exe' -u scripts/preencode_aux_v2.py`已运行，exec session **99141**。worker **30192/create1791945828.5850294**，自有CPU4 service **33428/create1791945830.6247053**。不要重复启动；下一准确工具操作是`write_stdin(session_id=99141,chars='',yield_time_ms=1000)`观察该已有句柄。`runs/20261014_v2_aux_preencode/SERVICE_LIFETIME.json`保存启动源码SHA、准确argv、固定权重/二进制、主锁实际被持有、独立账本、deadline、旧3/3失败journal SHA。启动前available3642847232 bytes，真实1024维控制请求通过后2734419968 bytes；CUDA空串/-ngl0/--no-op-offload/4线程。
+
+三个离线定向行为检查PASS：主锁持有时只写独立账本/目标锁；目标身份与最终消费者公式一致；低RAM/截止阻止下一请求且只保留已完成metrics。实际请求前1GiB guard，不称在途自动暂停；不足则在请求边界退出并由controller释放准确自有service，无自动后端重试。历史网络恢复仍3/3，不重置。
+
+SQuAD实际1204段→**1212个R512 chunks、0 parent、204332 Qwen body tokens、冷cache1212/1212**；完整结构坐标已核。WORKLOAD.json与精确目标在`squad_chunks/6ed89a898b20e5d929221fbed76465c8461405c406d6363fc9049540bdaa3f2b`，其自身writer.lock与R3的主锁/structured索引互不相同。已开始真实编码；完成后同一入口继续冻结simple777。aux仅索引，quality experiment新增行数为0，不冒称SQuAD/E6已完成。两个索引完成会正常退出/释放服务，随后由root安排主campaign最终物化。
+
+更新：SQuAD1212/1212已实际完成，1212冷模型调用/0cache hits，encoding1350.932秒；dense manifest SHA45cbd9c90f261841d8255bcfa6441e482e48f6975232d22f3ad8ccff71d4ea25，index signature5bdf788ee95cf8e78f4ac8b4a51db38f768ca716657caa6f17694ffb178f4075。已顺序进入simple F512_O0，777块/377551正文Qwen tokens，开始时2条cache命中、775条未命中；精确目标`scoped_chunks/da7d14af299a8b4ed9e25f662e7e00b6a4edb4a03897edc1fb84fe6b684aad08`。仍同一session99141/worker30192/service33428，勿重复启动。
+
+两索引全部完成且controller exit0/自有service退出后，下一只读核验命令为`. ./scripts/runtime_env.ps1; & 'D:/RAGScope_Runtime/envs/core/Scripts/python.exe' scripts/verify_aux_preencode_v2.py`。该命令逐一按最终消费者身份从磁盘load，核manifest/artifacts/全部float32维度1024/finite/unit norm/逐向量cache完全一致/正文<=512/observations集合和row hashes；无模型调用或主campaign写入。结果写aux/INDEPENDENT_INDEX_READBACK.json。新建索引save分支没有执行磁盘reload，aux task字段index_loaded_and_validated仅覆盖构造对象；以此单独readback收据确认真实落盘复载，不能提前声称已做独立读回。
+
+root后续新增独立交付：aux/readback/正常释放完成后、等待R3主锁时，实现生产UI配置候选入口（拟`scripts/configure_ui_v2.py`）与实际只读核验收据。先CodeGraph核`ui/chat_app.py`、model_identity和routing_options；全509 R512/neighbor、已完成dense真实index+hash/embedding身份、原四模型UI_MODEL_PACKAGE_PINS，默认只按dev/可运行最小2B，不读test选默认。非fixed路由必须真实门槛binding；missing服务明确不可就绪。先写runtime candidate，不改项目configs/v2/ui.json，待root最终UI QA再发布。0.34.4专用11435只允许metadata-only probe，先与root/gen协调，不抢其请求/不startup模型。无GPU/模型调用、不占主writer、不新增实验组合；GUI真实QA留root窗口。此UI源码尚未开始，不能套用root正在运行的旧全套core测试收据，必要时做对应定向验收。
+
+## 已完成structured与ROUTE及之前资源交接
 
 正式R512全509篇索引6551/6551已完成，manifest/count/artifact SHA实际验证PASS；structured TEST200/global100 × BM25/Dense/Hybrid共900行，ROUTE train200/dev60 × BM25/Hybrid共520行均正常exit0，全部row/config hashes、冻结query ID、0error已核。主机重启前5976条及所有旧结果保留；网络恢复历史仍3/3，没有伪造第四次错误或重置预算。
 
 structured实际worker3312/create1791942111.7390096/session37283和ROUTE worker10584/create1791944091.5318315/session25598均已退出。ROUTE身份在运行时工具实际观测，写RUNNING receipt前已正常退出，因此只记录真实观察和退出凭据，不伪造启动时落盘。STRUCTURED_WORKER_EXIT.json与ROUTING_WORKER_EXIT.json为准。
 
-单slot真实1024维drain barrier后，仅停止准确自有CPU4 service6016/create1791942102.6736171；确认PID不存在、11436关闭。主service receipt为EXITED_PLANNED_R3_HANDOFF。释放后available6705647616 bytes（约6.25GiB）。STRUCTURED_ROUTING_RESOURCE_HANDOFF.json SHA d9dca64ec3f03cbcad80f7e9d9dadf623fc4bdad2fac4ebb83ff479adf2cbe08保存全部退出、来源、sidecar、选择/index及恢复条件。当前没有本子任务活跃worker或模型。
+单slot真实1024维drain barrier后，仅停止准确自有CPU4 service6016/create1791942102.6736171；确认PID不存在、11436关闭。当时主service receipt为EXITED_PLANNED_R3_HANDOFF。释放后available6705647616 bytes（约6.25GiB）。STRUCTURED_ROUTING_RESOURCE_HANDOFF.json SHA d9dca64ec3f03cbcad80f7e9d9dadf623fc4bdad2fac4ebb83ff479adf2cbe08保存全部退出、来源、sidecar、选择/index及恢复条件。随后授权的aux活跃状态见本文件顶部。
 
-已把R3五组660条R512 neighbor Hybrid来源交root与现有chunking_core；由root统一发加载指令。顺序仍R3→压力诊断→Laya→本子任务SQuAD/simple。不得现在恢复embedding或并行启动下一索引。归还资源前可以做轻量已有报告工作；不要抢campaign单写锁，不重复全回归。
+已把R3五组660条R512 neighbor Hybrid来源交root与现有chunking_core；root已统一发加载指令。R3→压力诊断→Laya的其他agent资源窗口仍由root协调。新增aux仅按顶部明确授权隔离并行，不抢campaign单写锁，不重复全回归。
 
-下一条依赖性准确操作：等待root实际归还资源后，按handoff receipt完整CPU4命令、相同固定权重/binary、CUDA空串/-ngl0/--no-op-offload/CREATE_NO_WINDOW恢复独立服务，先确认host≥3GiB、11436free/无旧PID，再验证health和1024维。新服务PID/create/argv必须重新记账；不复用一次性HOST_RESTART_REENTRY脚本。随后执行下文既定SQuAD和scoped-simple两条命令。
+aux结束后的依赖性操作：主锁实际可用且root归还资源时，按相同固定权重/binary、CPU4恢复独立服务，确认host≥3GiB、11436free/无旧PID，验证health和1024维并记账，再执行下文既定SQuAD和scoped-simple两条最终物化命令。不得复用一次性HOST_RESTART_REENTRY或aux服务启动脚本。
 
 ## 已完成并冻结
 
