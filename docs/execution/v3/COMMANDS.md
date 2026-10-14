@@ -64,3 +64,29 @@ GPU评分前的实际栈校准（尚未运行时为待执行，不是完成证�
 ```
 
 Gpu校准已actualexit0；Qwen reranker12组只验证接口相关性，不是自然检索收益。文档BM251585已实际构建，Dense与块索引未完成。
+
+## S3实际向量/稀疏与S5监督诊断
+
+已完成：三切块4755文档配置，四稀疏变体，文档Dense1585，开发query220，六CPU/GPU向量数值桥接，972监督数值/20解码检查。
+
+```powershell
+. ./scripts/runtime_env.ps1
+& D:/RAGScope_Runtime/envs/core/Scripts/python.exe scripts/v3/build_chunk_dense_index.py --campaign D:/RAGScope_Runtime/runs/v3_20261015_014506 --variant R512_body --dry-run
+```
+
+块Dense当前由工具session31519串行运行body→metadata。仅在确认该句柄及对应PID/exe/argv终态后使用下面的同身份恢复命令；存在活进程时不得启动第二份。
+
+```powershell
+& D:/RAGScope_Runtime/envs/core/Scripts/python.exe scripts/v3/build_chunk_dense_index.py --campaign D:/RAGScope_Runtime/runs/v3_20261015_014506 --variant R512_body --resume
+& D:/RAGScope_Runtime/envs/core/Scripts/python.exe scripts/v3/build_chunk_dense_index.py --campaign D:/RAGScope_Runtime/runs/v3_20261015_014506 --variant R512_metadata --resume
+```
+
+初始81708因3GiB守卫actualexit1，4352已记录块向量不重算；31519为唯一同身份resume，不并行CPU模型/tokenizer。API向量编码输入/响应/缓存单独有身份账本；它不是生成答案或性能验收。
+
+当前覆盖上面的长进程恢复说明：31519第二次已actualexit1，完整10816块与额外缓存保留。最后兼容运行59311正在执行固定每1024向量的新进程/私有服务策略。旧build_chunk_dense_index.py不得再重启；当前准确入口如下，仅在核验父/子进程均已终态且没有FINAL_RESOURCE_BLOCK时才能恢复缓存分段：
+
+```powershell
+& D:/RAGScope_Runtime/envs/core/Scripts/python.exe scripts/v3/build_chunk_dense_index_resource_v3.py --campaign D:/RAGScope_Runtime/runs/v3_20261015_014506
+```
+
+该接口固定两变体、每变体最多20个分段，没有新增参数组合或失败worker自动重试。任一分段失败写S3_CHUNK_DENSE_FINAL_RESOURCE_BLOCK.json，不继续运行本入口。

@@ -35,7 +35,11 @@ def main():
                     'scripts/v3/run_context_judge.py', 'scripts/v3/run_protocol_study.py',
                     'scripts/v3/build_task_references.py', 'scripts/v3/run_protocol_supplements.py',
                     'scripts/v3/run_protocol_supplements_v2.py', 'scripts/v3/download_reranker.py',
-                    'scripts/v3/calibrate_qwen_reranker.py', 'scripts/v3/prepare_retrieval_sources.py'} and str(run).replace('\\', '/') in [a.replace('\\', '/') for a in argv]:
+                    'scripts/v3/calibrate_qwen_reranker.py', 'scripts/v3/prepare_retrieval_sources.py',
+                    'scripts/v3/smoke_private_embeddings.py', 'scripts/v3/build_document_dense.py',
+                    'scripts/v3/bridge_and_prepare_query_vectors.py', 'scripts/v3/build_chunk_sparse_indices.py',
+                    'scripts/v3/build_chunk_dense_index.py', 'scripts/v3/build_chunk_dense_index_resource_v3.py',
+                    str(PROJECT/'scripts/v3/build_chunk_dense_index_resource_v3.py').replace('\\','/')} and str(run).replace('\\', '/') in [a.replace('\\', '/') for a in argv]:
                 live.append(info)
         except (psutil.NoSuchProcess, psutil.AccessDenied):
             continue
@@ -177,6 +181,52 @@ def main():
         status['next_action']='Three source-only chunk preparations completed; build real document/chunk BM25 and dense indices, compare bounded candidates on D_search/D_confirm, and verify generator stability. Do not rerun completed model studies.'
         status['next_tool_call']={'tool':'exec_command','args':{'cmd':
             "Get-Content -LiteralPath 'D:/RAGScope_Runtime/runs/v3_20261015_014506/S3_RETRIEVAL_SOURCE_PREPARATION.json' -Raw",'max_output_tokens':1600}}
+    if (run/'S3_DOCUMENT_DENSE_INDEX.json').exists():
+        dense=json.loads((run/'S3_DOCUMENT_DENSE_INDEX.json').read_text('utf-8'))
+        status['tasks']['S3.4_document_dense_index']=dense['status']
+        status['completed_evidence']['S3_real_document_vectors']=dense['paper_n']
+    if (run/'S3_DEV_QUERY_VECTORS.json').exists():
+        queries=json.loads((run/'S3_DEV_QUERY_VECTORS.json').read_text('utf-8'))
+        status['tasks']['S3.4_dev_query_embeddings']=queries['status']
+        status['completed_evidence']['S3_dev_query_vectors']=queries['question_n']
+    if (run/'S3_EMBEDDING_BACKEND_BRIDGE.json').exists():
+        bridge=json.loads((run/'S3_EMBEDDING_BACKEND_BRIDGE.json').read_text('utf-8'))
+        status['tasks']['S3.4_embedding_backend_bridge']=bridge['status']
+        status['completed_evidence']['S3_embedding_bridge_min_cosine']=min(c['cosine'] for c in bridge['cases'])
+    if (run/'S3_CHUNK_SPARSE_INDICES.json').exists():
+        status['tasks']['S3.3_four_sparse_indices']='PASS_REAL_SPARSE_INDICES'
+    if (run/'S3_SPARSE_CANDIDATE_SCREEN.json').exists():
+        screen=json.loads((run/'S3_SPARSE_CANDIDATE_SCREEN.json').read_text('utf-8'))
+        status['tasks']['S3.3_sparse_candidate_screen']=screen['status']
+        status['completed_evidence']['S3_sparse_screen_rows']=sum(x['n'] for x in screen['groups'].values())
+        status['completed_evidence']['S3_selected_dense_variants']=screen['next_dense_variants']
+    live_chunk_dense=any(p['cmdline'][1].replace('\\','/').endswith(('build_chunk_dense_index.py','build_chunk_dense_index_resource_v3.py')) for p in live)
+    if live_chunk_dense:
+        status['tasks']['S3.3_selected_chunk_dense_indices']='RUNNING_SERIAL_GPU_EMBEDDING'
+        status['next_action']='Observe the verified-live serial dense index job; R512 body first, metadata second. Do not start another GPU model or rerun completed embeddings. After terminal exit, validate matrices and run bounded hybrid/rerank/core packing development tests.'
+        handle_path=run/'CURRENT_LIVE_DENSE_JOB.json'
+        handle=json.loads(handle_path.read_text('utf-8')) if handle_path.exists() else {}
+        status['next_tool_call']={'tool':'write_stdin','args':{'session_id':handle.get('session_id',81708),'chars':'','yield_time_ms':1000,'max_output_tokens':1200}}
+    complete_dense=[]
+    for variant in ('R512_body','R512_metadata'):
+        path=run/('S3_CHUNK_DENSE_'+variant+'.json')
+        if path.exists():complete_dense.append(variant)
+    if complete_dense:
+        status['completed_evidence']['S3_complete_chunk_dense_variants']=complete_dense
+    if len(complete_dense)==2 and not live_chunk_dense:
+        status['tasks']['S3.3_selected_chunk_dense_indices']='PASS_TWO_REAL_DENSE_INDICES'
+        status['next_action']='Validate completed canonical dense/sparse indices, then execute bounded hybrid/rerank/core development comparisons and real D_confirm generation stability. New H_QA gold remains sealed.'
+    if (run/'S3_CHUNK_DENSE_FINAL_RESOURCE_BLOCK.json').exists() and not live_chunk_dense:
+        status['tasks']['S3.3_selected_chunk_dense_indices']='BLOCKED_RESOURCE_BOUNDED_ATTEMPTS_EXHAUSTED'
+        status['next_action']='Dense compatibility attempt is terminal BLOCKED. Preserve all source/cache results; execute independent mandatory BGE/LoRA runtime/workflow diagnostics and final safe alternatives without reloading the blocked operation.'
+    if (run/'S3_DOCUMENT_DENSE_CANDIDATES.json').exists():
+        status['tasks']['S3.4_document_dense_fusion_diagnostic']='PASS_220_UNRESOLVED_SCOPE_DIAGNOSTICS_NOT_TASK_QUALITY'
+    if (run/'S5_SUPERVISION_DISTRIBUTION_DIAGNOSIS.json').exists():
+        lora=json.loads((run/'S5_SUPERVISION_DISTRIBUTION_DIAGNOSIS.json').read_text('utf-8'))
+        status['tasks']['S5.1_full_training_numeric_and_decode20']=lora['status']
+        status['completed_evidence']['S5_train_supervision_checked']=lora['train_n']
+        status['completed_evidence']['S5_actual_decoded_targets']=len(lora['decoded_cases'])
+        status['stages']['S5']='SOURCE_DIAGNOSIS_DONE_MANDATORY_RUNTIME_MICRO_PENDING'
     status['unresolved']=['S1 full claim/support/citation metrics BLOCKED after bounded resource attempts',
         'S2 generator D_confirm stability; S3 new retrieval indices/candidates and generation gates',
         'S4 workflow utility, S5 mandatory LoRA microdiagnosis, S6 locked holdout/online/report/acceptance']
