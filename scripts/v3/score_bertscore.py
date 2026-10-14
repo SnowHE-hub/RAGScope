@@ -40,6 +40,10 @@ def main():
     parser.add_argument('--campaign', required=True)
     parser.add_argument('--resume', action='store_true')
     parser.add_argument('--device', choices=('cpu', 'cuda'), default='cpu')
+    parser.add_argument('--outer-chunk-pairs', type=int, choices=(8, 64), default=8,
+                        help='Bound official implementation sentence-embedding cache; encoder batch remains four')
+    parser.add_argument('--encoder', choices=('roberta_large', 'nli_base'), default='roberta_large',
+                        help='nli_base is a separately reported resource alternative, not the official English default')
     args = parser.parse_args()
     runtime = Path(configure(cpu_only=True)['home']).resolve()
     run = Path(args.campaign).resolve()
@@ -47,13 +51,18 @@ def main():
         raise ValueError('Wrong campaign')
     require_ram(2 * 1024**3)
     manifest = json.loads((run / 'METRIC_MODEL_MANIFEST.json').read_text('utf-8'))
-    chosen = next(m for m in manifest['models'] if m['model'] == 'FacebookAI/roberta-large')
+    chosen = next(m for m in manifest['models'] if m['model'] == 'FacebookAI/roberta-large') if args.encoder == 'roberta_large' else next(
+        m for m in manifest['models'] if m['model'].startswith('MoritzLaurer/'))
+    layers = 17 if args.encoder == 'roberta_large' else 9
     package_version = importlib.metadata.version('bert-score')
     if package_version != '0.3.13':
         raise ValueError('Metric implementation version differs')
     config = {'implementation_version': package_version, 'model': chosen['model'], 'revision': chosen['revision'],
-        'model_artifacts': chosen['artifacts'], 'num_layers': 17, 'idf': False, 'rescale_with_baseline': False,
+        'model_artifacts': chosen['artifacts'], 'num_layers': layers, 'idf': False, 'rescale_with_baseline': False,
+        'encoder_selection': 'official_english_default' if args.encoder == 'roberta_large' else
+            'RESOURCE_ALTERNATIVE: existing NLI-finetuned DeBERTa-v3-base; architecture layer9 from official BERTScore registry, not tuned for higher results',
         'use_fast_tokenizer': False, 'dtype': 'float32', 'device': 'cuda:0' if args.device == 'cuda' else 'cpu', 'batch_size': 4,
+        'outer_chunk_pairs': args.outer_chunk_pairs,
         'multi_reference_rule': 'single reference maximizing F1; precision/recall from that same reference; first tie',
         'source_db': artifact(run / 'S0_EVIDENCE.sqlite'), 'lora_projection': artifact(run / 'LORA_100_PAIRS.jsonl'),
         'transformers': importlib.metadata.version('transformers'), 'torch': importlib.metadata.version('torch'),
@@ -61,6 +70,10 @@ def main():
         'human_review_status': 'NOT_REVIEWED', 'new_llm_requests': 0}
     with FileLock(str(run / 'writer.lock'), timeout=0):
         suffix = '_cpu' if args.device == 'cpu' else ''
+        if args.outer_chunk_pairs == 8:
+            suffix = (suffix or '_cuda') + '_smallbatch'
+        if args.encoder == 'nli_base':
+            suffix = '_nli_base' + suffix
         receipt = run / ('S1_BERTSCORE_RECEIPT' + suffix + '.json')
         if receipt.exists():
             saved = json.loads(receipt.read_text('utf-8'))
@@ -95,15 +108,16 @@ def main():
                 if gpu:
                     torch.backends.cuda.matmul.allow_tf32 = False
                     torch.backends.cudnn.allow_tf32 = False
-                scorer = BERTScorer(model_type=chosen['directory'], num_layers=17, batch_size=4,
+                scorer = BERTScorer(model_type=chosen['directory'], num_layers=layers, batch_size=4,
                     nthreads=4, lang='en', device=config['device'], idf=False,
                     rescale_with_baseline=False, use_fast_tokenizer=False)
+                scorer._model.float().eval()
                 maximum = scorer._tokenizer.model_max_length
-                for start in range(0, len(pending), 64):
+                for start in range(0, len(pending), args.outer_chunk_pairs):
                     require_ram(2 * 1024**3)
                     if gpu:
                         gpu.check()
-                    keys = pending[start:start+64]
+                    keys = pending[start:start+args.outer_chunk_pairs]
                     candidate = [pairs[k][0] for k in keys]
                     refs = [pairs[k][1] for k in keys]
                     token_counts = [(len(scorer._tokenizer.encode(c, truncation=False)),
@@ -117,6 +131,8 @@ def main():
                             'truncated_by_official_implementation': clipped, 'real_encoder': True})
                         encoded_tokens += min(c_len, maximum) + min(r_len, maximum)
                         truncated_pairs += int(clipped)
+                    del p, r, f
+                    gc.collect()
                     print(json.dumps({'event': 'BERTSCORE_PROGRESS', 'completed_pairs': len(store.ids),
                         'expected_pairs': len(pairs), 'elapsed_seconds': time.monotonic()-started}), flush=True)
                 del scorer

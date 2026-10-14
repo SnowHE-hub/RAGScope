@@ -1,18 +1,15 @@
-# v3 恢复记录
+# v3 当前恢复点
 
-Campaign：`D:\RAGScope_Runtime\runs\v3_20261015_014506`。当前模型进程：`[{"cmdline": ["D:\\RAGScope_Runtime\\tools\\python\\cpython-3.12-windows-x86_64-none\\python.exe", "scripts/v3/score_bertscore.py", "--campaign", "D:/RAGScope_Runtime/runs/v3_20261015_014506", "--resume", "--device", "cpu"], "pid": 17764, "create_time": 1791992410.1747198, "parent_pid": 35192, "rss": 1511981056, "cpu_seconds": 527.75}, {"cmdline": ["D:\\RAGScope_Runtime\\envs\\v3_metrics_cpu\\Scripts\\python.exe", "scripts/v3/score_bertscore.py", "--campaign", "D:/RAGScope_Runtime/runs/v3_20261015_014506", "--resume", "--device", "cpu"], "pid": 35192, "create_time": 1791992410.1526277, "parent_pid": 18756, "rss": 4419584, "cpu_seconds": 0.0}]`。
+2026-10-14T17:26:36.485169+00:00；campaign `D:\RAGScope_Runtime\runs\v3_20261015_014506`，分支codex/ragscope-v3-diagnostics。全部本轮模型/下载/审计句柄已真实终态；最新BERT替代session63985 actualexit0、NLI60651 actualexit0；默认BERT17135/31866/97392 actualexit1资源阻断，不能再无限重启。
 
-先读取STATUS.json/CAMPAIGN_IDENTITY.json/BUDGET.jsonl；不要重复bootstrap、重新封存holdout或重跑旧5520条生成。
+先读STATUS/CAMPAIGN_IDENTITY/BUDGET和ROOT_CHECKPOINT，不bootstrap、不重封存H_QA、不重跑旧生成矩阵。H_QA200/100论文仍封存。新LLM请求0；人工NOT_REVIEWED；当前只是S1的一部分，Goal未完成。
 
-CPU BERTScore句柄：unified exec session31866。先调用write_stdin(session_id=31866,chars="",yield_time_ms=1000)，再核PID/create/argv、日志和落盘；观测超时不是退出，不重复起模型。准确只读命令：
-```powershell
-Get-Content -LiteralPath 'D:/RAGScope_Runtime/runs/v3_20261015_014506/S1_BERTSCORE_CPU.log' -Tail 12
-```
-
-只有真实旧进程gone且锁释放后才用以下同身份命令恢复：
+准确可执行输入恢复校验命令：
 ```powershell
 . ./scripts/runtime_env.ps1
-& 'D:/RAGScope_Runtime/envs/v3_metrics_cpu/Scripts/python.exe' scripts/v3/score_bertscore.py --campaign 'D:/RAGScope_Runtime/runs/v3_20261015_014506' --resume --device cpu
+& 'D:/RAGScope_Runtime/envs/core/Scripts/python.exe' scripts/v3/prepare_atomization_groups.py --campaign 'D:/RAGScope_Runtime/runs/v3_20261015_014506' --resume
 ```
 
-GPU partial64/6342与两次失败日志保留单列，不能拼进CPU正式结果。CPU全6342对/5720答案完成后保存真实exit/资源与校验，再执行已固定NLI的校准和claim/context/citation proxies。人工NOT_REVIEWED；新LLM请求0，S6保留1800。H_QA gold仍封存，H_scope/H_tasks待构造；S2–S6未开始。原训练USER_MANUAL_RESUME，不自动恢复原训练/WSL/定时/日更。
+下一实际实现：Implement v3 owned Ollama lifecycle, generic counted client and quote-only claim segmentation. Do not start old hardcoded serve_generation against v2 run. Then run S1 actual facts/support/citation/context judgements before S2.
+
+已读取原LocalLLMClient.chat(messages,max_tokens,temperature,output_schema)，纯tokenizers的Qwen35PromptCounter；model_client_factory可以复用原源manifest/tokenizer/pilot核验，再新身份修改context8192。预算须接v3 Budget而非旧GenerationBudget。原server硬编码20261014_v2/11435/旧lease，新增v3 wrapper不得改或启动旧run。GPU锁仍单模型串行、原训练USER_MANUAL_RESUME、不开WSL不改系统；只有精确自身servicePID可正常卸载退出。完成事实评分和context充分性后才进S2，原训练不自动恢复。

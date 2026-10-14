@@ -10,10 +10,12 @@
 
 实际输出 tokens 优先 backend.actual_output_tokens（BF16），其次 backend.eval_count（Ollama）。completion_tokens 可能是参考 tokenizer 计数，不能冒充后端输出长度。S0 初版投影的 BF16 fallback 计数已在 S1 明确更正，原投影及其收据保留。首 token 和停止原因缺记录时保持 null/NOT_RECORDED。
 
-BERTScore 固定官方实现分发版本 0.3.13，英文默认 RoBERTa-large、17 层、慢 tokenizer、无 IDF、无 baseline rescale。选择官方默认便于公开复算，并不宣称它是当前与人评相关性最高的编码器。模型 revision、文件哈希及实际依赖路径在运行前固定。语义分数目前尚未运行；它只衡量参考语义接近度，不是事实真值。
+BERTScore 英文默认 RoBERTa-large/17层在GPU和两种CPU缓存调度下分别完成64、832、232对后触发3GiB内存守卫，原配置记BLOCKED_RESOURCE，部分结果和失败原样保留。官方实现分发版本固定0.3.13（包内部__version__仍写0.3.12，两者均记录），慢tokenizer、无IDF、无baseline rescale。
+
+唯一编码器方法替代复用已下载的MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli，按官方BERTScore的base架构注册选择9层，固定FP32/CPU/encoder batch4/外层8对。它是NLI微调编码器的独立资源替代，不能冒充英文默认，也不是与NLI独立的第二个模型裁判。实际完成6342对、5720旧答案，342932 encoder tokens、0截断；所有模型同配置，原答案未改写。它只衡量参考语义接近度，不是事实真值。模型/层选择在查看全量得分前固定，依据内存约束而非更高得分。
 
 后续将独立报告 claim_reference_precision_proxy、key_fact_recall_proxy、claim_f1_proxy、context_support_precision_proxy、citation_support_precision_proxy、citation_completeness_proxy 与关键实体/数值/否定/关系冲突。没有任意加权单一总分；未评判和 UNKNOWN 不从总体消失。
 
-裁判先用 60 组规则构造对照进行工程校准；输入构造不是人类真值审核。V1 构造中“购买”本身不排除以后“卖出”，已在裁判运行前另立 V2 对照，原文件保留。120 条自然样本按失败、拒答和答案类型固定分层抽样，模型/方案名字仅在私有 join 文件中；原文上下文另存盲评 companion。裁判尚未运行，因此尚无 90% 校准通过声明。
+裁判用60组规则构造对照进行工程校准；输入构造不是人类真值审核。V1中“购买”不排除以后“卖出”的歧义已在判分前另立V2，原文件保留。实际NLI完成130项关系判断（含引用错配），130/130、60/60组通过；满足本轮90%工程门槛，不代表自然问题或人评准确率。120条自然样本按失败、拒答和答案类型固定分层抽样，模型/方案名字只在私有join文件；自然样本的AI复核和所有人工审核仍待完成。
 
 新 H_QA 答案封存于 evaluator_only，选型/训练/诊断读取被拒绝；正式评估需要绑定冻结候选与单轮授权。该 API 边界不是操作系统权限隔离，不把它描述成 Full Access 下不可绕过的安全沙箱。
