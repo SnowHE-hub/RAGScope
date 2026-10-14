@@ -15,6 +15,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from ragscope.evaluation.v2 import cluster_bootstrap, paired_cluster_bootstrap
 from ragscope.indexing.identity import artifact, atomic_json, file_hash, signature
+from ragscope.experiments.rerank_sources import accepted_gpu_sources
 
 
 def read_jsonl(path):
@@ -96,6 +97,11 @@ def report(home, campaign):
     if any(len(query_sets[name]) != size for name, size in expected_sizes.items()):
         raise ValueError("Unexpected frozen test sample size")
     rows_by_key = {}
+    gpu_sources = None
+    if (run / 'R3_GPU_COMPLETION_VALIDATION.json').is_file():
+        gpu_sources = accepted_gpu_sources(home, campaign)
+        result['gpu_r3_source_acceptance'] = {
+            'artifacts': gpu_sources['evidence'], 'comparison_limit': gpu_sources['comparison_limit']}
     options = [("paper", family, method) for family in ("simple", "structured") for method in ("bm25", "dense", "hybrid")]
     options += [("global", "structured", method) for method in ("bm25", "dense", "hybrid")]
     # R3 is a required existing route, included descriptively when its real
@@ -107,6 +113,8 @@ def report(home, campaign):
         group = selected["selected"][family]
         prefix = {"paper": "TEST_CONTEXT", "global": "E8", "squad": "E4_CONTEXT"}[task]
         run_id = f"{prefix}_{group}_{method}_{contexts['selected'][group]}"
+        if task == 'global' and method == 'hybrid_rerank' and gpu_sources is not None:
+            run_id = gpu_sources['paths']['E8'].stem
         rows, evidence = verified_rows(run, run_id, query_sets[task], protocol["metrics"])
         key = (task, family, method)
         rows_by_key[key] = rows

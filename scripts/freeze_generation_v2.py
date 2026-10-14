@@ -290,6 +290,15 @@ def attach_core_shards(spec):
 
 def freeze_all(spec, *, client_factory=model_client_factory):
     spec=attach_core_shards(copy.deepcopy(spec))
+    if spec.get('gpu_r3_source_acceptance'):
+        from ragscope.experiments.rerank_sources import accepted_gpu_sources
+        accepted = accepted_gpu_sources(Path(spec['retrieval_run']).parents[1], spec['campaign'])
+        if (spec['gpu_r3_source_acceptance']['artifacts'] != accepted['evidence']
+                or accepted['n_failed']
+                or any(spec['context_sources'].get(key) != str(accepted['paths'][prefix]) for key, prefix in (
+                    ('ROUTE_TRAIN:hybrid_rerank', 'ROUTE_CONTEXT_TRAIN'),
+                    ('ROUTE_DEV:hybrid_rerank', 'ROUTE_CONTEXT_DEV')))):
+            raise ValueError('Explicit GPU ROUTE sources differ from complete accepted migration')
     corpus = Path(spec['corpus_dir'])
     queries, units, corpus_artifact = verified_corpus(corpus)
     lengths = document_lengths(corpus)
