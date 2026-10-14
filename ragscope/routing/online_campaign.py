@@ -127,6 +127,14 @@ def load_router(name, routing_dir):
     raise ValueError('Unknown frozen online policy')
 
 
+def authorize_remote_gpu(client, verify_owned):
+    """Bind only a verified owned GPU HTTP service; never expose local CUDA."""
+    if client.num_gpu <= 0 or client.service_device_verified != 'gpu':
+        raise ValueError('Online remote GPU client must identify a verified GPU service')
+    verify_owned(client.identity)
+    client.remote_gpu_authorizer = verify_owned
+
+
 def run_online(campaign, routing_dir, output, client, budget, retriever, routers, *,
                common_clients, shared_context, evidence_units, max_tasks=None):
     """Caller holds the global generation lock and supplies guarded real clients."""

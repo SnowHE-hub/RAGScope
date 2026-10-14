@@ -52,7 +52,8 @@ class LocalLLMClient:
                  revision="", weight_sha256="", quantization="", backend_version="",
                  chat_template_hash="", timeout=180, seed=42, num_ctx=4096,
                  num_gpu=0, think=False, json_constraint=True, keep_alive="5m",
-                 prompt_token_counter=None, service_device_verified=None, backend_runtime_config=None):
+                 prompt_token_counter=None, service_device_verified=None, backend_runtime_config=None,
+                 remote_gpu_authorizer=None):
         if provider not in {"ollama", "llama.cpp"}:
             raise ValueError("Only local ollama and llama.cpp backends are enabled")
         if timeout <= 0 or num_ctx <= 0 or num_gpu < 0:
@@ -63,6 +64,9 @@ class LocalLLMClient:
         self.think, self.json_constraint, self.keep_alive = think, json_constraint, keep_alive
         self.prompt_token_counter = prompt_token_counter
         self.service_device_verified = service_device_verified
+        if remote_gpu_authorizer is not None and not callable(remote_gpu_authorizer):
+            raise ValueError("Remote GPU authorization requires a live service/lease validator")
+        self.remote_gpu_authorizer = remote_gpu_authorizer
         self.identity = dict(provider=provider, model=model, revision=revision,
                              weight_sha256=weight_sha256, quantization=quantization,
                              backend_version=backend_version, chat_template_hash=chat_template_hash,
@@ -75,7 +79,11 @@ class LocalLLMClient:
 
     def _request(self, path, payload):
         if os.environ.get("CUDA_VISIBLE_DEVICES") == "" and self.num_gpu != 0:
-            raise GenerationError("device_policy_error", "GPU request prohibited in CPU-only process")
+            if self.remote_gpu_authorizer is None or self.service_device_verified != "gpu":
+                raise GenerationError("device_policy_error", "GPU request prohibited in CPU-only process")
+            # The HTTP service owns the GPU; the caller remains CPU-only. Recheck
+            # the exact owned process and current-boot lease on every request.
+            self.remote_gpu_authorizer(self.identity)
         if (os.environ.get("CUDA_VISIBLE_DEVICES") == "" and self.provider == "llama.cpp"
                 and self.service_device_verified != "cpu"):
             raise GenerationError("device_policy_error", "llama.cpp server CPU-only launch must be verified")

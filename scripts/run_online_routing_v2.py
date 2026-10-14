@@ -14,7 +14,7 @@ from ragscope.experiments.generation_campaign import GenerationBudget, load_camp
 from ragscope.experiments.runtime import configure, runtime_home, require_ram
 from ragscope.generation.resources import MeasuredClient
 from ragscope.indexing.identity import verify_artifacts
-from ragscope.routing.online_campaign import freeze_online, load_router, run_online, verified_body
+from ragscope.routing.online_campaign import authorize_remote_gpu, freeze_online, load_router, run_online, verified_body
 
 
 def main():
@@ -53,6 +53,7 @@ def main():
     for name, client in zip(('qwen_2b', 'qwen_4b', 'qwen_9b'), common):
         if client.identity != manifest['models'][name]:
             raise ValueError('Frozen generator counter identity changed')
+    authorize_remote_gpu(common[0], lambda identity: verify_owned_service(receipt, lease, identity))
     from ragscope.routing.online_retrieval import create_live_retriever
     from ragscope.retrieval.verified_reranker import load_verified_reranker
     # Backend owns runs/gpu.lock. Client lock excludes any other local generation
