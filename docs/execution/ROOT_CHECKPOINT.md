@@ -1,5 +1,7 @@
 # 主执行器恢复点
 
+**06:52UTC最新覆盖：** root只读完整行观察E2 9B767/800（未代替owner全hash/token验收），owner最近766、剩尾段；服务31596/worker23892身份及44959句柄同下。全主大对象accept/ANALYSIS/clusterCI/图表明确延后到gen BF16全部release之后且CPU embedding未启动之前；gen只继续E2scope封存/main9B本模型审计/judge/BF16，不提前main全5520分析。root当前无常驻进程。原data正在只读准备scripts/serve_online_embedding_v2.py（新增正确PID生命周期/同CPU4/-ngl0/11436/老embedding_identity SHA不改，0Popen/0HTTP），必须BF16 ports11435/11436和gpu/client/retrieval锁皆空后，根的分析释放消息才能实际启动；之后单2B GPU→原chunk online66→根最终UI→服务全部退出→四正式报告。最后由于真实路径修复/RAM安全修复/新服务入口需要一次current-source完整回归，不能引用旧679为新代码已全套。当前下一准确只读仍下列E2 OPERATOR_CHECKPOINT；不重复起活服务，旧ownercheckpoint行数可滞后，以新消息/真实进程/最终封存为准。
+
 更新 2026-10-14 06:33 UTC / 17:33 Sydney。Goal ACTIVE。硬截止 2026-10-14T10:29:06.606796Z（21:29 Sydney），不能重建goal/agent/聊天。旧完整恢复点和STATUS已逐字归档到主run/status_history，最新ROOT SHA7a69bb0510016fa6134e2fd896f0ad5358daf0c6e70765b71414bd898173ebe5，STATUS SHAf1af14dc1cfd808bb7960fc92b94b27a7ba1a510b7b9504dfa85b3d457b9d342。
 
 ## 当前资源与准确下一动作

@@ -1,5 +1,7 @@
 # RAGScope v2 执行状态
 
+**06:52UTC最新：** E2 9B完整行观察767/800/owner766，进入尾段，最终800哈希/token审计待owner签收。根的大对象主分析/图表将在BF16全部release且embedding未启动窗口执行；之后在线与最终UI服务，再全部释放才构建四报告/终验。新CPU embedding生命周期入口只读准备0load/0HTTP；不会抢占当前GPU或再次正文编码。本文下面0633行数是历史快照。Goal仍ACTIVE。
+
 更新2026-10-14 06:33UTC / 17:33 Sydney。Goal ACTIVE，未终验。硬截止10:29:06UTC /21:29 Sydney，campaign20261014_v2，详细恢复/准确命令见ROOT_CHECKPOINT.md。
 
 用户最新允许任何阶段GPU，单卡本项目模型仍串行。原任务USER_MANUAL_RESUME：结束释放并通知用户，不自动恢复。WSL配置不变且off；不动原11434/日更/驱动/安全工具，不上传/push/付款/搜密钥。大件全部D:/RAGScope_Runtime。

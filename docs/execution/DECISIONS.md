@@ -1,5 +1,11 @@
 # 决策记录
 
+2026-10-14 06:42UTC：ONLINE在七策略冻结后仅使用完整60dev选择fixed_hybrid/rules各30相同ID。发现原实现只有BGE预载effective3GiB检查，正式请求/warmup没有RAM边界保护；在0次真实online请求前作最小安全修复2b2ba18，逐warmup/新任务开始前1.25GiB不足正常INCOMPLETE_RESOURCE/剩余pending，不耗预算、不伪造失败行。旧manifest/prepare/source逐字按SHA归档，fresh freeze独立比较仅implementation与online_hash改变，策略/30IDs/模型/prompt/配置/时序不变。当前online_hash16a0c607082e95cd54336c86889cf7f887f8bbdaf32f4b6419b7339e0043a3f4，16定向测试PASS（原9+新增7）。正式在线仍未实跑，等原BF16释放后同2B驻留窗口。
+
+同日固定模型train200各一次共600分类诊断真实完成，不重训、不新增种子或LLM请求。线性train accuracy .675/dev .516667；MLP/LSTM .64/.516667，后两者train也全BM25，gap恰等于多数类比例差，不能单凭gap宣称过拟合。labels接线仅把task_catalog的6处proxy_labels.jsonl改为实际producer的labels.jsonl；旧catalog/签收留档。S4.2修订签收2235e1a51518a908060037d662cd8e4bc2ba17d04d87918a8bf38b3ad3917201。
+
+全新D盘core_acceptance_20261014按74锁包offline require-hashes安装/pipcheck/importsmoke全部actualexit0，补足干净环境可重建实证；不改当前core，不加载Torch/模型。检索12完整组及5预声明cluster对照actualPASS，所有失败和不可答分母/NA保持。S2.6以PASS_FALLBACK明示官方旧模型重建的UNKNOWN历史权重、CPU partial29与完整GPU100来源差异，以及用户授权后的S2/S3墙钟交叠；不声称全过程原任务未动或C盘零写入。
+
 2026-10-14 05:58UTC：实际浏览器验收在GPU生成持锁期间只调用已就绪BM25，返回四个真实上下文片段并保存DOM与截图。就绪模型0/生成N/A原样显示，不用Mock填补；结束正常退出自身UI服务释放RAM。最终真实生成/UI配置发布将在在线GPU窗口核验后执行。路由replay发现外部E2来源凭据路径误找本地副本，只最小修复来源绑定并25定向测试；原失败留档、冻结labels和1120决策不变。最新679全套是旧216源签名；该修复另有215不变/1变化及新增7测试的差异签收，不把旧套件冒充新文件已全套通过。三学习路由dev全选BM25是实际类偏斜结果，不能据test或“智能”目标重训/调参。
 
 ### 2026-10-14 04:52UTC：真实资源释放与路由标签优先
