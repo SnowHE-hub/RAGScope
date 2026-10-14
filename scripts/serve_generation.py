@@ -3,6 +3,7 @@ from pathlib import Path
 import sys
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
 import json
+import argparse
 import os
 import shutil
 import signal
@@ -15,11 +16,15 @@ from filelock import FileLock
 from ragscope.experiments.runtime import configure,runtime_home,validate_gpu_lease
 from ragscope.indexing.identity import atomic_json,file_hash
 
-def main():
+def main(argv=None):
     configure(cpu_only=False); root=runtime_home(); run=root/'runs/20261014_v2'
     validate_gpu_lease(run/'gpu_lease.json')
-    binary=shutil.which('ollama')
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--binary',type=Path,help='Explicit private portable Ollama executable; preserves its adjacent libraries')
+    args=parser.parse_args(argv)
+    binary=str(args.binary.resolve()) if args.binary else shutil.which('ollama')
     if not binary: raise RuntimeError('Installed Ollama not found')
+    if not Path(binary).is_file(): raise FileNotFoundError(binary)
     with socket.socket() as probe: probe.bind(('127.0.0.1',11435))
     environment=os.environ.copy()
     environment.update(CUDA_VISIBLE_DEVICES='0',OLLAMA_HOST='127.0.0.1:11435',OLLAMA_MODELS=str(root/'models/ollama'),
