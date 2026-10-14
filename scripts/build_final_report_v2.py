@@ -121,6 +121,30 @@ def build(campaign, analysis_path, output, *, allow_incomplete=False):
         "质量采用文字重合F1及实际上下文证据覆盖；不可答F1和证据指标为N/A，拒答另算。请求失败留在适用质量分母并记零，同时提供成功条件统计。",
         "|实验|模型|方法|实际输入token P50|decode token/s P50|采样设备显存GiB|服务树RSS GiB|",
         "|---|---|---|---:|---:|---:|---:|" ]
+    identity_lines = ["### 冻结模型身份", "", "|模型ID|实际本地模型tag|量化|后端版本|",
+                      "|---|---|---|---|"]
+    for model_id, identity in manifest["models"].items():
+        identity_lines.append(f"|{model_id}|{identity['model']}|{identity.get('quantization', 'UNKNOWN')}|"
+                              f"{identity.get('backend_version', 'UNKNOWN')}|")
+    identity_lines += ["", "权重、revision/本地manifest和模板身份：", ""]
+    for model_id, identity in manifest["models"].items():
+        identity_lines.append(f"- `{model_id}`：weight SHA `{identity.get('weight_sha256', 'UNKNOWN')}`；"
+            f"revision `{identity.get('revision', 'UNKNOWN')}`；template SHA `{identity.get('chat_template_hash', 'UNKNOWN')}`。")
+    identity_lines += ["", "Qwen与LFM的模型结构、模板和tokenizer不同，异构对照单独报告。LFM许可限制见固定模型包来源/模型卡，本轮是本地个人研究，不声称商业部署许可。", ""]
+    # Keep the audit's exact nine-column generation table contiguous and unique.
+    table_index = next(i for i, text in enumerate(parts) if text.startswith("# RAGScope v2 逐行生成结果重建"))
+    parts[table_index:table_index] = identity_lines
+    dev_path = project / "reports/v2/retrieval_interim/DEV_RESULTS.md"
+    if dev_path.is_file():
+        sources.append(artifact(dev_path))
+        dev_text = dev_path.read_text(encoding="utf-8")
+        dev_text = dev_text.replace("# 已完成的 dev 检索结果", "### E1：已完成的dev切块与上下文结果", 1)
+        for filename in ("dev_evidence_matrix.png", "dev_expansion_delta.png", "dev_r512_neighbor_changes.png"):
+            dev_text = dev_text.replace(f"]({filename})", f"](retrieval_interim/{filename})")
+            figure = dev_path.parent / filename
+            if figure.is_file():
+                sources.append(artifact(figure))
+        parts[table_index:table_index] = [dev_text, ""]
     for group in report["groups"]:
         p = group["performance"]
         memory, rss = p.get("peak_sampled_device_total_used_bytes"), p.get("peak_sampled_service_tree_rss_bytes")

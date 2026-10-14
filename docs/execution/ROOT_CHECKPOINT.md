@@ -1,5 +1,14 @@
 # 主执行器恢复点
 
+**03:55UTC当前运行与任务交接：** R3原30108/session83335已经TEST200独立PASS，records SHA a4366ef11e137a239da889eb0ef8528ec5990976d8f4dbfe8efdc1377e6cbfbc/config3d49a5a4ef3a5b5e259643eff5a8d04d5b6352b82798ce935ac948e1d7580631/3711完整窗口/max512/0error；继续原global100→ROUTE train200/dev60，第一global实际78窗口/0error。aux session99141 exit0、30192/33428准确不存在/11436关闭，1989vector全磁盘/cache readbackPASS，AUX_INDEX_HANDOFF SHA de498e5a3980bc42ad56c3369a786b8b625a209c2fc9c0c1309c1cbbc2239113。data等待主writer释放前，只做UIcandidate新入口及chat_app最小tokenizer字段bug修复/定向测试，不发布configs、不请求模型。gen E2实际freeze成功hash6a2862e3fed696fb0224d23abc78437c5eaa318efb190c13b2422724ca3246e5，2400/每模型800；2B worker session80850，service3644/session26765归gen，root不要poll。起跑guardhost5.002GB、GPU12MiB/API空、leasecurrentboot，pytest与aux均已退出/R3身份MATCH。首50平均1.256s、78时0error/token mismatch，后235/800；预计该2B余15–22min是当时真实速率外推。E2冻结曾短时host1.29GB，随后辅助服务退出/冻结完成回升4.73GB，两个CPU原guard保留、没有因此重试或停止。gen已有连续E2→judge200→11435退出→同E2-source pairedBF16授权。最新root22dc2f6、gen661a521/32fe2f4/b8a35b5；后端当前精确命令带--binary D:/RAGScope_Runtime/tools/ollama-0.34.4/ollama.exe。截止10:29:06UTC，约6h34剩余，原恢复USER_MANUAL_RESUME/WSL未改。
+
+下一条准确只读命令：
+```powershell
+Get-Content -LiteralPath D:/RAGScope_Runtime/runs/20261014_v2_generation_e2/EXECUTION_CONDITIONS.json -Raw
+Get-Content -LiteralPath D:/RAGScope_Runtime/runs/20261014_v2_retrieval/R3_RUNTIME/worker.json -Raw
+```
+之后核psutil PID/create/fullargv；进程结束/某模型summary不能推断整矩阵完成。TEST质量均值不用于改协议/路由超参，root最终test报告待mandatory路由决策全部冻结。root当前无exec常驻句柄。
+
 **03:46UTCroot报表/资源图独立交付与实际账本：** 中文报表入口已从封存E3实际1200行生成v3预览（scope明确不是最终交付），24个现有表格数字与新从raw/source独立复算的30指标匹配；PREVIEW_REPORT_NUMBERS_QA.json，0新模型调用。部分E3清单试写FINAL_REPORT真实被guard拒绝exit1且无文件，不计第15最终验收。4K/8K真实资源图已生成PNG/SVG/data到reports/v2/figures/context_stress_resource.*并view_image目视核验，CONTEXT_STRESS_FIGURE_VISUAL_QA.json；首轮因reports env无filelock失败日志保留，修为只读JSON/hash后exit0，没有新增依赖或模型。此后build_final_report/plot_results两脚本source已改，194快照不能称覆盖更新后的两脚本；真实入口smoke与图像QA作为增量检查。rootreconcile-only session7675真实exit2，9PASS/1RUNNING/15PENDING，不执行实验命令。下一条准确只读命令仍为R3_RUNTIME/worker.json与aux/SERVICE_LIFETIME.json加psutil真实身份；root所有测试/对账句柄已结束，gen服务与两个CPU执行器归原owner。
 
 **03:42UTC新增真实离线回归与GPU连续授权：** root core session1293 exit0，584 PASS/2明确skip，144.44s；models CPU session74918 exit0，routing24 PASS/20.73s。按JUnit具体ID去重585 PASS、23重叠，唯一remaining skip WinError1314软链接能力。194个Python源hash在开始/结束一致，收据FULL_OFFLINE_REGRESSION_20261014_1444.json；后续新增/改源码须自己的必要检查，不能套该旧快照。stress22完成/0error/tickets1422–1443，root另外从22原始行独立核record/config/hash/token/cache/tickets与算术，ROOT_INDEPENDENT_STRESS_AUDIT_20261014.json PASS。预算1443/core1200。gen拥有空11435/PID3644/session26765，等R3 TEST200签收；现已获得连续执行E2三模型→固定E2-source judge200/4B→卸载/服务退出→E2/R2绑定LoRA check-only→GPU独占同BF16 baseline/adapted100各自执行授权，无需阶段确认，所有原guard/失败/全局计数保留。BF16完释放交回root，不重训。用户允许必要时后端新版；现在旧版可用不再切换。data aux完成后独立准备runtime UI candidate（不直接发布configs），root最终GUI/GPU实测。两CPU任务继续，最后checkpoints准确命令仍为R3/aux receipts加真实psutil身份，不抢代理session。
