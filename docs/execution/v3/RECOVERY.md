@@ -1,12 +1,12 @@
 # v3 当前恢复点
 
-2026-10-14T23:18:10.219299+00:00
+2026-10-14T23:27:33.866296+00:00
 
 Campaign `D:\RAGScope_Runtime\runs\v3_20261015_014506`；原训练 USER_MANUAL_RESUME，不自动恢复。
 
-当前实际预算：1989 次请求；输出已扣除/保留 354169 tokens；以 BUDGET.jsonl 为准。
+当前实际预算：2153 次请求；输出已扣除/保留 370132 tokens；以 BUDGET.jsonl 为准。
 
-已核验运行进程：`[{"cmdline":["D:\\RAGScope_Runtime\\tools\\python\\cpython-3.12-windows-x86_64-none\\python.exe","scripts/v3/run_workflow_generation.py","--campaign","D:/RAGScope_Runtime/runs/v3_20261015_014506","--resume"],"create_time":1792019818.0154827,"exe":"D:\\RAGScope_Runtime\\tools\\python\\cpython-3.12.13-windows-x86_64-none\\python.exe","name":"python.exe","pid":1728},{"cmdline":["D:\\RAGScope_Runtime\\tools\\python\\cpython-3.12-windows-x86_64-none\\python.exe","D:\\MCS_26S1课程资料\\个人项目\\RAGScope\\scripts\\v3\\run_workflow_generation.py","--campaign","D:\\RAGScope_Runtime\\runs\\v3_20261015_014506","--resume","--worker"],"create_time":1792019870.4543605,"exe":"D:\\RAGScope_Runtime\\tools\\python\\cpython-3.12.13-windows-x86_64-none\\python.exe","name":"python.exe","pid":18588},{"cmdline":["D:\\RAGScope_Runtime\\envs\\core\\Scripts\\python.exe","D:\\MCS_26S1课程资料\\个人项目\\RAGScope\\scripts\\v3\\run_workflow_generation.py","--campaign","D:\\RAGScope_Runtime\\runs\\v3_20261015_014506","--resume","--worker"],"create_time":1792019870.4324749,"exe":"D:\\RAGScope_Runtime\\envs\\core\\Scripts\\python.exe","name":"python.exe","pid":29920},{"cmdline":["D:\\RAGScope_Runtime\\envs\\core\\Scripts\\python.exe","scripts/v3/run_workflow_generation.py","--campaign","D:/RAGScope_Runtime/runs/v3_20261015_014506","--resume"],"create_time":1792019817.9910233,"exe":"D:\\RAGScope_Runtime\\envs\\core\\Scripts\\python.exe","name":"python.exe","pid":34912}]`。句柄未知时以 PID、创建时间、exe、argv 联合核验，不能因观察超时重启。
+已核验运行进程：`[]`。句柄未知时以 PID、创建时间、exe、argv 联合核验，不能因观察超时重启。
 
 旧 V2 分割保存 83 组（含 3 个失败）；V3 实际 187 请求、183 成功、4 契约失败，另 371 组资源预检阻断而未发请求。V4 只续跑未发请求的组，所有原记录保留。
 
@@ -16,8 +16,7 @@ NLI QA 校准：完整句 24/24，短片段 6/24，问题答案包装 12/24；�
 
 下一条准确命令：
 ```powershell
-. ./scripts/runtime_env.ps1
-& 'D:/RAGScope_Runtime/envs/core/Scripts/python.exe' scripts/v3/checkpoint_campaign.py --campaign 'D:/RAGScope_Runtime/runs/v3_20261015_014506'
+Get-Content -LiteralPath 'scripts/v3/calibrate_qwen_reranker.py' -Raw
 ```
 
 V4实际终端session57682已exit2：558真实请求齐全，548有效、10契约失败保留；进程已不存在，私有服务卸载/退出。不得重跑分割。
@@ -36,7 +35,7 @@ S2输入冻结24题×2上下文，G0真实144复用。72新direct/pipeline调用
 
 H_tasks整篇来源session71248 actualexit0，30请求全部完成；初版16有效任务/20失败论文。一次零生成成本的空白格式修复和独立任务验证后，20有效任务、29失败分支保留；H_tasks.questions_v2/gold_v2为当前辅助人造任务集，不是官方QASPER或操作者盲测。无后台模型进程。
 
-当前下一项：Observe the verified-live S4 matched60/three-workflow actual generation. Preserve failures; audit full per-question utility vectors after terminal completion before any router training.
+当前下一项：Do not rerun completed180 workflow answers or train a new router. Finish natural reranker comparison and source-verified comparison/summary development keypoints, then freeze admissible conditions for S6; H_QA gold remains sealed.
 
 S2_SUPPLEMENT_RESULTS_verified.jsonl是42条补充结果的当前校验投影。v2封装首行遗留旧record_hash参与新hash的缺陷有确证，原两份journal保留，逐个raw请求/输出完全相同；不得重发调用。
 

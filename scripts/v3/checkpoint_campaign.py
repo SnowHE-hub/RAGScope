@@ -338,6 +338,18 @@ def main():
         workflow=json.loads((run/'S4_WORKFLOW_GENERATION_COMPLETION.json').read_text('utf-8'))
         status['tasks']['S4.3_actual_workflows']=workflow['status']
         status['completed_evidence']['S4_actual_workflow_generations']=workflow['formal_n']
+    if (run/'S4_WORKFLOW_UTILITY_ANALYSIS.json').exists():
+        utility=json.loads((run/'S4_WORKFLOW_UTILITY_ANALYSIS.json').read_text('utf-8'))
+        status['tasks']['S4.3_full_utility_vectors']=utility['status']
+        status['tasks']['S4.4_new_router_training']=utility['router_training_gate']
+        status['stages']['S4']='MATCHED60_DIAGNOSTIC_DONE_TASK_KEYPOINT_COVERAGE_PENDING'
+        status['current_stage']='S3_REMAINING_NATURAL_RERANK_AND_S4_KEYPOINT_COVERAGE'
+        status['next_action']='Do not rerun completed180 workflow answers or train a new router. Finish natural reranker comparison and source-verified comparison/summary development keypoints, then freeze admissible conditions for S6; H_QA gold remains sealed.'
+        status['next_command']="Get-Content -LiteralPath 'scripts/v3/calibrate_qwen_reranker.py' -Raw"
+        status['next_command_status']='READ_EXISTING_PINNED_RERANKER_SOURCE_BEFORE_NATURAL_DEVELOPMENT_RUN'
+        status['next_tool_call']={'tool':'mcp__codegraph__codegraph_context','args':{
+            'task':'Natural reranker development evaluation reusing calibrated Qwen3Reranker and BGE window scorers with compact scoped candidate inputs and rerank pair budget',
+            'maxNodes':8,'includeCode':True}}
     live_workflows=any(p['cmdline'][1].replace('\\','/').endswith('run_workflow_generation.py') for p in live)
     if live_workflows:
         status['current_stage']='S4_ACTUAL_MATCHED_WORKFLOW_GENERATION'
@@ -346,9 +358,11 @@ def main():
         status['next_command']=". ./scripts/runtime_env.ps1\n& 'D:/RAGScope_Runtime/envs/core/Scripts/python.exe' scripts/v3/checkpoint_campaign.py --campaign '"+str(run).replace('\\','/')+"'"
         status['next_command_status']='OBSERVE_RUNNING_S4_DO_NOT_RESTART'
         status['next_tool_call']={'tool':'write_stdin','args':{'session_id':27341,'chars':'','yield_time_ms':1000,'max_output_tokens':1000}}
-    status['unresolved']=['S1 full claim/support/citation metrics BLOCKED after bounded resource attempts',
-        'S2 generator D_confirm stability; S3 new retrieval indices/candidates and generation gates',
-        'S4 workflow utility, S5 mandatory LoRA microdiagnosis, S6 locked holdout/online/report/acceptance']
+    status['unresolved']=['S1 full old claim/support/citation metrics BLOCKED after bounded resource attempts',
+        'S3 natural new reranker and hierarchical production path; full corpus chunk Dense BLOCKED',
+        'S4 comparison/summary independent keypoint coverage and sparse task classes; new router NOT_RUN_GATE',
+        'S5 merged function numerical gate failed; formal retraining and conversion NOT_RUN_GATE',
+        'S6 candidate lock, once-only holdout, online180, UI, cases, final reports and acceptance pending']
     status.pop('resume_command_after_verified_exit', None)
     observation = {'observed_utc': now.isoformat(), 'live_processes': live, 'budget': budget,
                    'atomization': progress, 'process_observation_not_terminal_exit_receipt': True}
