@@ -2,7 +2,20 @@
 
 本文件是数据/检索子任务的当前准确恢复点；主STATUS/RECOVERY由root维护。不要根据下述旧PID操作其他进程，不自动恢复用户原任务。
 
-## 当前：simple三方法600条完整PASS，资源已归还root（04:31Z）
+## 当前：SQuAD100入口已准备，尚未启动（04:40Z）
+
+`scripts/materialize_squad_v2.py` 的默认只读准备已实际exit0：冻结1212块dense索引、模型/二进制/分词器和aux handoff全部hash通过；原100个问题都需要新query向量，共3379 Qwen正文tokens、最长45，scope均为全官方SQuAD2 dev段落库。`retrieval/SQUAD_FINAL/PREPARATION.json` SHA dc3940129689c481dc97f394f1a4cadfe10a7a487b712a0d303cc4c14e0b3966；入口源码SHA fe251fe12db18fc04ff7d43141d9e2c3034a88568916503c667c1b08857f4aa5。3项离线边界行为测试PASS（1.80秒），不计真实模型结果。此时11436连接被拒绝，未加载模型、未写任何E4实验行、无自有worker或锁。
+
+下一准确动作是等待root提供4B完整退出的真实handoff路径及SHA，再执行下列命令；这两个参数必须来自实际收据，不能填占位符运行：
+
+```powershell
+. ./scripts/runtime_env.ps1
+& 'D:/RAGScope_Runtime/envs/core/Scripts/python.exe' -u scripts/materialize_squad_v2.py --run --handoff-receipt '<actual receipt path>' --handoff-sha256 '<actual receipt SHA256>'
+```
+
+入口再次要求旧自有generation/embedding PID+creation不存在、11435/11436关闭、GPU/client/main writer锁可用、RAM至少3GiB，固定CPU4与原权重/池化/输入；每次query前至少1GiB。SERVICE_LIFETIME在加载前独占创建，禁止自动重试。只允许100冻结query进入embedding，正文1212向量不重算；第一条真实请求网络错误保留，随后未尝试问题保持PENDING，旧3/3网络恢复journal不改。完成后验证完整100行/IDs/scope/config与record hash/index signature/real_model，并精确退出本脚本自有stateless服务。不要提前加载模型，不重跑simple600；GPU后续窗口由root调度。
+
+## 已完成：simple三方法600条完整PASS，资源已归还root（04:31Z）
 
 root明确授权复用仅3条有固定SHA来源的历史backend_usage=null缓存后，`materialize_simple_cache_only_v2.py --allow-historical-usage`已实际执行完毕，session90177 exit0，worker23220/create1791952156.3107731已不存在。主writer已实际acquire/release证实释放，11436保持关闭；available2575036416B。原BM25200由ledger复用，新增Dense200+Hybrid200，三组全部ID/config/record hashes独立核验、0error。实际406次缓存命中（400正式+6检索预热），网络/HTTP请求0，新推理0，GPU0；旧3/3后端失败journal不变。3个旧vector/manifest字节未动、仍未伪造usage sidecar，后两组相应metrics保留null。4项离线定向行为检查PASS。
 
