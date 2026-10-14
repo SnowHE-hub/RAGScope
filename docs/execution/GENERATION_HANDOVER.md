@@ -6,13 +6,15 @@ Updated for the reported host restart at 2026-10-14 07:03 Australia/Sydney. This
 
 Root's main freeze completed with 20 READY groups and 5520 tasks. Main manifest_hash is `ac56e65060b49d8d536fdaf1584727a1f0e736b4ab1266c1845c0c1d6383f07c`; ROOT_FROZEN_HANDOFF.json SHA `00f60dffbfcbfa3f5d0e03951813df343b0f1bf4e4337d2442982cc94882a02f` binds its sources. Existing E2/E3 task ownership remains external: main never regenerates their rows, including missing E2 9B rows.
 
-Current: main qwen_2b completed all 1200 local-owned tasks plus 3 warmups; its integrity audit passed with one retained E6 output-length parse failure and all 1203 token counts matching. ROUTE 600 train + 180 dev records passed their separate full-source audit with zero errors and were delivered to the routing agent. The 2B model was normally unloaded. Main qwen_4b is now RUNNING 420 local-owned tasks after a fresh 6,202,109,952-byte available-RAM gate. Own portable Ollama 0.34.4 service PID 31596/create 1791954774.370308, supervisor session 55731; worker session 32158, with exact process identity recorded in OPERATOR_CHECKPOINT.json. Do not restart either live process. `generation/OPERATOR_CHECKPOINT.json` is the durable current execution entry.
+Current: main qwen_2b completed 1200 local-owned tasks, qwen_4b completed 420, and LFM completed 200, each with 3 separate warmups. Their full task/input/record/ticket audits passed; all actual token counts matched. Retained formal output-length parse failures are 1/1200, 2/420 and 29/200 respectively; none was retried or removed. ROUTE 600 train + 180 dev records passed their separate audit with zero errors, and all seven routing decisions are now frozen. Each completed model was normally unloaded. E2 qwen_9b is RUNNING its unchanged 800 tasks after a fresh 5,496,729,600-byte available-RAM gate; latest observed progress was 168/800 with zero errors. Own portable Ollama 0.34.4 service PID 31596/create 1791954774.370308, supervisor session 55731; current worker session 44959, actual PID 23892/create 1791957789.5024047. Do not restart either live process. Both campaign OPERATOR_CHECKPOINT.json files preserve the current execution entry.
 
 Authorized serial queue: main qwen_2b 1200 → main qwen_4b 420 → main lfm 200 → E2 qwen_9b 800 → main qwen_9b 100 → E2 acceptance and fixed support judge 200 → normal owned-service shutdown → original same-BF16 paired100+100. Each switch requires completed-row integrity audit, normal unload, and a fresh unchanged effective 3 GiB available-RAM/current-boot lease/service identity check. No retraining, protocol changes or new combinations.
 
 Main 2B preload observed 3,904,196,608 available bytes; after the empty service was ready, the second gate observed 3,359,588,352 bytes. Laya CPU4 overlapped initial generation and completed/exited during it. At main 2B row242 observation, its exact PID11880 was absent and host available RAM recovered to 4,234,321,920 bytes. `generation/EXECUTION_CONDITIONS.jsonl` and PARALLEL_CONDITION_CHANGE_LAYA_EXIT.json preserve this boundary. Root also performed a bounded CPU4 functional regression during main 2B (2026-10-14T05:24:11.942188Z start; completion receipt at05:28:55.912527Z); PARALLEL_CONDITION_CHANGE_ROOT_TESTS_EXIT.json links the exact evidence. Earlier timing is not relabeled as exclusive.
 
-E2 remains 1600/2400 complete: qwen_2b and qwen_4b each completed 800 formal tasks plus 3 warmups, with zero errors and all 803 requests per model passing token parity. Their task/input/record/ticket audits passed. The earlier PID3644 service was normally released for GPU R3, confirmed by RELEASE_4B_SERVICE_FOR_GPU_R3.json; that historical service must not be confused with the current PID31596. The E2 and CPU R3 TEST200 frozen sources are unchanged. GPU R3 completed its separate global100/train200/dev60 sources before main freeze.
+E2 qwen_2b and qwen_4b each completed 800 formal tasks plus 3 warmups, with zero errors and all 803 requests per model passing token parity. Their task/input/record/ticket audits passed; qwen_9b is in progress and E2 is not yet complete. The earlier PID3644 service was normally released for GPU R3, confirmed by RELEASE_4B_SERVICE_FOR_GPU_R3.json; that historical service must not be confused with the current PID31596. The E2 and CPU R3 TEST200 frozen sources are unchanged. GPU R3 completed its separate global100/train200/dev60 sources before main freeze.
+
+The first 50 E2 9B rows averaged 3.99585 seconds of measured generation; the 4.07788-second mean record interval implied about 50 further minutes at the row71 observation. This is an observed throughput estimate, not a deadline guarantee. Main qwen_9b 100, judge200 and paired BF16 remain pending. CPU replay/Laya calibration and root retrieval-statistics/online-freeze steps have now exited; their actual or conservatively bounded overlap windows remain in EXECUTION_CONDITIONS logs. Earlier timings are not relabeled exclusive. Root's online manifest is frozen, hash 2fc8ddb254947304f1d67465362e35b4037542f7a5366cae131501440dbf9eda, for fixed_hybrid and rules on the same 30 dev questions; actual online execution follows the paired BF16 release.
 
 For a future service restart only after exact owned-process exit, free port11435, own stop-marker archival, resource and current-boot lease checks:
 
@@ -21,10 +23,10 @@ For a future service restart only after exact owned-process exit, free port11435
 & D:/RAGScope_Runtime/envs/core/Scripts/python.exe scripts/serve_generation.py --binary D:/RAGScope_Runtime/tools/ollama-0.34.4/ollama.exe
 ```
 
-Current worker command (do not run a duplicate while session32158 is active):
+Current worker command (do not run a duplicate while session44959 is active):
 
 ```powershell
-& D:/RAGScope_Runtime/envs/core/Scripts/python.exe scripts/run_generation_campaign.py --campaign-dir D:/RAGScope_Runtime/runs/20261014_v2_generation --model-id qwen_4b
+& D:/RAGScope_Runtime/envs/core/Scripts/python.exe scripts/run_generation_campaign.py --campaign-dir D:/RAGScope_Runtime/runs/20261014_v2_generation_e2 --model-id qwen_9b
 ```
 
 The explicit latest user authorization permits GPU at any phase and states no competing user GPU job. Project large models remain serial. Original workloads remain USER_MANUAL_RESUME; no original service or process was operated. Root coordinates final routing decisions and quality reporting; this agent monitors only execution integrity, timing and resources during generation.
@@ -88,7 +90,7 @@ Earlier unseeded-initialization10steps and preload RAM failures are retained dia
 
 ## Pending same-precision comparison and online work
 
-Dev selections are frozen: simple F512_O0, structured R512, both neighbor expansion. E2/R2 final contexts are now frozen in the E2 shard; paired BF16 evaluation will remain permanently bound to that shard. Paired100BF16 evaluation has NOT run. The earlier CPU check-only WAITING_FOR_FROZEN_GENERATION receipt is historical and must be rerun against the existing E2 manifest before actual evaluation.
+Dev selections are frozen: simple F512_O0, structured R512, both neighbor expansion. E2/R2 final contexts are frozen in the E2 shard; paired BF16 evaluation remains permanently bound to that shard. Actual paired BF16 evaluation has NOT run. The current core CPU check-only completed with exit0 and CPU_INPUTS_READY_GPU_NOT_CHECKED: it loaded no model and made zero generation calls. The fixed 100 inputs have SHA 5fc064e350500e4049b3ee8a355296f421038626a1151706b9760e213623c092; main/PAIRED_BF16_CPU_INPUT_READINESS.json binds them to the verified best122 adapter. The earlier WAITING_FOR_FROZEN_GENERATION receipt remains historical.
 After the separately authorized BF16 GPU handover and fresh checks (do not later switch the same paired output directory to the main manifest):
 
 ```powershell
