@@ -9,6 +9,7 @@ import argparse
 from datetime import datetime, timezone
 import json
 from pathlib import Path
+import re
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -16,7 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from ragscope.experiments.analysis_report import markdown_table, validated_rows
 from ragscope.experiments.generation_campaign import load_campaign
 from ragscope.experiments.runtime import configure, runtime_home
-from ragscope.indexing.identity import artifact, atomic_json, verify_artifacts
+from ragscope.indexing.identity import artifact, atomic_json, verify_artifacts, file_hash
 
 
 def read(path):
@@ -139,11 +140,21 @@ def build(campaign, analysis_path, output, *, allow_incomplete=False):
         sources.append(artifact(dev_path))
         dev_text = dev_path.read_text(encoding="utf-8")
         dev_text = dev_text.replace("# 已完成的 dev 检索结果", "### E1：已完成的dev切块与上下文结果", 1)
-        for filename in ("dev_evidence_matrix.png", "dev_expansion_delta.png", "dev_r512_neighbor_changes.png"):
-            dev_text = dev_text.replace(f"]({filename})", f"](retrieval_interim/{filename})")
-            figure = dev_path.parent / filename
-            if figure.is_file():
-                sources.append(artifact(figure))
+        for filename in re.findall(r'!\[[^\]]*\]\(([^)]+)\)', dev_text):
+            figure = (dev_path.parent / filename).resolve()
+            if not figure.is_relative_to(dev_path.parent.resolve()) or not figure.is_file() or figure.is_symlink():
+                raise ValueError('Dev figure must be an actual local report artifact')
+            target = output.parent / 'figures' / ('e1_' + figure.name)
+            if target.exists() and file_hash(target) != file_hash(figure):
+                raise FileExistsError('Existing copied figure differs; preserve it')
+            if not target.exists():
+                target.parent.mkdir(parents=True, exist_ok=True)
+                with target.open('xb') as handle:
+                    handle.write(figure.read_bytes())
+            if file_hash(target) != file_hash(figure):
+                raise ValueError('Copied dev figure bytes differ')
+            dev_text = dev_text.replace(f"]({filename})", f"](figures/{target.name})")
+            sources.extend([artifact(figure), artifact(target)])
         parts[table_index:table_index] = [dev_text, ""]
     for group in report["groups"]:
         p = group["performance"]

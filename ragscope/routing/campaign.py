@@ -105,12 +105,14 @@ def normalized_record(row, source, comparison_hash):
 
 
 def load_route_records(campaign, protocol, splits):
+    splits = tuple(splits)
     manifest, inputs = load_campaign(campaign)
     if manifest['manifest_hash'] != protocol['comparison']['manifest_hash']:
         raise ValueError('Routing source campaign changed')
-    rows, _ = validated_rows(campaign, manifest, inputs)
     model_id = protocol['comparison']['model_id']
     experiments = {'train': 'ROUTE_TRAIN', 'dev': 'ROUTE_DEV', 'test': 'E2'}
+    rows, _ = validated_rows(campaign, manifest, inputs,
+                             experiments={experiments[split] for split in splits})
     out, sources = [], []
     for split in splits:
         wanted = set(protocol['populations'][split]['query_ids'])

@@ -13,6 +13,42 @@ from ragscope.experiments.generation_campaign import freeze_campaign
 from test_generation_campaign_v2 import sample, IDENTITY
 
 
+def test_train_dev_loading_never_opens_test_output_journals(tmp_path, monkeypatch):
+    """Unreadable test data cannot influence or block real train/dev labels."""
+    from ragscope.experiments import analysis_report
+    from ragscope.routing.campaign import load_route_records
+    groups, inputs = [], {}
+    for split, experiment in [('train', 'ROUTE_TRAIN'), ('dev', 'ROUTE_DEV'), ('test', 'E2')]:
+        key = split + '0'; source = sample(key); source['query']['split'] = split
+        inputs[key] = source
+        groups.append({'experiment_id': experiment, 'method': 'bm25' if split != 'test' else 'R0',
+                       'model_ids': ['qwen_2b'], 'input_ids': [key]})
+    directory = tmp_path / 'campaign'
+    manifest = freeze_campaign(directory, {'qwen_2b': IDENTITY}, groups, inputs)
+    records = directory / 'records'; records.mkdir(exist_ok=True)
+    for experiment in ('ROUTE_TRAIN', 'ROUTE_DEV', 'E2'):
+        path = records / f'{experiment}_qwen_2b.jsonl'
+        path.write_text('' if experiment != 'E2' else 'TEST OUTPUT MUST NOT BE READ', encoding='utf-8')
+        path.with_suffix('.config.json').write_text(json.dumps({'manifest_hash': manifest['manifest_hash']}), encoding='utf-8')
+    opened = []
+    original = analysis_report.read_records
+    def checked(path):
+        opened.append(path.name)
+        if path.name.startswith('E2_'):
+            raise AssertionError('Test outputs opened before training decisions')
+        return original(path)
+    monkeypatch.setattr(analysis_report, 'read_records', checked)
+    protocol = {'comparison': {'manifest_hash': manifest['manifest_hash'], 'model_id': 'qwen_2b'},
+                'populations': {s: {'query_ids': [s + '0']} for s in ('train', 'dev')}}
+    with pytest.raises(ValueError, match='actual generation incomplete'):
+        load_route_records(directory, protocol, ('train', 'dev'))
+    assert set(opened) == {'ROUTE_TRAIN_qwen_2b.jsonl', 'ROUTE_DEV_qwen_2b.jsonl'}
+    # The full-report path still scans test sources, so the fixture proves the
+    # skip is specific to the caller's train/dev request, not a blanket bypass.
+    with pytest.raises(AssertionError, match='Test outputs opened'):
+        analysis_report.validated_rows(directory, manifest, inputs)
+
+
 def test_unanswerable_quality_is_explicit_and_f1_stays_na():
     query = {'query_id': 'u', 'question': 'unknown', 'split': 'train', 'answerability': 'unanswerable'}
     rows = [dict(query, path=route, answer_f1=None, evidence_coverage=None, real_model=True,

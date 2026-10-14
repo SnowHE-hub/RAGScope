@@ -35,10 +35,18 @@ def _key(row):
     return row['experiment_id'], row['model_id'], row['method']
 
 
-def validated_rows(directory, manifest, inputs):
-    """Reject duplicated, stale, uncounted, mock or mismatched records."""
+def validated_rows(directory, manifest, inputs, *, experiments=None):
+    """Validate real records, optionally without opening other experiments.
+
+    Routing train/dev preparation must not read test-output journals merely to
+    validate unrelated groups. Full reports retain the default complete scan.
+    """
     directory = Path(directory).resolve()
     tasks = {task['task_id']: task for task in manifest['tasks']}
+    selected_experiments = None if experiments is None else set(experiments)
+    if selected_experiments is not None and (not selected_experiments or
+            selected_experiments - {t['experiment_id'] for t in manifest['tasks']}):
+        raise ValueError('Unknown or empty selected experiment population')
     seen, tickets, rows, sources = set(), set(), [], []
     for record_source in iter_record_sources(directory, manifest, inputs):
         source_directory = record_source['directory']
@@ -47,7 +55,8 @@ def validated_rows(directory, manifest, inputs):
         if source_directory != directory:
             sources.extend([artifact(source_directory/'EXPERIMENT_MANIFEST.json'),
                             artifact(source_directory/'FROZEN_INPUTS.json')])
-        files = sorted({f"{t['experiment_id']}_{t['model_id']}.jsonl" for t in source_manifest['tasks']})
+        files = sorted({f"{t['experiment_id']}_{t['model_id']}.jsonl" for t in source_manifest['tasks']
+                        if selected_experiments is None or t['experiment_id'] in selected_experiments})
         for name in files:
             path = source_directory/'records'/name
             if not path.exists():

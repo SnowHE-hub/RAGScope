@@ -18,6 +18,8 @@
 - 新全套离线回归core584 PASS/2明确skip、models routing24 PASS，去重585不同测试PASS（23重叠），唯一剩余WinError1314测试软链接能力。194源hash前后吻合，FULL_OFFLINE_REGRESSION_20261014_1444.json。后续新增或改变源码要另核，不把这项功能测试算真实质量。
 - 03:47:53UTC R3 TEST200单组独立validator PASS：200/0error/3预热、3711完整窗口、max pair512，config/record/source hashes一致。原CPU继续global100→ROUTE260。E2实际FROZEN hash6a2862e3fed696fb0224d23abc78437c5eaa318efb190c13b2422724ca3246e5，三模型各800；gen2B session80850已开始，首50实际平均1.256s，已78/800时0error/token mismatch，之后日志235/800，尚非完成。E2_SOURCE_READINESS与EXECUTION_CONDITIONS绑定全部来源及实际资源。
 - aux1212+777全部磁盘readback PASS，1989向量cache逐项精确一致、float32/finite/L2/≤512正文budget/manifest及observations核验；worker30192/server33428真实不存在、11436关闭。AUX_INDEX_HANDOFF.json SHA de498e5a3980bc42ad56c3369a786b8b625a209c2fc9c0c1309c1cbbc2239113。E4/E6最终检索行仍0，不能将索引ready当QA完成。data现在准备独立UI candidate并最小修冻结embedding tokenizer字段接线，不调用模型，等root最终实际UI QA。
+- 2B E2实际800正式+3warmup COMPLETE，803 token parity/0error、task/input/context/store/tickets核验通过；AUDIT_qwen_2b.json。卸载API空/GPU12MiB后RAM4.687GB guard通过，4B session36734继续，首50均值2.447s/间隔2.457s，64时0error/token mismatch。统一预算此交接时2246总/2000core；9B/全E2仍未完成。模型摘要曾露出质量字段，未据此调协议或默认，后续白名单输出。
+- UI candidate实际核验完成（不是发布/最终QA）：main/ui_candidate/ui.json SHA73ef6704d26afeba4eb961057ad0a86e2d71d43c0bd21b7e2116746f78e5ff81，四模型weights/templates/client/tags与full509/6551索引一致，关闭11436与生成锁占用使相关ready=false。13定向UI checks PASS，源码/文档提交916de34，学习文档更新b93484e。root新增train/dev只读实验边界，50相关契约PASS，0模型调用；完整报告仍全量验证。
 
 ## 已完成并有真实证据
 
