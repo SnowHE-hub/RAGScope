@@ -40,6 +40,15 @@ def matches_process(receipt, process):
             and process.cmdline()==receipt.get('command') and Path(process.cwd()).resolve()==Path(receipt.get('cwd','')).resolve())
 
 
+def own_relocated_windows_launcher(current, ancestor, home):
+    """The observed venv launcher changes its own cwd to runtime/tmp after spawning."""
+    return (os.name == 'nt' and ancestor.pid == current.ppid()
+            and ancestor.cmdline()[1:] == current.cmdline()[1:]
+            and Path(ancestor.exe()).resolve() == Path(home).resolve()/'envs/models/Scripts/python.exe'
+            and Path(ancestor.cwd()).resolve() == Path(home).resolve()/'tmp'
+            and 0 <= current.create_time() - ancestor.create_time() < 2)
+
+
 def other_owned_models(home, campaign, *, excluded_pids=()):
     """Observe only recognizable RAGScope model commands and its known service receipt."""
     import psutil
@@ -50,7 +59,8 @@ def other_owned_models(home, campaign, *, excluded_pids=()):
     # invocation, not a second resident model; unrelated ancestors stay visible.
     for ancestor in current.parents():
         try:
-            if ancestor.cmdline()[1:]==current.cmdline()[1:] and ancestor.cwd()==current.cwd():
+            same_command=ancestor.cmdline()[1:]==current.cmdline()[1:]
+            if same_command and (ancestor.cwd()==current.cwd() or own_relocated_windows_launcher(current,ancestor,home)):
                 exclude.add(ancestor.pid)
         except (psutil.NoSuchProcess,psutil.AccessDenied):pass
     blockers=[]
@@ -215,7 +225,11 @@ def conditional_run(home, campaign):
     free=psutil.virtual_memory().available
     if free<int(4.5*GIB):raise MemoryError('Laya requires >=4.5GiB even for its single supervised fallback')
     blockers=other_owned_models(home,campaign)
-    if blockers:raise MemoryError('Other owned model processes are active; no Laya fallback attempt made')
+    if blockers:
+        atomic_json(folder/'preload_guards'/f'{time.time_ns()}.json',{
+            'status':'PENDING_RESOURCE','model_loaded':False,'available_bytes':free,
+            'caller':process_receipt(psutil.Process(os.getpid())), 'blockers':blockers})
+        raise MemoryError('Other owned model processes are active; no Laya fallback attempt made')
     if free>=5*GIB:return run_raw(home,campaign)
     state_path=folder/'LOAD_FALLBACK_STATE.json'
     if state_path.exists():raise RuntimeError('The single conditional Laya loading attempt has already been used')

@@ -1,6 +1,6 @@
 # R3正式重排执行记录
 
-2026-10-14，当前状态：**dev100与TEST200真实重排已完成并通过独立验收，TEST200已交接E2；E8第29条提交后触发既定RAM保护。用户随后授权所有阶段使用GPU，固定剩余条件的GPU迁移已准备、尚未实际加载**。五组660条尚未全部完成。CPU329条均原样保留；最终global将使用独立完整GPU100，ROUTE使用GPU200/60，额外29条CPU历史部分执行明确披露，不混合设备或删样本。11组完整dev矩阵冻结structured=R512、simple=F512_O0，两者扩展均为neighbor。Laya尚未加载。
+2026-10-14，当前状态：**dev100与TEST200真实重排已完成并通过独立验收，TEST200已交接E2；E8第29条提交后触发既定RAM保护。用户随后授权所有阶段使用GPU，固定剩余条件的GPU360已真实完成并通过独立验收**。有效五组660条现由CPU dev100/TEST200及GPU global100/ROUTE200/60构成。CPU329条均原样保留；global使用独立完整GPU100，ROUTE使用GPU200/60，额外29条CPU历史部分执行明确披露，不混合设备或删样本。11组完整dev矩阵冻结structured=R512、simple=F512_O0，两者扩展均为neighbor。Laya尚未加载。
 
 入口`python scripts/run_rerank_v2.py`只检查冻结输入；主执行器交回RAM后在models CPU环境加`--run`。可选`--prefix`仅指定冻结任务，不改变人群。全量五组为selected dev100、test200、E8 global100、ROUTE train200/dev60。train/dev路由ID直接来自主执行器的`ROUTING_QUERY_MANIFEST.json`，检查其manifest_hash和corpus来源，不重新采样。
 
@@ -45,3 +45,7 @@ GPU使用现有train环境Torch2.9.1+cu128、Transformers5.19.0；必要的应�
 48项离线契约测试PASS（日志`rerank_gpu_contract_tests_verified_20261014.log`），涵盖CPU不可变产物/源变化拒绝、GPU完整固定人群及独立路径、设备服务互斥、batch2/sigmoid/no-truncation、显存证据和继承失败预算。无Torch的实际prepare返回`READY_NOT_EXECUTED`、model_loaded=false、torch_imported=false。真实GPU结果仍待资源交接，不能将这些工程测试写成GPU实验成功。最终`core/Scripts/python.exe scripts/validate_r3_v2.py --gpu`将独立验收360条完整窗口、模型/迁移/来源哈希、上下文与指标；生成`R3_GPU_COMPLETION_VALIDATION.json`，保留CPU验收独立语义。
 
 WDDM实际列出的Codex PID11276是on-device utility而非已证实显示进程。仅其精确PID/create1791922058.5791745、已观察WindowsApps exe及utility/subtype/sandbox参数匹配，且fresh设备总used≤64MiB、free≥3GiB时允许；其余compute PID一律拒绝，包括自有llama-server。不会停止桌面应用。来源观察保存`R3_GPU_RUNTIME/CODEX_UTILITY_SOURCE_OBSERVATION.json`；原READY收据按SHA归档在同目录history/下，新READY重新绑定源码hash。实际tokenizer两种pair输入的IDs一致；TF5即使USE_TORCH=0仍会导入Torch，因此原“无Torch”断言失败日志保留，不能把tokenizer探针称为无Torch。该探针CUDA_VISIBLE_DEVICES为空、无权重加载；无Torch的READY prepare单独实际通过。
+
+2026-10-14 04:55:53 UTC，GPU360独立验收PASS/0失败：global100有7,850窗口，ROUTE train200有4,301窗口，dev60有1,071窗口；全部13,222窗口完整覆盖原候选且query-inclusive≤512，9条排除预热完整。复算身份、源/迁移hash、排序、2048预算与指标一致。`R3_GPU_COMPLETION_VALIDATION.json` SHA `b10cb5b52bb54606eada1fccfbedcb0a302c22a4bfdd6acd0c5f77563fbdef89`；所有CPU300+partial29保护hash仍一致。session15599 exit0，精确PID22180/create1791953187.8157816已不存在，三锁重取释放，GPU回到12MiB，release receipt SHA `2249a3f97fc28f1bd09af797279d5887ea8c66ce1aa97bfc43d88d05d2e573c1`。加载attempts3/backend_failures0，实际CUDA参数全部FP32，最大观测allocated1,190,839,296B、reserved1,275,068,416B。
+
+GPU global100的完整参考集覆盖率0.14、连续覆盖率0.148333、doc_recall@10=0.42；ROUTE train在171适用题中完整参考集覆盖率0.567251，dev在56适用题中0.625。这些是已冻结策略的描述性检索结果，不能声称生成质量提升或GPU/CPU等价。重排部分实际中位耗时分别为global2.558s、train0.672s、dev0.597s，尚不是在线端到端延迟。主执行器负责把完整GPU来源接入main freezer，不能引用旧CPU global29作为完整100。

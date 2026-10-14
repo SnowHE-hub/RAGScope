@@ -133,6 +133,20 @@ def test_own_windows_launcher_is_not_another_model(tmp_path,monkeypatch):
     assert [x['pid'] for x in module.other_owned_models(tmp_path,'fixture')]==[88]
 
 
+@pytest.mark.parametrize('change',['none','foreign_pid','fake_exe','pid_reused','old_process','arguments','foreign_cwd'])
+def test_relocated_launcher_requires_exact_chain_and_identity(tmp_path,change):
+    from types import SimpleNamespace
+    command=['python.exe','-u','scripts/run_laya_v2.py','--home',str(tmp_path),'--run']
+    current=SimpleNamespace(ppid=lambda:89,cmdline=lambda:command,create_time=lambda:100.5)
+    argv=list(command)
+    if change=='arguments':argv[-1]='--different'
+    parent=SimpleNamespace(pid=88 if change=='foreign_pid' else 89,cmdline=lambda:argv,
+        exe=lambda:str(tmp_path/('other/python.exe' if change=='fake_exe' else 'envs/models/Scripts/python.exe')),
+        cwd=lambda:str(tmp_path/('unrelated' if change=='foreign_cwd' else 'tmp')),
+        create_time=lambda:101. if change=='pid_reused' else 50. if change=='old_process' else 100.48)
+    assert module.own_relocated_windows_launcher(current,parent,tmp_path)==(change=='none' and os.name=='nt')
+
+
 def test_forged_receipt_is_rejected_before_any_process_action(tmp_path):
     request={'token':'actual','command':sys.argv,'supervisor':module.process_receipt(psutil.Process())}
     atomic_json(tmp_path/'child.json',{'token':'forged','pid':os.getpid()})
