@@ -1,4 +1,10 @@
-# RAGScope v2 最终执行状态
+# 当前交付：RAGScope v3 强制收尾完成
+
+2026-10-15 Sydney：全1585篇/19673块检索完成，原509篇目标缺失0。H_QA200与H_tasks20正式同题实验和440评分、全库1200检索、60真实在线均完成；82回归通过。工作台真实API9场景及真实Streamlit组件/API集成通过，浏览器视觉验证被权限策略拒绝，明确未冒称通过。模型/服务/端口/锁已释放，原训练USER_MANUAL_RESUME。结果和边界见 `reports/v3/FINISH_REPORT_ZH.md`，逐项验收见同目录 `FINISH_ACCEPTANCE.json`，准确启动见根 `LOCAL_RUN_V3.md`。旧v3终态仅属历史，本轮用户已解除10.1阻断并实际执行全部核心实验。
+
+---
+
+# RAGScope v2 最终执行状态（历史交付）
 
 更新2026-10-14 09:38:00 UTC。验收终态：**COMPLETE_WITH_DECLARED_DEVIATIONS**。25/25任务已签收（24PASS、1PASS_FALLBACK），15/15终验已签收，强制主矩阵5520/5520完整，0missing/0blocked，32条解析失败保留。Goal完成签收及本地提交证据见runtime的FINAL_GOAL_COMPLETION.json与LOCAL_GIT_DELIVERY.json；原任务恢复由用户手动进行。
 

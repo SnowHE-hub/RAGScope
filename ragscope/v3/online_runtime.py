@@ -18,7 +18,7 @@ from ragscope.indexing.local_embedding import QUERY_INSTRUCTION
 class OnlineOwnedOllama(ManagedOllama):
     """Two small resident weights: one encoder and one2B generator; all calls serial."""
     def __enter__(self):
-        require_ram(2*1024**3)
+        require_ram(self.startup_ram_bytes)
         if not self.binary.is_relative_to(self.runtime/'tools') or not self.binary.is_file():raise ValueError('Verified runtime binary required')
         with socket.socket() as probe:probe.bind(('127.0.0.1',self.port))
         self.gpu=GpuSession(self.run);self.gpu.__enter__()

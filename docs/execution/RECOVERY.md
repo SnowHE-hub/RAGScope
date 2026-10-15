@@ -57,3 +57,21 @@ campaign：`20261014_v2`；runtime：`D:/RAGScope_Runtime`。
 
 
 2026-10-14 最终交付覆盖：用户允许任意阶段GPU，单卡串行；原任务USER_MANUAL_RESUME。在线设备错误通过逐请求核验当前boot lease/私有服务PID/create/身份的CPU→remote GPU通道修复；CPU空CUDA与默认禁止GPU不变，3次旧拒绝预热/原源码/manifest精确保留。真实online60+6完整0error，提速5.0446%不达10%门槛，固定Hybrid/neighbor/2B默认不改。LoRA同BF16配对100+100完整：F1下降、P50升至3.62倍；不重训不启用adapter，原模型OS exit UNKNOWN而独立audit actual0。UI两条真实问答后发布配置，所有本项目CPU/GPU/UI进程和锁已释放，GPU12MiB是既有Codex。最终full711不同PASS/1Windows symlink权限skip，220源稳定。原断点仅验证历史租约哈希链，WSL kept off；没有自动起原训练/定时/日更，没有改.wslconfig，不能宣称原日志继续前进。普通应用重启及正常关闭命令见根LOCAL_RUN_V2.md；历史once-shot online wrapper不作为通用重启入口。完整失败账本保留，轻量包采用有原hash的全任务投影，不上传/push。
+
+## 2026-10-15 V3 finish 恢复入口
+
+原训练仍USER_MANUAL_RESUME；本轮未启动原训练、定时器或日更，未改WSL。
+增量目录 D:/RAGScope_Runtime/runs/v3_finish_20261015_1415；源目录保留 v3_20261015_014506。
+全块编码已完成并退出，FULL_DENSE_INDEX.json有完整矩阵SHA及位图。当前实验进程 unified exec session85125，先核验进程/记录再恢复，不能重复启动已活跃服务。
+恢复命令：
+. ./scripts/runtime_env.ps1
+& D:/RAGScope_Runtime/envs/core/Scripts/python.exe scripts/v3/finish_experiments.py --source D:/RAGScope_Runtime/runs/v3_20261015_014506 --run D:/RAGScope_Runtime/runs/v3_finish_20261015_1415 --mode all
+只有配置哈希一致时才续写，完成的逐题记录跳过。保留失败和预算，不退还已预约调用。
+
+## V3收尾已完成（2026-10-15）
+
+没有剩余自动实验或恢复待跑。不要重跑旧 --mode all；新RESIDENT8K结果、全部失败和旧版本均在 runs/v3_finish_20261015_1415。精确日常启动/退出见 LOCAL_RUN_V3.md；--check-only已实跑PASS完整1585篇/19673块，不加载GPU模型。
+
+本项目API/UI/后端已退出，三端口和GPU锁已释放。UI合作Ctrl+C实际exit1，API驱动exit0，原样保留而不虚构全exit0。原训练维持USER_MANUAL_RESUME，不自动启动训练、定时器、日更、WSL，不改.wslconfig。
+
+浏览器视觉受权限拒绝，禁止通过换表面/CDP绕过；组件↔真实API集成已经通过，验收与报告明确替代性质。数据/缓存/断点未删除，24条旧query缓存的恢复匹配原SHA，原预算前缀有独立归档。

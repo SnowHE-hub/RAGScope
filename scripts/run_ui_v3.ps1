@@ -13,7 +13,8 @@ if ($LASTEXITCODE -ne 0) { throw 'Streamlit dependency check failed; no automati
 if ($CheckOnly) { Write-Output "UI_V3_CHECK_PASS: http://127.0.0.1:$Port ; models remain unloaded."; exit 0 }
 Push-Location -LiteralPath $projectRoot
 try {
-    & $pythonPath -m streamlit run ui/chat_app_v3.py --server.address 127.0.0.1 --server.port $Port --server.headless true --browser.gatherUsageStats false
+    $appEntry = if (Test-Path -LiteralPath (Join-Path $projectRoot 'configs/v3/default.json')) { 'ui/full_workbench.py' } else { 'ui/chat_app_v3.py' }
+    & $pythonPath -m streamlit run $appEntry --server.address 127.0.0.1 --server.port $Port --server.headless true --browser.gatherUsageStats false
     $uiExitCode = $LASTEXITCODE
 }
 finally { Pop-Location }

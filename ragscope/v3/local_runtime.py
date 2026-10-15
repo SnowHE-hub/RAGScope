@@ -27,17 +27,18 @@ class CapturedClient(LocalLLMClient):
 
 class ManagedOllama:
     """One root-owned, stateless backend. Never touches a v2 stop/lease file."""
-    def __init__(self, run, binary, *, port=11435, num_ctx=8192):
+    def __init__(self, run, binary, *, port=11435, num_ctx=8192, startup_ram_bytes=2*1024**3):
         self.run, self.binary = Path(run), Path(binary).resolve()
         self.runtime = self.run.parents[1]
         self.port, self.num_ctx = port, num_ctx
+        self.startup_ram_bytes = startup_ram_bytes
         self.base_url = f'http://127.0.0.1:{port}'
         self.process = None
         self.session = requests.Session()
         self.session.trust_env = False
 
     def __enter__(self):
-        require_ram(2 * 1024**3)
+        require_ram(self.startup_ram_bytes)
         if not self.binary.is_relative_to(self.runtime / 'tools') or not self.binary.is_file():
             raise ValueError('Private executable must be an existing verified runtime tool')
         with socket.socket() as probe:
