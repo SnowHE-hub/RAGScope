@@ -46,6 +46,10 @@ def main():
                     'scripts/v3/run_lora_diagnostic_sequence.py',
                     'scripts/v3/run_lora_supervision_smoke_v2.py',
                     'scripts/v3/run_workflow_generation.py',
+                    'scripts/v3/run_natural_reranker.py', 'scripts/v3/build_development_task_references.py',
+                    'scripts/v3/prepare_development_task_contexts.py', 'scripts/v3/run_development_task_generation.py',
+                    'scripts/v3/score_development_source_tasks.py', 'scripts/v3/score_development_source_tasks_resident_v2.py',
+                    'scripts/v3/score_scoped_development.py',
                     str(PROJECT/'scripts/v3/run_workflow_generation.py').replace('\\','/'),
                     str(PROJECT/'scripts/v3/run_lora_runtime_diagnostics.py').replace('\\','/'),
                     str(PROJECT/'scripts/v3/run_lora_supervision_smoke.py').replace('\\','/'),
@@ -358,6 +362,36 @@ def main():
         status['next_command']=". ./scripts/runtime_env.ps1\n& 'D:/RAGScope_Runtime/envs/core/Scripts/python.exe' scripts/v3/checkpoint_campaign.py --campaign '"+str(run).replace('\\','/')+"'"
         status['next_command_status']='OBSERVE_RUNNING_S4_DO_NOT_RESTART'
         status['next_tool_call']={'tool':'write_stdin','args':{'session_id':27341,'chars':'','yield_time_ms':1000,'max_output_tokens':1000}}
+    for model,split in (('bge','D_search'),('qwen','D_search'),('bge','D_confirm')):
+        path=run/('S3_NATURAL_RERANK_'+model+'_'+split+'_COMPLETION.json')
+        if path.exists():
+            result=json.loads(path.read_text('utf8'))
+            status['tasks']['S3.5_natural_'+model+'_'+split]=result['status']
+            status['completed_evidence']['S3_natural_'+model+'_'+split+'_pairs']=result['actual_rerank_pairs']
+    if (run/'S3_NATURAL_RERANK_D_confirm_ANALYSIS.json').exists():
+        status['tasks']['S3.5_new_reranker_deployment_gate']='NOT_RUN_GATE_D_CONFIRM_EVIDENCE_REGRESSION'
+    if (run/'S3_HIERARCHY_REAL_LOOKUPS.json').exists():
+        hierarchy=json.loads((run/'S3_HIERARCHY_REAL_LOOKUPS.json').read_text('utf8'))
+        status['tasks']['S3.4_hierarchy_global_sparse_bypass']=hierarchy['status']
+    if (run/'S4_DEVELOPMENT_TASK_METRICS_COMPLETION_resident_v2.json').exists():
+        task_metrics=json.loads((run/'S4_DEVELOPMENT_TASK_METRICS_COMPLETION_resident_v2.json').read_text('utf8'))
+        status['tasks']['S4.2_source_keypoint_task_evaluation']=task_metrics['status']
+        status['tasks']['S4.2_broad_summary_comparison_label_coverage']='BLOCKED_VALID_LABEL_COVERAGE_AFTER_BOUNDED_SOURCE_ATTEMPTS'
+        status['completed_evidence']['S4_source_task_answers']=task_metrics['answer_n']
+        status['completed_evidence']['S4_source_task_actual_nli_relations']=task_metrics['actual_nli_relations']
+    if (run/'S3_D_CONFIRM_CLAIM_GATE.json').exists():
+        claim_gate=json.loads((run/'S3_D_CONFIRM_CLAIM_GATE.json').read_text('utf8'))
+        status['tasks']['S3.6_D_confirm_claim_support_citation']=claim_gate['status']
+        status['tasks']['S3.6_quality_candidate_admission']='PASS_GATE' if claim_gate['quality_candidate_admitted'] else 'NOT_ADMITTED_PRIMARY_UNCERTAINTY'
+        status['current_stage']='S6_DEVELOPMENT_ONLINE_EFFICIENCY_AND_UI_REQUIRED'
+        status['next_action']='Quality admission cannot be proved: retain all UNKNOWN questions and v2 default. Complete independent real online cost and UI/campaign interfaces, then apply candidate locks/gates; never substitute a known-only subgroup or read sealedH_QA to tune.'
+        status['next_command']="Get-Content -LiteralPath 'ragscope/v3/local_runtime.py' -Raw"
+        status['next_command_status']='READ_OWNED_BACKEND_LIFECYCLE_FOR_ACTUAL_ONLINE_COST_IMPLEMENTATION'
+        status['next_tool_call']={'tool':'mcp__codegraph__codegraph_context','args':{'task':'ManagedOllama owned service lifecycle, residency and actual online embedding/retrieval/generation timing while serializing oneGPU', 'maxNodes':8,'includeCode':True}}
+    if (run/'HUMAN_REVIEW_PACKAGE_RECEIPT.json').exists():
+        status['tasks']['S1.3_and_S6_human_review_export']='PASS_100_REAL_ANONYMIZED_PAIRS_NOT_REVIEWED'
+    if (run/'S5_RUNTIME_base_COMPLETION.json').exists() and (run/'S5_RUNTIME_unmerged_COMPLETION.json').exists() and (run/'S5_MERGE_LOGIT_GATE.json').exists():
+        status['tasks']['S5.2_same_BF16_24_runtime']='PASS_BASE_UNMERGED_MERGE_NUMERICAL_GATE_FAILED'
     status['unresolved']=['S1 full old claim/support/citation metrics BLOCKED after bounded resource attempts',
         'S3 natural new reranker and hierarchical production path; full corpus chunk Dense BLOCKED',
         'S4 comparison/summary independent keypoint coverage and sparse task classes; new router NOT_RUN_GATE',

@@ -8,11 +8,11 @@
 
 ## H01：文字代理受到答案篇幅与短参考影响
 
-结论：`PARTIAL_MEASUREMENT_EFFECT_FACTUAL_TRUTH_UNRESOLVED`。官方兼容重算无差异；短yes/no参考和篇幅影响文字分数。替代语义代理不能判断数字、否定和引用支持；完整事实指标仍阻断。
+结论：`MEASUREMENT_COVERAGE_LIMIT_CONFIRMED_PRIMARY_GAIN_UNKNOWN`。200开发答案已实际代理评分；92可答题中B0只14、C1只13有确定claimF1。其余UNKNOWN不能丢弃，主要均值为null，不能证明+0.02入围。文字指标无实现差异，却不能代表全部事实正确性。
 
 原反证：官方兼容重算5720条与legacy差异0，未发现多参考实现bug；整体替代语义代理也下降但短参考同样受限
 
-证据：`D:\RAGScope_Runtime\runs\v3_20261015_014506\RECOUNT_ALL_OLD.json`；`D:\RAGScope_Runtime\runs\v3_20261015_014506\S2_PROTOCOL_ANALYSIS.json`
+证据：`D:\RAGScope_Runtime\runs\v3_20261015_014506\S3_D_CONFIRM_CLAIM_GATE.json`；`D:\RAGScope_Runtime\runs\v3_20261015_014506\RECOUNT_ALL_OLD.json`
 
 ## H02：9B模板、通道、stop或schema可能不适配
 
@@ -48,11 +48,11 @@
 
 ## H06：重排窗口聚合、排序或打包可能移走正确证据
 
-结论：`OLD_WINDOW_COUNTEREVIDENCE_NEW_NATURAL_RERANK_PENDING`。500记录/9519窗口未发现512预算、字符覆盖或分数方向违例；max/top2复用旧实际窗口分数未改变所选覆盖。BGE11/12、新Qwen12/12仅夹具校准，不是自然检索提升。
+结论：`NATURAL_CONFIRMATION_REJECTS_RERANKER_NO_FIRST_WINDOW_BUG`。BGE40题打包覆盖增6.25pp，但确认100题max降14.13pp、top2降13.04pp；候选100%有参考证据，top10与预算打包交互造成主要损失。Qwen首批增3.125pp，未被选择扩确认。保留失败，不部署。
 
 原反证：原BGE已有512窗口，不能断言全被截断
 
-证据：`D:\RAGScope_Runtime\runs\v3_20261015_014506\S3_OLD_RETRIEVAL_FUNNEL.json`；`D:\RAGScope_Runtime\runs\v3_20261015_014506\S3_BGE_RELEVANCE_CALIBRATION.json`；`D:\RAGScope_Runtime\runs\v3_20261015_014506\S3_QWEN_RERANKER_CALIBRATION.json`
+证据：`D:\RAGScope_Runtime\runs\v3_20261015_014506\S3_NATURAL_RERANK_D_search_ANALYSIS.json`；`D:\RAGScope_Runtime\runs\v3_20261015_014506\S3_NATURAL_RERANK_D_confirm_ANALYSIS.json`；`D:\RAGScope_Runtime\runs\v3_20261015_014506\S3_OLD_RETRIEVAL_FUNNEL.json`
 
 ## H07：邻块先占预算可能挤掉核心证据
 

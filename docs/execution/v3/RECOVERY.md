@@ -1,10 +1,10 @@
 # v3 当前恢复点
 
-2026-10-14T23:27:33.866296+00:00
+2026-10-15T00:33:30.116039+00:00
 
 Campaign `D:\RAGScope_Runtime\runs\v3_20261015_014506`；原训练 USER_MANUAL_RESUME，不自动恢复。
 
-当前实际预算：2153 次请求；输出已扣除/保留 370132 tokens；以 BUDGET.jsonl 为准。
+当前实际预算：2269 次请求；输出已扣除/保留 394103 tokens；以 BUDGET.jsonl 为准。
 
 已核验运行进程：`[]`。句柄未知时以 PID、创建时间、exe、argv 联合核验，不能因观察超时重启。
 
@@ -16,7 +16,7 @@ NLI QA 校准：完整句 24/24，短片段 6/24，问题答案包装 12/24；�
 
 下一条准确命令：
 ```powershell
-Get-Content -LiteralPath 'scripts/v3/calibrate_qwen_reranker.py' -Raw
+Get-Content -LiteralPath 'ragscope/v3/local_runtime.py' -Raw
 ```
 
 V4实际终端session57682已exit2：558真实请求齐全，548有效、10契约失败保留；进程已不存在，私有服务卸载/退出。不得重跑分割。
@@ -35,7 +35,7 @@ S2输入冻结24题×2上下文，G0真实144复用。72新direct/pipeline调用
 
 H_tasks整篇来源session71248 actualexit0，30请求全部完成；初版16有效任务/20失败论文。一次零生成成本的空白格式修复和独立任务验证后，20有效任务、29失败分支保留；H_tasks.questions_v2/gold_v2为当前辅助人造任务集，不是官方QASPER或操作者盲测。无后台模型进程。
 
-当前下一项：Do not rerun completed180 workflow answers or train a new router. Finish natural reranker comparison and source-verified comparison/summary development keypoints, then freeze admissible conditions for S6; H_QA gold remains sealed.
+当前下一项：Quality admission cannot be proved: retain all UNKNOWN questions and v2 default. Complete independent real online cost and UI/campaign interfaces, then apply candidate locks/gates; never substitute a known-only subgroup or read sealedH_QA to tune.
 
 S2_SUPPLEMENT_RESULTS_verified.jsonl是42条补充结果的当前校验投影。v2封装首行遗留旧record_hash参与新hash的缺陷有确证，原两份journal保留，逐个raw请求/输出完全相同；不得重发调用。
 

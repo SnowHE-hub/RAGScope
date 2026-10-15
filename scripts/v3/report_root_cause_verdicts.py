@@ -29,6 +29,14 @@ def main():
         updates['H08']=('OLD_COLLAPSE_CONFIRMED_NEW_MAPPING_NOT_BETTER',
             f'180次真实工作流生成及240项效用齐全，预标映射相对最佳固定短问答代理差{utility["mapping_minus_best_fixed_proxy"]:+.6f}；没有总结标签且关键点未知，不触发新router训练。事后最佳是不可部署上界，不是分类准确率。',
             ['S4_WORKFLOW_UTILITY_ANALYSIS.json','S4_WORKFLOW_CONTEXT_MANIFEST.json'])
+    if (run/'S3_NATURAL_RERANK_D_confirm_ANALYSIS.json').exists():
+        updates['H06']=('NATURAL_CONFIRMATION_REJECTS_RERANKER_NO_FIRST_WINDOW_BUG',
+            'BGE40题打包覆盖增6.25pp，但确认100题max降14.13pp、top2降13.04pp；候选100%有参考证据，top10与预算打包交互造成主要损失。Qwen首批增3.125pp，未被选择扩确认。保留失败，不部署。',
+            ['S3_NATURAL_RERANK_D_search_ANALYSIS.json','S3_NATURAL_RERANK_D_confirm_ANALYSIS.json','S3_OLD_RETRIEVAL_FUNNEL.json'])
+    if (run/'S3_D_CONFIRM_CLAIM_GATE.json').exists():
+        updates['H01']=('MEASUREMENT_COVERAGE_LIMIT_CONFIRMED_PRIMARY_GAIN_UNKNOWN',
+            '200开发答案已实际代理评分；92可答题中B0只14、C1只13有确定claimF1。其余UNKNOWN不能丢弃，主要均值为null，不能证明+0.02入围。文字指标无实现差异，却不能代表全部事实正确性。',
+            ['S3_D_CONFIRM_CLAIM_GATE.json','RECOUNT_ALL_OLD.json'])
     rows=[];lines=['# 根因假设 H01–H12：证据与未解项','',
         '## 当前结论','',
         '已经确认测量口径限制、训练/部署分布差异以及LoRA输出长度和逐token开销变化。固定探针未发现pipeline通道/token错配；监督链路自检可更新并恢复。完整事实评分、自然新重排、工作流效用和最终holdout仍有受阻或待执行项目，不能宣称v3整体更好。','',
