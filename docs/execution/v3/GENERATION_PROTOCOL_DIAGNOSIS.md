@@ -65,7 +65,7 @@ G0保留原schema与greedy；G1仅加强最小充分回答；G2在G1基础上取
 
 G2的失败保留，不以“能解析出JSON外壳”冒充合法引用或可靠事实答案。官方采样配置不保证本机更好，不能以哪个种子最高来挑选。未新增9B BF16全矩阵，也不将未运行的精度桥接写成已验证。
 
-D_confirm上的core-first配对100题已另完成；文字F1增量约+0.01235、论文聚类95%区间跨零，主要claim/support/citation代理未知。当前没有可据此发布的统一新生成协议，保留v2默认。后续仍需任务工作流和一次冻结终验，人工 NOT_REVIEWED。
+D_confirm上的core-first配对100题已另完成；文字F1增量约+0.01235、论文聚类95%区间跨零，主要claim/support/citation代理未知。当前没有可据此发布的统一新生成协议，保留v2默认。实际工作流与online180已完成；没有候选入围，正式holdout配对受阻，人工NOT_REVIEWED。
 
 ## 可复核来源
 
@@ -73,3 +73,7 @@ D_confirm上的core-first配对100题已另完成；文字F1增量约+0.01235、
 
 - `D:\RAGScope_Runtime\runs\v3_20261015_014506\S2_PROTOCOL_ANALYSIS.json` SHA256 `d535460de0fed50c4b43aee42a93465264f253a4612eaa39f6cc0b012fb098a8`
 - `D:\RAGScope_Runtime\runs\v3_20261015_014506\S2_SUPPLEMENT_ANALYSIS.json` SHA256 `a92b6d37be3c34c1c8821167996961a97fbad71a71b1fb0c458c92528e352749`
+
+## 本轮最终门槛状态
+
+真实online180、合成范围40和工作台实连完成。质量增益与非劣无法证明，效率门槛未过，保留v2默认；H_QA/H_tasks正式配对BLOCKED，execution_complete=false，human_review_status=NOT_REVIEWED。完整证据见QUALITY_SCORECARD.json与ACCEPTANCE_V3.json。

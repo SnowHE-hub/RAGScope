@@ -2,9 +2,9 @@
 
 ## 当前结论
 
-已经确认测量口径限制、训练/部署分布差异以及LoRA输出长度和逐token开销变化。固定探针未发现pipeline通道/token错配；监督链路自检可更新并恢复。完整事实评分、自然新重排、工作流效用和最终holdout仍有受阻或待执行项目，不能宣称v3整体更好。
+已确认测量口径限制、训练/部署分布差异及LoRA输出长度/逐token开销变化。固定探针未发现pipeline通道/token错配；自然重排和工作流有真实负结果。主要事实评分及正式留出配对存在阻断，不能宣称v3整体更好。
 
-本文件是当前审计快照，workflow_finished=false、execution_complete=false、performance_status=INCONCLUSIVE、release_status=KEEP_V2_DEFAULT、human_review_status=NOT_REVIEWED。原假设账本不覆盖，更新保存在独立投影。
+execution_complete=false、performance_status=INCONCLUSIVE、release_status=KEEP_V2_DEFAULT、human_review_status=NOT_REVIEWED；workflow_finished以最终ACCEPTANCE_V3.json为准。原假设账本保留，当前结论保存为独立投影。
 
 ## H01：文字代理受到答案篇幅与短参考影响
 
@@ -40,11 +40,11 @@
 
 ## H05：部分全库题没有可唯一确定的论文对象
 
-结论：`SCOPE_INPUT_LIMIT_DIAGNOSED_CAUSAL_SHARE_UNKNOWN`。原E8缺少论文锚定不能全归因于算法。新文档检索明确区分原始问句与可见题名输入，后者不能冒充同任务提升；H_scope最终专项尚待执行。
+结论：`SCOPE_POLICY_VERIFIED_SYNTHETIC_CAUSAL_SHARE_UNKNOWN`。40次真实未缓存编码与范围查找完成：20指定论文保持scope并跳过文档层，20缺对象澄清。合成规则案例非事实QA；不能据此推断旧E8全部损失的因果占比。
 
 原反证：尚不能将81个未找齐证据题全部归因于范围问题
 
-证据：`D:\RAGScope_Runtime\runs\v3_20261015_014506\S3_DOCUMENT_CANDIDATES_D_SEARCH.json`；`D:\RAGScope_Runtime\runs\v3_20261015_014506\S3_DOCUMENT_DENSE_CANDIDATES.json`
+证据：`D:\RAGScope_Runtime\runs\v3_20261015_014506\S6_H_SCOPE_COMPLETION.json`；`D:\RAGScope_Runtime\runs\v3_20261015_014506\S3_DOCUMENT_CANDIDATES_D_SEARCH.json`；`D:\RAGScope_Runtime\runs\v3_20261015_014506\S3_DOCUMENT_DENSE_CANDIDATES.json`
 
 ## H06：重排窗口聚合、排序或打包可能移走正确证据
 
@@ -96,9 +96,9 @@
 
 ## H12：功能可靠性未转化为可发布质量/效率增益
 
-结论：`INCONCLUSIVE_KEEP_V2_FINAL_ACCEPTANCE_PENDING`。工程链路验证与开发观察均不能替代一次锁定holdout、支持性/引用和真实在线成本。当前主指标未知，S6及最终交付尚未完成；默认v2，人工NOT_REVIEWED。
+结论：`NO_CANDIDATE_ADMITTED_REQUIRED_HOLDOUT_BLOCKED_KEEP_V2`。真实180在线请求及工作台实连/缓存测试完成；core-first P50比值1.0055、P95比值1.2454，无效率收益。主要质量差值未知，开发门槛不通过；按10.1封存H_QA，必需终验配对BLOCKED，execution_complete=false。
 
 原反证：结构切块在旧题存在描述性收益，但不能推广到新holdout
 
-证据：`D:\RAGScope_Runtime\runs\v3_20261015_014506\STATUS.json`
+证据：`D:\RAGScope_Runtime\runs\v3_20261015_014506\CANDIDATE_LOCK.json`；`D:\RAGScope_Runtime\runs\v3_20261015_014506\S6_ONLINE_COST_ANALYSIS.json`；`D:\RAGScope_Runtime\runs\v3_20261015_014506\S6_APPLICATION_CACHE_VERIFICATION_final_scope_guard.json`
 

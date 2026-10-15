@@ -34,13 +34,13 @@ BGE固定FP32/512窗口、同GPU比较max与top2；Qwen固定BF16、官方yes/no
 
 已对20个开发问题执行 60 次实际完成索引的机制检索，核验scope不泄漏、澄清和旁路。可识别分支使用显式机制探针，不把该布尔条件当原问题真实可识别性，不报告产品准确率。查询向量是先前真实编码的冻结向量，计时不是在线E2E。
 
-原始全库E8没有论文对象的输入与追加可见题名的输入是不同任务；题名条件的高文档召回不能冒充原问题提升。最终H_scope专项尚待冻结后执行。
+原始全库E8没有论文对象的输入与追加可见题名的输入是不同任务；题名条件的高文档召回不能冒充原问题提升。H_scope40已实际完成：20指定范围不越界、20缺对象澄清；合成范围策略成绩单列。
 
 ## 资源替代、发布和未解项
 
 本轮scoped结果复用了141篇已指定论文的1647个实际向量，是独立的范围内替代，不声称完成全库块Dense。保留所有旧索引、原失败、partial矩阵和缓存，不再重启该受阻操作。
 
-自动默认保持v2。自然重排筛选失败；core-first还需主要事实指标、一次holdout和真实在线成本。缺对象澄清和全库旁路是已验证的工程机制，不等于已发布或生产准确率通过。人工 NOT_REVIEWED。
+自动默认保持v2。自然重排筛选失败；core-first主要事实差值仍UNKNOWN，实际online180没有效率收益，开发门槛未过；正式holdout配对受阻。缺对象澄清和全库旁路是已验证的工程机制，不等于已发布或生产准确率通过。人工 NOT_REVIEWED。
 
 ## 可复核来源
 
@@ -50,3 +50,7 @@ BGE固定FP32/512窗口、同GPU比较max与top2；Qwen固定BF16、官方yes/no
 - `D:\RAGScope_Runtime\runs\v3_20261015_014506\S3_NATURAL_RERANK_D_confirm_ANALYSIS.json` SHA256 `4df9b269aba5b32b7aebca88b8a25b7bccd30ae2e12fb5f5340ae08cbed97758`
 - `D:\RAGScope_Runtime\runs\v3_20261015_014506\S3_HIERARCHY_REAL_LOOKUPS.json` SHA256 `7aca4b859377e4acfecffb89e722fb770803be71ad0830bd55bfe6b483c56879`
 - `D:\RAGScope_Runtime\runs\v3_20261015_014506\S3_SCOPED_GENERATION_D_confirm_ANALYSIS.json` SHA256 `f21125118b3320526bc8824eae772bf7d9619964e7568069e1e02d3a6bcd44f0`
+
+## 本轮最终门槛状态
+
+真实online180、合成范围40和工作台实连完成。质量增益与非劣无法证明，效率门槛未过，保留v2默认；H_QA/H_tasks正式配对BLOCKED，execution_complete=false，human_review_status=NOT_REVIEWED。完整证据见QUALITY_SCORECARD.json与ACCEPTANCE_V3.json。

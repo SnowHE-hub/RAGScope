@@ -37,10 +37,19 @@ def main():
         updates['H01']=('MEASUREMENT_COVERAGE_LIMIT_CONFIRMED_PRIMARY_GAIN_UNKNOWN',
             '200开发答案已实际代理评分；92可答题中B0只14、C1只13有确定claimF1。其余UNKNOWN不能丢弃，主要均值为null，不能证明+0.02入围。文字指标无实现差异，却不能代表全部事实正确性。',
             ['S3_D_CONFIRM_CLAIM_GATE.json','RECOUNT_ALL_OLD.json'])
+    if (run/'S6_H_SCOPE_COMPLETION.json').exists():
+        updates['H05']=('SCOPE_POLICY_VERIFIED_SYNTHETIC_CAUSAL_SHARE_UNKNOWN',
+            '40次真实未缓存编码与范围查找完成：20指定论文保持scope并跳过文档层，20缺对象澄清。合成规则案例非事实QA；不能据此推断旧E8全部损失的因果占比。',
+            ['S6_H_SCOPE_COMPLETION.json','S3_DOCUMENT_CANDIDATES_D_SEARCH.json','S3_DOCUMENT_DENSE_CANDIDATES.json'])
+    final_gate=(run/'CANDIDATE_LOCK.json').exists()
+    if final_gate:
+        updates['H12']=('NO_CANDIDATE_ADMITTED_REQUIRED_HOLDOUT_BLOCKED_KEEP_V2',
+            '真实180在线请求及工作台实连/缓存测试完成；core-first P50比值1.0055、P95比值1.2454，无效率收益。主要质量差值未知，开发门槛不通过；按10.1封存H_QA，必需终验配对BLOCKED，execution_complete=false。',
+            ['CANDIDATE_LOCK.json','S6_ONLINE_COST_ANALYSIS.json','S6_APPLICATION_CACHE_VERIFICATION_final_scope_guard.json'])
     rows=[];lines=['# 根因假设 H01–H12：证据与未解项','',
         '## 当前结论','',
-        '已经确认测量口径限制、训练/部署分布差异以及LoRA输出长度和逐token开销变化。固定探针未发现pipeline通道/token错配；监督链路自检可更新并恢复。完整事实评分、自然新重排、工作流效用和最终holdout仍有受阻或待执行项目，不能宣称v3整体更好。','',
-        '本文件是当前审计快照，workflow_finished=false、execution_complete=false、performance_status=INCONCLUSIVE、release_status=KEEP_V2_DEFAULT、human_review_status=NOT_REVIEWED。原假设账本不覆盖，更新保存在独立投影。','']
+        '已确认测量口径限制、训练/部署分布差异及LoRA输出长度/逐token开销变化。固定探针未发现pipeline通道/token错配；自然重排和工作流有真实负结果。主要事实评分及正式留出配对存在阻断，不能宣称v3整体更好。','',
+        'execution_complete=false、performance_status=INCONCLUSIVE、release_status=KEEP_V2_DEFAULT、human_review_status=NOT_REVIEWED；workflow_finished以最终ACCEPTANCE_V3.json为准。原假设账本保留，当前结论保存为独立投影。','']
     for old in original:
         code,note,names=updates[old['id']];evidence=[];gaps=[]
         for name in names:
@@ -57,7 +66,7 @@ def main():
     target=PROJECT/'docs/execution/v3/ROOT_CAUSE_VERDICTS.md';target.write_text('\n'.join(lines)+'\n',encoding='utf8')
     projection=run/'HYPOTHESES_CURRENT_VERDICTS.jsonl';projection.write_text(''.join(canonical_json(r)+'\n' for r in rows),encoding='utf8')
     atomic_json(run/'ROOT_CAUSE_REPORT_SOURCE_NOTES.json',{'report':artifact(target),'projection':artifact(projection),
-        'original_hypotheses':artifact(original_path),'human_review_status':'NOT_REVIEWED','report_state':'INTERIM_FINAL_ACCEPTANCE_PENDING'})
+        'original_hypotheses':artifact(original_path),'human_review_status':'NOT_REVIEWED','report_state':'FINAL_ADMISSION_VERDICT' if final_gate else 'INTERIM_FINAL_ACCEPTANCE_PENDING'})
     print(str(target));return 0
 
 

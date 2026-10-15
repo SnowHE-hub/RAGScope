@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "execution_id": "final_delivery_v3",
+  "campaign": "D:/RAGScope_Runtime/runs/v3_20261015_014506",
+  "python": "D:/RAGScope_Runtime/envs/core/Scripts/python.exe",
+  "stage_order": ["S0", "S1", "S2", "S3", "S4", "S5", "S6", "acceptance"],
+  "steps": [
+    {"id": "online_cost", "stage": "S6", "script": "scripts/v3/run_online_cost.py", "args": ["--resume"], "evidence": "S6_ONLINE_COST_COMPLETION.json", "required_status": "PASS_180_ACTUAL_ONLINE_REQUESTS", "requires_models": true},
+    {"id": "online_audit", "stage": "S6", "script": "scripts/v3/audit_online_cost.py", "args": [], "evidence": "S6_ONLINE_COST_ANALYSIS.json", "required_status": "PASS_180_INDEPENDENT_ONLINE_AUDIT", "requires_models": false},
+    {"id": "independent_acceptance", "stage": "acceptance", "script": "scripts/v3/audit_campaign.py", "args": ["--independent"], "evidence": "INDEPENDENT_ACCEPTANCE_AUDIT.json", "required_status": "PASS_TERMINAL_EVIDENCE_AUDIT", "requires_models": false}
+  ],
+  "existing_stage_evidence": {
+    "S0": "S0_AUDIT_RECEIPT.json",
+    "S1": "RECOUNT_ALL_OLD.json",
+    "S2": "S2_PROTOCOL_ANALYSIS.json",
+    "S3": "S3_D_CONFIRM_CLAIM_GATE.json",
+    "S4": "S4_WORKFLOW_UTILITY_ANALYSIS.json",
+    "S5": "S5_RUNTIME_INDEPENDENT_ANALYSIS.json"
+  },
+  "constraints": {"new_llm_requests": 6000, "output_tokens": 4000000, "final_stage_requests": 1800, "minimum_batch_available_GiB": 3, "cpu_threads": 4, "original_training": "USER_MANUAL_RESUME"}
+}

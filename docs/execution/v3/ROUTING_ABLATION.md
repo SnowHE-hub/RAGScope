@@ -33,9 +33,9 @@ W_local单次scoped hybrid检索、无扩展紧凑证据；W_compare最多两个
 
 当前预标策略未超过最佳固定策略，同时比较/总结关键点、claim/support/citation代理仍未知；分类训练为 NOT_RUN_GATE_PRIMARY_TASK_UTILITY_UNVERIFIED。没有通过效用门槛就不增加复杂模型或重新学习“最快检索器”标签。
 
-在没有总结标签的短QA上执行W_summary不能验证全文总结。比较类仅5题，独立关键点标注及自然任务验证仍待补充；不把“框架支持”写成已完成，不将功能测试当质量收益。H_tasks与H_scope仍封存于最终验证协议，不读它们来调参。
+在没有总结标签的短QA上执行W_summary不能验证全文总结。比较类仅5题；独立来源补充只2总结/1比较，仍不足以推广；不把“框架支持”写成已完成，不将功能测试当质量收益。H_scope40范围专项已完成；H_tasks最终比较受入围门槛阻断，不读参考来调参。
 
-手动工作流是可审计实验动作，不是通过发布门槛的自动产品配置。默认保持v2；最终online质量/成本、一次holdout、UI验收及人工审核状态尚需独立完成。
+手动工作流是可审计实验动作，不是通过发布门槛的自动产品配置。默认保持v2；online180及工作台实连已完成，正式holdout配对受阻，人工审核NOT_REVIEWED。
 
 ## 复核来源与命令
 
@@ -44,3 +44,7 @@ W_local单次scoped hybrid检索、无扩展紧凑证据；W_compare最多两个
 - `D:\RAGScope_Runtime\runs\v3_20261015_014506\S4_WORKFLOW_UTILITY_ANALYSIS.json` SHA256 `69fcbf41df9fb32db3d328575b3fe9f5cedde5f67863fb5379b396b003056887`
 - `D:\RAGScope_Runtime\runs\v3_20261015_014506\S4_WORKFLOW_UTILITY_VECTORS.jsonl` SHA256 `e2e0dcb97e12d98d4984a3fe32fc8d0df6fe4d65c40a20dcaa2a1540d7f6e5e7`
 
+
+## 本轮最终门槛状态
+
+真实online180、合成范围40和工作台实连完成。质量增益与非劣无法证明，效率门槛未过，保留v2默认；H_QA/H_tasks正式配对BLOCKED，execution_complete=false，human_review_status=NOT_REVIEWED。完整证据见QUALITY_SCORECARD.json与ACCEPTANCE_V3.json。

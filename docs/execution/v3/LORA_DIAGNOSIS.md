@@ -57,7 +57,7 @@ D_confirm按query_id排序预先固定前24题；两分支同BF16权重、上下
 
 ## 后续验收与未解问题
 
-继续评估真正不同的工作流，保存每题完整效用向量。最终质量、支持性、引用及在线成本需按冻结候选和holdout协议验证；本报告不能替代S6。主要未解项是自然问答事实评分的可靠性、合并函数数值差异来源以及噪声分布迁移的因果大小。默认保留v2；人工 NOT_REVIEWED。
+工作流180实际答案与240效用向量、online180及工作台实连均已完成。主要事实评分未知，没有候选满足开发门槛，正式holdout配对受阻；本LoRA诊断不替代质量终验。主要未解项是自然问答事实评分的可靠性、合并函数数值差异来源以及噪声分布迁移的因果大小。默认保留v2；人工 NOT_REVIEWED。
 
 ## 可复核来源与命令
 
@@ -70,3 +70,7 @@ D_confirm按query_id排序预先固定前24题；两分支同BF16权重、上下
 - `D:\RAGScope_Runtime\runs\v3_20261015_014506\S5_FIXED64_base.jsonl` SHA256 `35fcd3db191c3c0400790acf5efeaf22b086a3c3d92d6f114497cc5688a17ab6`
 - `D:\RAGScope_Runtime\runs\v3_20261015_014506\S5_FIXED64_unmerged.jsonl` SHA256 `9a2e1db35af1d9958c62b19da119e5b886182d1838139edb2fa5da232f537ca9`
 - `D:\RAGScope_Runtime\runs\v3_20261015_014506\S5_SUPERVISION_SMOKE_v2\COMPLETION.json` SHA256 `d6d98787d1737beb6c41875deafd9ca84ca2c0a4a1a7b0377f0e80a006cc8c06`
+
+## 本轮最终门槛状态
+
+真实online180、合成范围40和工作台实连完成。质量增益与非劣无法证明，效率门槛未过，保留v2默认；H_QA/H_tasks正式配对BLOCKED，execution_complete=false，human_review_status=NOT_REVIEWED。完整证据见QUALITY_SCORECARD.json与ACCEPTANCE_V3.json。

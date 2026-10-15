@@ -50,6 +50,7 @@ def main():
                     'scripts/v3/prepare_development_task_contexts.py', 'scripts/v3/run_development_task_generation.py',
                     'scripts/v3/score_development_source_tasks.py', 'scripts/v3/score_development_source_tasks_resident_v2.py',
                     'scripts/v3/score_scoped_development.py',
+                    'scripts/v3/run_online_cost.py', 'scripts/v3/serve_workbench.py',
                     str(PROJECT/'scripts/v3/run_workflow_generation.py').replace('\\','/'),
                     str(PROJECT/'scripts/v3/run_lora_runtime_diagnostics.py').replace('\\','/'),
                     str(PROJECT/'scripts/v3/run_lora_supervision_smoke.py').replace('\\','/'),
@@ -383,6 +384,8 @@ def main():
         claim_gate=json.loads((run/'S3_D_CONFIRM_CLAIM_GATE.json').read_text('utf8'))
         status['tasks']['S3.6_D_confirm_claim_support_citation']=claim_gate['status']
         status['tasks']['S3.6_quality_candidate_admission']='PASS_GATE' if claim_gate['quality_candidate_admitted'] else 'NOT_ADMITTED_PRIMARY_UNCERTAINTY'
+        status['stages']['S3']='DIAGNOSTIC_DONE_QUALITY_GATE_UNPROVEN_FULL_CHUNK_DENSE_BLOCKED'
+        status['stages']['S4']='DIAGNOSTIC_DONE_ROUTER_NOT_RUN_GATE_BROAD_LABEL_COVERAGE_BLOCKED'
         status['current_stage']='S6_DEVELOPMENT_ONLINE_EFFICIENCY_AND_UI_REQUIRED'
         status['next_action']='Quality admission cannot be proved: retain all UNKNOWN questions and v2 default. Complete independent real online cost and UI/campaign interfaces, then apply candidate locks/gates; never substitute a known-only subgroup or read sealedH_QA to tune.'
         status['next_command']="Get-Content -LiteralPath 'ragscope/v3/local_runtime.py' -Raw"
@@ -390,11 +393,26 @@ def main():
         status['next_tool_call']={'tool':'mcp__codegraph__codegraph_context','args':{'task':'ManagedOllama owned service lifecycle, residency and actual online embedding/retrieval/generation timing while serializing oneGPU', 'maxNodes':8,'includeCode':True}}
     if (run/'HUMAN_REVIEW_PACKAGE_RECEIPT.json').exists():
         status['tasks']['S1.3_and_S6_human_review_export']='PASS_100_REAL_ANONYMIZED_PAIRS_NOT_REVIEWED'
+    if (run/'S6_ONLINE_COST.jsonl').exists():
+        from ragscope.experiments.ledger import read_records
+        actual_online=read_records(run/'S6_ONLINE_COST.jsonl')
+        status['completed_evidence']['S6_actual_online_formal_requests']=len(actual_online)
+        status['tasks']['S6.3_online180']='PASS_180_ACTUAL_REQUESTS' if len(actual_online)==180 else 'PARTIAL_RETAINED_'+str(len(actual_online))
+        status['current_stage']='S6_ONLINE_AUDIT_UI_AND_FINAL_DELIVERABLES'
+        status['next_action']='Finish independent online audit and real workbench/cache checks; apply unchanged candidate admission gate, preserve sealed H_QA, then complete requirement-linked reports and final resource audit.'
+        status['next_command']=". ./scripts/runtime_env.ps1\n& D:/RAGScope_Runtime/envs/core/Scripts/python.exe scripts/v3/audit_online_cost.py --campaign '"+str(run).replace('\\','/')+"'"
+        status['next_command_status']='AUDIT_SAVED_ONLINE_ROWS_WITHOUT_NEW_MODEL_CALLS'
+        status['next_tool_call']={'tool':'exec_command','args':{'cmd':status['next_command']}}
+        online_live=next((worker for worker in live if worker['cmdline'][1].replace('\\','/').endswith('run_online_cost.py')),None)
+        if online_live:
+            status['current_stage']='S6_VERIFIED_LIVE_ONLINE_RESUME'
+            status['next_command']="Get-Content -LiteralPath '"+str(run/'S6_ONLINE_COST_FINAL_RESUME.log').replace('\\','/')+"' -Tail 12"
+            status['next_command_status']='OBSERVE_CURRENT_EXACT_PID_ARGV_DO_NOT_RESTART'
     if (run/'S5_RUNTIME_base_COMPLETION.json').exists() and (run/'S5_RUNTIME_unmerged_COMPLETION.json').exists() and (run/'S5_MERGE_LOGIT_GATE.json').exists():
         status['tasks']['S5.2_same_BF16_24_runtime']='PASS_BASE_UNMERGED_MERGE_NUMERICAL_GATE_FAILED'
     status['unresolved']=['S1 full old claim/support/citation metrics BLOCKED after bounded resource attempts',
-        'S3 natural new reranker and hierarchical production path; full corpus chunk Dense BLOCKED',
-        'S4 comparison/summary independent keypoint coverage and sparse task classes; new router NOT_RUN_GATE',
+        'S3 full corpus chunk Dense BLOCKED; current primary claim metrics highly uncertain and quality admission not proved',
+        'S4 source-keypoint task3 evaluation complete; broader valid labels insufficient after bounded attempts; router NOT_RUN_GATE',
         'S5 merged function numerical gate failed; formal retraining and conversion NOT_RUN_GATE',
         'S6 candidate lock, once-only holdout, online180, UI, cases, final reports and acceptance pending']
     status.pop('resume_command_after_verified_exit', None)

@@ -76,3 +76,13 @@ S4可见输入三维规则标签220题已冻结，selected60；规则只识别co
 2026-10-15 S4终端：session27341 actualexit0，180正式+9独立预热，全0格式失败。独立效用审计actualexit0，60题×4效用（W_clarify对指定scope复用W_local真实响应，0额外生成）。52可答；W_local文字F1 .363394、W_compare .340127、W_summary .360794。预标映射相对最佳固定混合短QA代理效用−.012080；hindsight .419707仅不可部署上界。没有总结标签、比较仅5题、关键点proxy未知，停止新router训练（NOT_RUN_GATE），不把生成时间当onlineE2E。仍须自然重排、任务关键点、S6锁定终验及UI/报告，不因该审计PASS声称整个Goal完成。
 
 2026-10-15 自然重排与关键点诊断：BGE首40题727窗口对、Qwen463完整对、BGE确认100题1823窗口对均actualexit0。D_search max打包完整覆盖+6.25pp；D_confirm max−14.13pp/top2−13.04pp，拒绝候选，不扩生成组合。60真实索引机制查找actualexit0：specified跳过文档层，ambiguous澄清，显式分支有全库BM25旁路；冻结query vector成本不算onlineE2E。6整篇教师请求只有3合法任务（2summary/1compare），原17失败分支与兼容9失败任务保留；两阶段兼容不新增标签。6正式任务答案+1预热，3组实际原子切分全通过。首次NLI在已加载后重复预留2GiB触发guard；小固定cohort的resident兼容保留加载前3GiB，已冻结关系输入额外64MiB及1GiB余量，不增加任务/改变阈值；实际132关系/61395encoder tokens，initialexit1与compatibilityexit0均保留，不重启旧全量评分。新的D_confirm200答案另实际完成100原子分组（10失败保留）及244NLI关系；92可答主claimF1只有B0 14/C1 13确定，均值null，不能选known子集，质量门槛不通过。预算2269/6000，最终1800保留。下一独立工作是online成本、CLI/UI和条件终验/验收；默认v2，人审NOT_REVIEWED。
+
+2026-10-15 S6终态：180正式在线请求和6独立预热均保留。session43539在176正式后触发驻留1GiB保护actualexit1；session98817在模型启动前低于3GiB actualexit1，未新增调用；内存回升约4.8GiB后session61813只补4正式+2预热actualexit0。独立审计0：B0/C1 P50 1.1406/1.1469秒、P95 1.6026/1.9960秒，无效率收益；应用答案/embedding缓存均关闭。只一个0.6B编码器与一个2B生成器驻留，串行加载/调用；这仍是GPU编码桥接，不冒充旧CPU成本。索引、预热与后端load_duration另列，不制造TTFT。
+
+40合成范围真实未缓存编码/索引查找actualexit0，20指定范围不越界、20缺对象澄清。工作台首启缺pilot开发ID清单，保留session85343/25401两个exit1；一次修复后85402/59764均exit0，真实1生成、独立1缓存命中、空问题/缺对象/无效论文/无证据通过。Streamlit真实控件4测试及全部71v3回归通过，Mock仅功能夹具。接口含help/dry-run/resume/stage/until、执行身份哈希；初始与final_delivery_v1控制清单保留，源码修正后用明确final_delivery_v2身份，不续写旧实验数据。
+
+按MASTER10.1冻结NO_V3_CANDIDATE_ADMITTED：主要claim差值UNKNOWN、效率也未达标。H_QA200/H_tasks正式配对必须标BLOCKED，未创建最终gold授权，不以未入围候选或基线单跑替代要求。六个真实QA前后文字变化案例已导出；仅2总结/1比较来源配对，未达每类3案例的项标BLOCKED，不编造。必需全量旧NLI/自然盲评/全块Dense/合并比较的有界阻断保持。performance INCONCLUSIVE、KEEP_V2_DEFAULT、人审NOT_REVIEWED。
+
+最终资源审计确认11435/11437/8502、gpu/writer/orchestrator锁均释放。最初两审计因Windows虚拟环境转发启动器把自身父进程计为工作者，原两份FAIL回执保留；兼容仅排除审计进程的已核验Python祖先、D盘env可执行文件和相同完整脚本参数，actualexit0。无用户进程被停止，USER_MANUAL_RESUME，不自动重启训练或定时器。未修改WSL上限、驱动、安全工具，无上传/push/付费。当前预算2456/6000、410699/4000000输出tokens。
+
+最终范围保护：工作台不对缺少完整scope向量的论文把BM25回退伪装成B0 Hybrid问答，明确拒绝；范围诊断中的真实稀疏替代仍单列。新保护实际回归72/72通过；新增一次实连验证仍是同一开发输入，不读holdout，两版本合计2实际回答/2独立缓存命中。应用journal按实现配置哈希分开，原行和失败不覆盖，总应用上限仍30。最终请求2457/6000、输出410796/4000000，S6合计188。原110模型引用/5环境相关元数据共398身份重新哈希，去重约19.29GB，0差异、0模型加载。所有控制身份初版及final_delivery_v1/v2保留，最终源码固定用final_delivery_v3；数据/主指标/候选锁不变化。
