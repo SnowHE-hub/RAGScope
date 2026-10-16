@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 800" role="img" aria-labelledby="ragscope-05-evolution-title ragscope-05-evolution-desc">
+<title id="ragscope-05-evolution-title">V1 → V2 → V3：工程演进与能力边界</title>
+<desc id="ragscope-05-evolution-desc">时间线区分工程扩展和测得质量；不同数据与指标不能跨版本直接比较。</desc>
+<defs><marker id="ragscope-05-evolution-arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#77776f"/></marker></defs>
+<rect width="100%" height="100%" rx="16" fill="#fdfcf9"/>
+<text x="30" y="38" fill="#252522" font-size="24" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="700" text-anchor="start">V1 → V2 → V3：工程演进与能力边界</text>
+<rect x="35" y="100" width="340" height="300" rx="10" fill="#f0f0ee" stroke="#74746b" stroke-width="1.6" stroke-dasharray="7 5"/>
+<text x="50" y="129" fill="#74746b" font-size="19" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="700" text-anchor="start">V1：检索研究</text>
+<text x="50" y="155" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">SQuAD / arXiv 历史实验</text>
+<text x="50" y="178" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">短文本 chunking 对照</text>
+<text x="50" y="201" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">BM25 / Dense / Hybrid</text>
+<text x="50" y="224" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">BGE / Chroma / Cross-Encoder</text>
+<text x="50" y="247" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">检索指标：Recall / MRR / nDCG</text>
+<text x="50" y="270" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">高召回不等于生成高 F1</text>
+<text x="50" y="293" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">旧实现与报告继续保留</text>
+<rect x="430" y="100" width="340" height="300" rx="10" fill="#f0f0ee" stroke="#74746b" stroke-width="1.6" stroke-dasharray="7 5"/>
+<text x="445" y="129" fill="#74746b" font-size="19" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="700" text-anchor="start">V2：长论文与生成研究</text>
+<text x="445" y="155" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">长文本、结构切块与证据坐标</text>
+<text x="445" y="178" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">真实本地生成模型对照</text>
+<text x="445" y="201" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">检索、生成、路由、LoRA 实验</text>
+<text x="445" y="224" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">模型身份与配置哈希</text>
+<text x="445" y="247" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">冻结题目 / 失败保留 / 断点</text>
+<text x="445" y="270" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">更多模块未自动带来更高质量</text>
+<text x="445" y="293" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">负结果构成已有证据</text>
+<rect x="825" y="100" width="340" height="300" rx="10" fill="#edf7f2" stroke="#257455" stroke-width="1.6"/>
+<text x="840" y="129" fill="#257455" font-size="19" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="700" text-anchor="start">V3：全库与任务工作台</text>
+<text x="840" y="155" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">1585 篇 / 19673 块完整 Dense</text>
+<text x="840" y="178" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">范围检索、全库文档先验</text>
+<text x="840" y="201" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">总结比较的章节与分组证据</text>
+<text x="840" y="224" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">统一 8K 驻留窗口，修复重载</text>
+<text x="840" y="247" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">真实问答 / 全库 / 在线测试</text>
+<text x="840" y="270" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">保留 2B；停用无充分收益组件</text>
+<text x="840" y="293" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">完整本地 UI / API / 结果追溯</text>
+<polyline points="375,245 430,245" fill="none" stroke="#77776f" stroke-width="1.8" marker-end="url(#ragscope-05-evolution-arrow)"/>
+<polyline points="770,245 825,245" fill="none" stroke="#77776f" stroke-width="1.8" marker-end="url(#ragscope-05-evolution-arrow)"/>
+<rect x="115" y="500" width="970" height="130" rx="10" fill="#fff" stroke="#a6a297" stroke-width="1.6"/>
+<text x="130" y="529" fill="#a6a297" font-size="19" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="700" text-anchor="start">可证明的最终范围</text>
+<text x="130" y="555" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">同批题、同评测条件：普通问答 F1 0.3904 → 0.4065；任务 F1 0.4274 → 0.4582</text>
+<text x="130" y="578" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">全库 Hybrid 完整证据覆盖 11.18% → 17.65%，但文档命中 40.5% → 38.0%</text>
+<text x="130" y="601" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">不可答正确拒答仍为 3/30；语义相似度、引用合法性不能替代人工事实判定</text>
+<rect x="30" y="700" width="250" height="40" rx="10" fill="#edf7f2" stroke="#257455" stroke-width="1.6"/>
+<text x="45" y="729" fill="#257455" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="700" text-anchor="start">当前默认链路</text>
+<rect x="300" y="700" width="250" height="40" rx="10" fill="#eff2fc" stroke="#534ab7" stroke-width="1.6"/>
+<text x="315" y="729" fill="#534ab7" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="700" text-anchor="start">共享数据 / 索引</text>
+<rect x="600" y="700" width="250" height="40" rx="10" fill="#fff7e8" stroke="#a86a19" stroke-width="1.6" stroke-dasharray="7 5"/>
+<text x="615" y="729" fill="#a86a19" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="700" text-anchor="start">独立实验 / 非默认</text>
+<rect x="900" y="700" width="250" height="40" rx="10" fill="#f0f0ee" stroke="#74746b" stroke-width="1.6" stroke-dasharray="7 5"/>
+<text x="915" y="729" fill="#74746b" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="700" text-anchor="start">历史实现 / 非默认</text>
+</svg>

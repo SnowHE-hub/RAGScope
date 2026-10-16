@@ -1,0 +1,162 @@
+{
+  "path": "D:\\MCS_26S2课程资料\\quantmind\\docs\\architecture.html",
+  "sha256": "c745290211a331ae6f3115da058cd0bb1a9e873a6bfe544c23f90d09e5525214",
+  "bytes": 226717,
+  "parsed_entire_file": true,
+  "text_characters": 80154,
+  "tags": {
+    "html": 1,
+    "head": 1,
+    "meta": 2,
+    "title": 6,
+    "style": 6,
+    "body": 1,
+    "div": 2,
+    "h1": 1,
+    "nav": 1,
+    "ul": 23,
+    "li": 182,
+    "a": 116,
+    "blockquote": 32,
+    "p": 275,
+    "strong": 643,
+    "table": 53,
+    "thead": 53,
+    "tr": 448,
+    "th": 198,
+    "tbody": 53,
+    "td": 1520,
+    "code": 1113,
+    "hr": 15,
+    "h2": 15,
+    "ol": 3,
+    "h3": 101,
+    "svg": 5,
+    "desc": 5,
+    "defs": 5,
+    "marker": 5,
+    "path": 5,
+    "rect": 28,
+    "text": 76,
+    "line": 19,
+    "pre": 27,
+    "em": 1
+  },
+  "heading_count": 117,
+  "style": "\n:root{\n  --ink:#1f1f1d; --ink-2:#4a4a46; --ink-3:#76756f;\n  --rule:#dedbd2; --bg:#fdfcf9; --card:#f6f4ee; --accent:#534AB7;\n}\n*{box-sizing:border-box}\nhtml{-webkit-text-size-adjust:100%}\nbody{\n  margin:0; padding:0 24px 96px;\n  background:var(--bg); color:var(--ink);\n  font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",\"PingFang SC\",\n    \"Hiragino Sans GB\",\"Microsoft YaHei\",system-ui,sans-serif;\n  font-size:16.5px; line-height:1.85;\n}\n.wrap{max-width:860px;margin:0 auto}\nh1{font-size:30px;line-height:1.35;font-weight:600;margin:56px 0 8px;letter-spacing:-.01em}\nh2{font-size:23px;font-weight:600;margin:56px 0 14px;padding-top:22px;border-top:1px solid var(--rule)}\nh3{font-size:18.5px;font-weight:600;margin:36px 0 10px}\nh4{font-size:16.5px;font-weight:600;margin:26px 0 8px;color:var(--ink-2)}\np{margin:14px 0}\nstrong{font-weight:600}\na{color:var(--accent);text-decoration:none;border-bottom:1px solid rgba(83,74,183,.3)}\na:hover{border-bottom-color:var(--accent)}\nblockquote{\n  margin:22px 0;padding:14px 20px;background:var(--card);\n  border-left:3px solid var(--accent);border-radius:0 6px 6px 0;color:var(--ink-2)\n}\nblockquote p{margin:6px 0}\nul,ol{padding-left:26px;margin:14px 0}\nli{margin:6px 0}\ncode{\n  font-family:ui-monospace,SFMono-Regular,\"SF Mono\",Menlo,Consolas,monospace;\n  font-size:.88em;background:var(--card);padding:2px 6px;border-radius:4px\n}\npre{\n  background:var(--card);border:1px solid var(--rule);border-radius:8px;\n  padding:16px 18px;overflow-x:auto;line-height:1.6;margin:20px 0\n}\npre code{background:none;padding:0;font-size:13.5px}\ntable{\n  border-collapse:collapse;width:100%;margin:22px 0;font-size:15px;\n  display:block;overflow-x:auto\n}\nth,td{border:1px solid var(--rule);padding:9px 13px;text-align:left;vertical-align:top}\nth{background:var(--card);font-weight:600;white-space:nowrap}\ntbody tr:nth-child(even){background:rgba(246,244,238,.45)}\nhr{border:none;border-top:1px solid var(--rule);margin:48px 0}\nfigure{margin:32px 0;text-align:center}\nsvg{\n  max-width:100%;height:auto;display:block;margin:28px auto;\n  background:#fff;border:1px solid var(--rule);border-radius:10px;padding:14px 8px\n}\n#TOC{\n  background:var(--card);border:1px solid var(--rule);border-radius:10px;\n  padding:20px 26px;margin:32px 0\n}\n#TOC ul{margin:6px 0;padding-left:22px}\n#TOC>ul{padding-left:18px}\n#TOC li{margin:3px 0}\n#TOC a{border:none;color:var(--ink-2)}\n#TOC a:hover{color:var(--accent)}\n@media (max-width:640px){\n  body{font-size:15.5px;padding:0 16px 64px}\n  h1{font-size:25px}h2{font-size:20px}h3{font-size:17px}\n  table{font-size:14px}\n}\n@media print{\n  body{background:#fff;font-size:11pt;padding:0}\n  h2{page-break-before:auto;break-inside:avoid}\n  h2,h3,h4{break-after:avoid}\n  svg,figure,table,pre,blockquote{break-inside:avoid}\n  a{color:inherit;border:none}\n  #TOC{break-after:page}\n}\ntext{font-family:system-ui,-apple-system,\"PingFang SC\",\"Microsoft YaHei\",sans-serif}.th{font-size:14px;font-weight:500}.ts{font-size:12px}.gray{fill:#F1EFE8;stroke:#5F5E5A;stroke-width:.5}.purple{fill:#EEEDFE;stroke:#534AB7;stroke-width:.5}.teal{fill:#E1F5EE;stroke:#0F6E56;stroke-width:.5}.coral{fill:#FAECE7;stroke:#993C1D;stroke-width:.5}.tg{fill:#444441}.sg{fill:#5F5E5A}.tp{fill:#3C3489}.sp{fill:#534AB7}.tt{fill:#085041}.st{fill:#0F6E56}.tc{fill:#712B13}.sc{fill:#993C1D}.arr{stroke:#73726c;stroke-width:1.5;fill:none}text{font-family:system-ui,-apple-system,\"PingFang SC\",\"Microsoft YaHei\",sans-serif}.th{font-size:14px;font-weight:500}.ts{font-size:12px}.gray{fill:#F1EFE8;stroke:#5F5E5A;stroke-width:.5}.purple{fill:#EEEDFE;stroke:#534AB7;stroke-width:.5}.teal{fill:#E1F5EE;stroke:#0F6E56;stroke-width:.5}.tg{fill:#444441}.sg{fill:#5F5E5A}.tp{fill:#3C3489}.sp{fill:#534AB7}.tt{fill:#085041}.st{fill:#0F6E56}.arr{stroke:#73726c;stroke-width:1.5;fill:none}text{font-family:system-ui,-apple-system,\"PingFang SC\",\"Microsoft YaHei\",sans-serif}.th{font-size:14px;font-weight:500}.ts{font-size:12px}.gray{fill:#F1EFE8;stroke:#5F5E5A;stroke-width:.5}.purple{fill:#EEEDFE;stroke:#534AB7;stroke-width:.5}.teal{fill:#E1F5EE;stroke:#0F6E56;stroke-width:.5}.coral{fill:#FAECE7;stroke:#993C1D;stroke-width:.5}.tg{fill:#444441}.sg{fill:#5F5E5A}.tp{fill:#3C3489}.sp{fill:#534AB7}.tt{fill:#085041}.st{fill:#0F6E56}.tc{fill:#712B13}.sc{fill:#993C1D}.arr{stroke:#73726c;stroke-width:1.5;fill:none}.cut{stroke:#993C1D;stroke-width:1.2;fill:none;stroke-dasharray:4 3}text{font-family:system-ui,-apple-system,\"PingFang SC\",\"Microsoft YaHei\",sans-serif}.th{font-size:14px;font-weight:500}.ts{font-size:12px}.gray{fill:#F1EFE8;stroke:#5F5E5A;stroke-width:.5}.teal{fill:#E1F5EE;stroke:#0F6E56;stroke-width:.5}.coral{fill:#FAECE7;stroke:#993C1D;stroke-width:.5}.tg{fill:#444441}.sg{fill:#5F5E5A}.tt{fill:#085041}.st{fill:#0F6E56}.tc{fill:#712B13}.sc{fill:#993C1D}.arr{stroke:#73726c;stroke-width:1.5;fill:none}text{font-family:system-ui,-apple-system,\"PingFang SC\",\"Microsoft YaHei\",sans-serif}.th{font-size:14px;font-weight:500}.ts{font-size:12px}.gray{fill:#F1EFE8;stroke:#5F5E5A;stroke-width:.5}.purple{fill:#EEEDFE;stroke:#534AB7;stroke-width:.5}.teal{fill:#E1F5EE;stroke:#0F6E56;stroke-width:.5}.coral{fill:#FAECE7;stroke:#993C1D;stroke-width:.5}.tg{fill:#444441}.sg{fill:#5F5E5A}.tp{fill:#3C3489}.sp{fill:#534AB7}.tt{fill:#085041}.st{fill:#0F6E56}.tc{fill:#712B13}.sc{fill:#993C1D}.arr{stroke:#73726c;stroke-width:1.5;fill:none}",
+  "svg_structures": [
+    {
+      "attrs": {
+        "width": "100%",
+        "viewbox": "0 0 680 510",
+        "xmlns": "http://www.w3.org/2000/svg",
+        "role": "img"
+      },
+      "elements": {
+        "svg": 1,
+        "title": 1,
+        "desc": 1,
+        "style": 1,
+        "defs": 1,
+        "marker": 1,
+        "path": 1,
+        "rect": 6,
+        "text": 21,
+        "line": 4
+      }
+    },
+    {
+      "attrs": {
+        "width": "100%",
+        "viewbox": "0 0 680 560",
+        "xmlns": "http://www.w3.org/2000/svg",
+        "role": "img"
+      },
+      "elements": {
+        "svg": 1,
+        "title": 1,
+        "desc": 1,
+        "style": 1,
+        "defs": 1,
+        "marker": 1,
+        "path": 1,
+        "rect": 6,
+        "text": 12,
+        "line": 5
+      }
+    },
+    {
+      "attrs": {
+        "width": "100%",
+        "viewbox": "0 0 680 300",
+        "xmlns": "http://www.w3.org/2000/svg",
+        "role": "img"
+      },
+      "elements": {
+        "svg": 1,
+        "title": 1,
+        "desc": 1,
+        "style": 1,
+        "defs": 1,
+        "marker": 1,
+        "path": 1,
+        "text": 17,
+        "rect": 6,
+        "line": 2
+      }
+    },
+    {
+      "attrs": {
+        "width": "100%",
+        "viewbox": "0 0 680 540",
+        "xmlns": "http://www.w3.org/2000/svg",
+        "role": "img"
+      },
+      "elements": {
+        "svg": 1,
+        "title": 1,
+        "desc": 1,
+        "style": 1,
+        "defs": 1,
+        "marker": 1,
+        "path": 1,
+        "rect": 5,
+        "text": 13,
+        "line": 4
+      }
+    },
+    {
+      "attrs": {
+        "width": "100%",
+        "viewbox": "0 0 680 570",
+        "xmlns": "http://www.w3.org/2000/svg",
+        "role": "img"
+      },
+      "elements": {
+        "svg": 1,
+        "title": 1,
+        "desc": 1,
+        "style": 1,
+        "defs": 1,
+        "marker": 1,
+        "path": 1,
+        "rect": 5,
+        "text": 13,
+        "line": 4
+      }
+    }
+  ],
+  "reference_facts_not_copied": "只记录样式与结构，不复制金融模块、实验数值或业务正文。",
+  "adopted_design": [
+    "暖白背景 / 紫色强调",
+    "本机中文无衬线字体与等宽代码",
+    "章节横线、引用底色、表格斑马纹",
+    "完整目录 / SVG 内嵌 / 响应式 / 打印样式"
+  ],
+  "adapted_for_larger_handbook": [
+    "桌面粘性完整目录",
+    "手机目录滚动与宽图横向滚动",
+    "不从参考拷贝金融模块与数字",
+    "Markdown 单正文生成、锚点与表格代码一致性校验"
+  ]
+}

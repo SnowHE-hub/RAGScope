@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "markdown_sha256": "18e1acef4d02c50815c1674d14cb06d6537511ef8111f7af63df026035fe7df3",
+  "html_sha256": "01ca79e9b1ef0b4506895cbd9b5cb8b5380284adbf1c83f2a2cfc38d770fdbb1",
+  "rendered_body_sha256": "9e29077b9e439b11c33685069678f2df1735b00998b0b1831269b868eb726f79",
+  "source_characters": 174509,
+  "headings": 163,
+  "main_sections": 19,
+  "tables": 38,
+  "code_blocks": 10,
+  "inline_svg": 6,
+  "toc_targets": 162,
+  "broken_anchors": [],
+  "code_blocks_exact": true,
+  "table_cells_exact": true,
+  "svg_xml_valid": true,
+  "html_deterministic_from_markdown": true,
+  "offline_external_dependencies": 0,
+  "source": "D:\\MCS_26S1课程资料\\个人项目\\RAGScope\\docs\\architecture.md",
+  "output": "D:\\MCS_26S1课程资料\\个人项目\\RAGScope\\docs\\architecture.html"
+}

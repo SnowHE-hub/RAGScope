@@ -1,0 +1,1260 @@
+{
+  "verified_at": "2026-10-15",
+  "method": "read-only stdlib aggregation; no model imports/GPU/service/training",
+  "train": {
+    "train": {
+      "n": 972,
+      "documents": 394,
+      "answerability": {
+        "answerable": 841,
+        "unanswerable": 131
+      },
+      "maximum_tokens": 999,
+      "numeric_mask_valid": true
+    },
+    "dev": {
+      "n": 59,
+      "documents": 31,
+      "answerability": {
+        "answerable": 53,
+        "unanswerable": 6
+      },
+      "maximum_tokens": 825,
+      "numeric_mask_valid": true
+    },
+    "doc_overlap": 0,
+    "steps_n": 122,
+    "step_sequence_valid": true,
+    "step_row_keys": [
+      "config_hash",
+      "data_position",
+      "dtype",
+      "gradient_norm",
+      "host_sampling",
+      "loss",
+      "minimum_sampled_host_available_bytes",
+      "peak_allocated_bytes",
+      "peak_reserved_bytes",
+      "peak_sampled_process_rss_bytes",
+      "record_hash",
+      "record_id",
+      "recorded_at",
+      "runtime_policy",
+      "runtime_policy_hash",
+      "seconds",
+      "step"
+    ],
+    "result": {
+      "actual_optimizer_steps": 122,
+      "best_checkpoint_available": true,
+      "best_dev_loss": 0.13566311013932197,
+      "data_position": 972,
+      "epoch": 1,
+      "latest_checkpoint": "D:\\RAGScope_Runtime\\runs\\20261014_v2_lora\\train_2b_1024_seed42\\checkpoints\\step-000122",
+      "max_steps": 122,
+      "preflight_10_steps_passed": true,
+      "seed": 42,
+      "status": "TRAIN_LOOP_COMPLETE",
+      "step": 122
+    },
+    "observed": {
+      "trainable_parameters": 3691008,
+      "torch": "2.9.1+cu128",
+      "transformers": "5.19.0",
+      "peft": "0.21.2",
+      "initialization_seed": 42,
+      "target_modules_n": 114,
+      "adapter_tensors_n": 228
+    },
+    "paired_summary": {
+      "adapted": {
+        "abstention": {
+          "f1": 0.1764705882352941,
+          "fn": 5,
+          "fp": 23,
+          "precision": 0.11538461538461539,
+          "recall": 0.375,
+          "tp": 3
+        },
+        "citation_visible_rate": {
+          "n_applicable": 72,
+          "n_success_applicable": 72,
+          "overall": 1.0,
+          "success_conditional": 1.0
+        },
+        "exact_match": {
+          "n_applicable": 92,
+          "n_success_applicable": 90,
+          "overall": 0.21739130434782608,
+          "success_conditional": 0.2222222222222222
+        },
+        "has_citation": {
+          "n_applicable": 100,
+          "n_success_applicable": 98,
+          "overall": 0.72,
+          "success_conditional": 0.7346938775510204
+        },
+        "json_valid": {
+          "n_applicable": 100,
+          "n_success_applicable": 98,
+          "overall": 0.98,
+          "success_conditional": 1.0
+        },
+        "latency_ms": {
+          "n": 100,
+          "p50": 22400.814399999945,
+          "p95": 29524.276089996416,
+          "p99_exploratory": 63019.605800996724
+        },
+        "n_failed": 2,
+        "n_success": 98,
+        "n_total": 100,
+        "rouge_l": {
+          "n_applicable": 92,
+          "n_success_applicable": 90,
+          "overall": 0.421246476874812,
+          "success_conditional": 0.4306075096942522
+        },
+        "token_f1": {
+          "n_applicable": 92,
+          "n_success_applicable": 90,
+          "overall": 0.42668344370608163,
+          "success_conditional": 0.43616529801066123
+        }
+      },
+      "adapter": {
+        "bytes": 14798456,
+        "path": "D:\\RAGScope_Runtime\\runs\\20261014_v2_lora\\train_2b_1024_seed42\\checkpoints\\step-000122\\adapter\\adapter_model.safetensors",
+        "sha256": "a532dc22942d84e4dceabacb64b936c191b37ebdfa9fda092f3f87464d0bbae4"
+      },
+      "baseline": {
+        "abstention": {
+          "f1": 0.2222222222222222,
+          "fn": 7,
+          "fp": 0,
+          "precision": 1.0,
+          "recall": 0.125,
+          "tp": 1
+        },
+        "citation_visible_rate": {
+          "n_applicable": 87,
+          "n_success_applicable": 87,
+          "overall": 0.40229885057471265,
+          "success_conditional": 0.40229885057471265
+        },
+        "exact_match": {
+          "n_applicable": 92,
+          "n_success_applicable": 91,
+          "overall": 0.18478260869565216,
+          "success_conditional": 0.18681318681318682
+        },
+        "has_citation": {
+          "n_applicable": 100,
+          "n_success_applicable": 99,
+          "overall": 0.87,
+          "success_conditional": 0.8787878787878788
+        },
+        "json_valid": {
+          "n_applicable": 100,
+          "n_success_applicable": 99,
+          "overall": 0.99,
+          "success_conditional": 1.0
+        },
+        "latency_ms": {
+          "n": 100,
+          "p50": 6194.456650002394,
+          "p95": 14528.66489499538,
+          "p99_exploratory": 17301.199145999115
+        },
+        "n_failed": 1,
+        "n_success": 99,
+        "n_total": 100,
+        "rouge_l": {
+          "n_applicable": 92,
+          "n_success_applicable": 91,
+          "overall": 0.4469545330734715,
+          "success_conditional": 0.45186612134900417
+        },
+        "token_f1": {
+          "n_applicable": 92,
+          "n_success_applicable": 91,
+          "overall": 0.4648885838066629,
+          "success_conditional": 0.4699972495627801
+        }
+      },
+      "expected_n_per_condition": 100,
+      "frozen_inputs_hash": "b9dd5589719e6373ceb45c890be3a5f189f17c815bd320fb4ceb8e4f57d65c42",
+      "identity": {
+        "backend": "transformers-local-bf16",
+        "backend_version": "5.19.0",
+        "model": "Qwen/Qwen3.5-2B",
+        "peft": "0.21.2",
+        "quantization": "BF16",
+        "revision": "15852e8c16360a2fea060d615a32b45270f8a8fc",
+        "tokenizer_template_hash": "e9cb98e65623809a8a297af444986a3b417ecae1a19d519c0952eb1192abc5c1",
+        "torch": "2.9.1+cu128",
+        "weight_sha256": "a73bb3300f23285d52f3f8b9cabc22badddd27c67e0432e1f10170cd8d369140"
+      },
+      "status": "COMPLETE"
+    },
+    "old_recount": {
+      "answerable_n": 92,
+      "causal_verdict": "Not inferred from correlation",
+      "conditions": {
+        "adapted": {
+          "answerable_abstentions": 23,
+          "answerable_n": 92,
+          "at_output_limit_n": 0,
+          "em": 0.21739130434782608,
+          "f1": 0.42668344370608163,
+          "failures": 2,
+          "finish_reason_not_recorded_n": 100,
+          "generation_p50_ms": 22399.96080000128,
+          "n": 100,
+          "output_tokens_p50": 123.0
+        },
+        "baseline": {
+          "answerable_abstentions": 0,
+          "answerable_n": 92,
+          "at_output_limit_n": 0,
+          "em": 0.18478260869565216,
+          "f1": 0.4648885838066629,
+          "failures": 1,
+          "finish_reason_not_recorded_n": 100,
+          "generation_p50_ms": 6193.5339499978,
+          "n": 100,
+          "output_tokens_p50": 50.5
+        }
+      },
+      "contribution_sum_matches_delta": true,
+      "delta_f1": -0.03820514010058129,
+      "group_contributions": {
+        "FORMAT_OR_REQUEST_FAILURE": -0.012774862568715642,
+        "IMPROVED": 0.12393505688828953,
+        "NEW_ABSTENTION": -0.09792726174590528,
+        "UNCHANGED": 0.0,
+        "WORSE_STILL_ANSWERING": -0.051438072674249866
+      },
+      "group_counts": {
+        "FORMAT_OR_REQUEST_FAILURE": 3,
+        "IMPROVED": 28,
+        "NEW_ABSTENTION": 23,
+        "UNANSWERABLE_SEPARATE": 8,
+        "UNCHANGED": 15,
+        "WORSE_STILL_ANSWERING": 23
+      },
+      "human_review_status": "NOT_REVIEWED",
+      "new_llm_requests": 0,
+      "status": "PASS"
+    },
+    "runtime24": {
+      "base": {
+        "after_im_end_max": 2,
+        "after_im_end_mean": 2,
+        "answerable_n": 22,
+        "answerable_refusals_n": 0,
+        "citation_completeness_proxy": null,
+        "claim_f1_proxy": null,
+        "cost_scope": "actual_frozen_context_BF16_generation_not_online_retrieval_E2E",
+        "decode_speed": "UNKNOWN_PREFILL_NOT_SEPARATED",
+        "failures_n": 8,
+        "formal_n": 24,
+        "human_review_status": "NOT_REVIEWED",
+        "natural_generation_p50_seconds": 5.7494472000034875,
+        "output_tokens_mean": 66.08333333333333,
+        "output_tokens_p50": 67.0,
+        "stop_counts": {
+          "effective_eos": 24
+        },
+        "support_proxy": null,
+        "word_f1": 0.3018481237398814
+      },
+      "unmerged": {
+        "after_im_end_max": 2,
+        "after_im_end_mean": 2,
+        "answerable_n": 22,
+        "answerable_refusals_n": 6,
+        "citation_completeness_proxy": null,
+        "claim_f1_proxy": null,
+        "cost_scope": "actual_frozen_context_BF16_generation_not_online_retrieval_E2E",
+        "decode_speed": "UNKNOWN_PREFILL_NOT_SEPARATED",
+        "failures_n": 0,
+        "formal_n": 24,
+        "human_review_status": "NOT_REVIEWED",
+        "natural_generation_p50_seconds": 19.879667100001825,
+        "output_tokens_mean": 127.5,
+        "output_tokens_p50": 171.0,
+        "stop_counts": {
+          "effective_eos": 24
+        },
+        "support_proxy": null,
+        "word_f1": 0.3937645501760334
+      }
+    },
+    "merge_gate": {
+      "checks": [
+        {
+          "argmax_equal": true,
+          "max_abs": 0.5234375,
+          "relative_l2": 0.04398958012461662
+        },
+        {
+          "argmax_equal": true,
+          "max_abs": 0.5,
+          "relative_l2": 0.05009803920984268
+        },
+        {
+          "argmax_equal": true,
+          "max_abs": 0.625,
+          "relative_l2": 0.03323514759540558
+        }
+      ],
+      "passed": false
+    },
+    "fixed64_base": {
+      "n": 3,
+      "tokens": [
+        64
+      ],
+      "ttft_median": 0.49116820000926964,
+      "tps_after_first_median": 12.563378505480594
+    },
+    "fixed64_unmerged": {
+      "n": 3,
+      "tokens": [
+        64
+      ],
+      "ttft_median": 0.5489062999986345,
+      "tps_after_first_median": 8.589964077716397
+    }
+  },
+  "routing": {
+    "fixed_bm25": {
+      "dev": {
+        "answer_f1": 0.38059813407371934,
+        "answer_f1_n": 56,
+        "correct_abstention_rate": 0.0,
+        "evidence_coverage": 0.7142857142857143,
+        "evidence_n": 56,
+        "failure_rate": 0.0,
+        "fallback_rate": 0.0,
+        "latency_kind": "component_replay_estimate",
+        "n": 60,
+        "p50_latency_s": 1.1151116500022908,
+        "p95_latency_s": 1.6282162400053486,
+        "unanswerable_n": 4,
+        "wrong_abstain_rate": 0.0
+      },
+      "test": {
+        "answer_f1": 0.45927637612782213,
+        "answer_f1_n": 92,
+        "correct_abstention_rate": 0.25,
+        "evidence_coverage": 0.7264492753623187,
+        "evidence_n": 92,
+        "failure_rate": 0.0,
+        "fallback_rate": 0.0,
+        "latency_kind": "component_replay_estimate",
+        "n": 100,
+        "p50_latency_s": 1.1470904999969207,
+        "p95_latency_s": 1.6358425350001198,
+        "unanswerable_n": 8,
+        "wrong_abstain_rate": 0.0
+      }
+    },
+    "fixed_hybrid": {
+      "dev": {
+        "answer_f1": 0.4297770459808614,
+        "answer_f1_n": 56,
+        "correct_abstention_rate": 0.0,
+        "evidence_coverage": 0.7678571428571429,
+        "evidence_n": 56,
+        "failure_rate": 0.0,
+        "fallback_rate": 0.0,
+        "latency_kind": "component_replay_estimate",
+        "n": 60,
+        "p50_latency_s": 1.2175615000069229,
+        "p95_latency_s": 2.0187355049974935,
+        "unanswerable_n": 4,
+        "wrong_abstain_rate": 0.0
+      },
+      "test": {
+        "answer_f1": 0.48100564622994624,
+        "answer_f1_n": 92,
+        "correct_abstention_rate": 0.125,
+        "evidence_coverage": 0.8344202898550727,
+        "evidence_n": 92,
+        "failure_rate": 0.0,
+        "fallback_rate": 0.0,
+        "latency_kind": "component_replay_estimate",
+        "n": 100,
+        "p50_latency_s": 1.155106149992207,
+        "p95_latency_s": 1.646140055003889,
+        "unanswerable_n": 8,
+        "wrong_abstain_rate": 0.0
+      }
+    },
+    "fixed_hybrid_rerank": {
+      "dev": {
+        "answer_f1": 0.3709878185172398,
+        "answer_f1_n": 56,
+        "correct_abstention_rate": 0.0,
+        "evidence_coverage": 0.6636904761904763,
+        "evidence_n": 56,
+        "failure_rate": 0.0,
+        "fallback_rate": 0.0,
+        "latency_kind": "component_replay_estimate",
+        "n": 60,
+        "p50_latency_s": 1.7289458500017645,
+        "p95_latency_s": 2.5694622100005287,
+        "unanswerable_n": 4,
+        "wrong_abstain_rate": 0.017857142857142856
+      },
+      "test": {
+        "answer_f1": 0.466470917139826,
+        "answer_f1_n": 92,
+        "correct_abstention_rate": 0.0,
+        "evidence_coverage": 0.6793478260869565,
+        "evidence_n": 92,
+        "failure_rate": 0.0,
+        "fallback_rate": 0.0,
+        "latency_kind": "component_replay_estimate",
+        "n": 100,
+        "p50_latency_s": 15.210546750000503,
+        "p95_latency_s": 41.47272339000045,
+        "unanswerable_n": 8,
+        "wrong_abstain_rate": 0.010869565217391304
+      }
+    },
+    "rules": {
+      "dev": {
+        "answer_f1": 0.4266600464928943,
+        "answer_f1_n": 56,
+        "correct_abstention_rate": 0.0,
+        "evidence_coverage": 0.7678571428571429,
+        "evidence_n": 56,
+        "failure_rate": 0.0,
+        "fallback_rate": 0.0,
+        "latency_kind": "component_replay_estimate",
+        "n": 60,
+        "p50_latency_s": 1.2175700000025245,
+        "p95_latency_s": 2.1283935350043968,
+        "unanswerable_n": 4,
+        "wrong_abstain_rate": 0.0
+      },
+      "test": {
+        "answer_f1": 0.47726858618853835,
+        "answer_f1_n": 92,
+        "correct_abstention_rate": 0.125,
+        "evidence_coverage": 0.8235507246376813,
+        "evidence_n": 92,
+        "failure_rate": 0.0,
+        "fallback_rate": 0.0,
+        "latency_kind": "component_replay_estimate",
+        "n": 100,
+        "p50_latency_s": 1.1632816500004992,
+        "p95_latency_s": 2.640163419996462,
+        "unanswerable_n": 8,
+        "wrong_abstain_rate": 0.0
+      }
+    },
+    "linear": {
+      "dev": {
+        "answer_f1": 0.38059813407371934,
+        "answer_f1_n": 56,
+        "correct_abstention_rate": 0.0,
+        "evidence_coverage": 0.7142857142857143,
+        "evidence_n": 56,
+        "failure_rate": 0.0,
+        "fallback_rate": 0.0,
+        "latency_kind": "component_replay_estimate",
+        "n": 60,
+        "p50_latency_s": 1.115862950000519,
+        "p95_latency_s": 1.6289237350094472,
+        "unanswerable_n": 4,
+        "wrong_abstain_rate": 0.0
+      },
+      "test": {
+        "answer_f1": 0.45927637612782213,
+        "answer_f1_n": 92,
+        "correct_abstention_rate": 0.25,
+        "evidence_coverage": 0.7264492753623187,
+        "evidence_n": 92,
+        "failure_rate": 0.0,
+        "fallback_rate": 0.0,
+        "latency_kind": "component_replay_estimate",
+        "n": 100,
+        "p50_latency_s": 1.1478169499987416,
+        "p95_latency_s": 1.636480885003766,
+        "unanswerable_n": 8,
+        "wrong_abstain_rate": 0.0
+      },
+      "training": {
+        "config": {
+          "hidden_units": 32,
+          "kind": "linear",
+          "max_epochs": 20,
+          "max_features": 2048,
+          "patience": 3,
+          "reduction_components": 64,
+          "seed": 42
+        },
+        "data_kind": "real_generation_proxy",
+        "dev_hash": "ac67adb58df74a808817b5cc5477b2f321deeb531ce49f17b6fddc03f76158b9",
+        "dev_label_counts": {
+          "bm25": 31,
+          "hybrid": 23,
+          "hybrid_rerank": 6
+        },
+        "dev_n": 60,
+        "input": {
+          "bytes": 272213,
+          "path": "D:\\RAGScope_Runtime\\runs\\20261014_v2_routing\\labels.jsonl",
+          "sha256": "91e16c24641d29a0433833b8e1297d4e3dbc974078f29cdcfc498d11068396bd"
+        },
+        "n_features": 1755,
+        "single_class": false,
+        "status": "TRAINED",
+        "train_hash": "ccaaa5e7714adaada99d11eb70304d60aee60a94dd06e12ba8c8212b7c90a63f",
+        "train_label_counts": {
+          "bm25": 128,
+          "hybrid": 42,
+          "hybrid_rerank": 30
+        },
+        "train_n": 200,
+        "training_elapsed_s": 0.08213629999954719,
+        "warnings": [],
+        "history_n": 1
+      }
+    },
+    "mlp": {
+      "dev": {
+        "answer_f1": 0.38059813407371934,
+        "answer_f1_n": 56,
+        "correct_abstention_rate": 0.0,
+        "evidence_coverage": 0.7142857142857143,
+        "evidence_n": 56,
+        "failure_rate": 0.0,
+        "fallback_rate": 0.0,
+        "latency_kind": "component_replay_estimate",
+        "n": 60,
+        "p50_latency_s": 1.1162504000003537,
+        "p95_latency_s": 1.6294169800064984,
+        "unanswerable_n": 4,
+        "wrong_abstain_rate": 0.0
+      },
+      "test": {
+        "answer_f1": 0.45927637612782213,
+        "answer_f1_n": 92,
+        "correct_abstention_rate": 0.25,
+        "evidence_coverage": 0.7264492753623187,
+        "evidence_n": 92,
+        "failure_rate": 0.0,
+        "fallback_rate": 0.0,
+        "latency_kind": "component_replay_estimate",
+        "n": 100,
+        "p50_latency_s": 1.1481917500004784,
+        "p95_latency_s": 1.6368927599953167,
+        "unanswerable_n": 8,
+        "wrong_abstain_rate": 0.0
+      },
+      "training": {
+        "config": {
+          "hidden_units": 32,
+          "kind": "mlp",
+          "max_epochs": 20,
+          "max_features": 2048,
+          "patience": 3,
+          "reduction_components": 64,
+          "seed": 42
+        },
+        "data_kind": "real_generation_proxy",
+        "dev_hash": "ac67adb58df74a808817b5cc5477b2f321deeb531ce49f17b6fddc03f76158b9",
+        "dev_label_counts": {
+          "bm25": 31,
+          "hybrid": 23,
+          "hybrid_rerank": 6
+        },
+        "dev_n": 60,
+        "input": {
+          "bytes": 272213,
+          "path": "D:\\RAGScope_Runtime\\runs\\20261014_v2_routing\\labels.jsonl",
+          "sha256": "91e16c24641d29a0433833b8e1297d4e3dbc974078f29cdcfc498d11068396bd"
+        },
+        "n_features": 64,
+        "single_class": false,
+        "status": "TRAINED",
+        "train_hash": "ccaaa5e7714adaada99d11eb70304d60aee60a94dd06e12ba8c8212b7c90a63f",
+        "train_label_counts": {
+          "bm25": 128,
+          "hybrid": 42,
+          "hybrid_rerank": 30
+        },
+        "train_n": 200,
+        "training_elapsed_s": 0.19974740000179736,
+        "warnings": [],
+        "history_n": 14
+      }
+    },
+    "lstm": {
+      "dev": {
+        "answer_f1": 0.38059813407371934,
+        "answer_f1_n": 56,
+        "correct_abstention_rate": 0.0,
+        "evidence_coverage": 0.7142857142857143,
+        "evidence_n": 56,
+        "failure_rate": 0.0,
+        "fallback_rate": 0.0,
+        "latency_kind": "component_replay_estimate",
+        "n": 60,
+        "p50_latency_s": 1.1167912500004604,
+        "p95_latency_s": 1.6291659550010074,
+        "unanswerable_n": 4,
+        "wrong_abstain_rate": 0.0
+      },
+      "test": {
+        "answer_f1": 0.45927637612782213,
+        "answer_f1_n": 92,
+        "correct_abstention_rate": 0.25,
+        "evidence_coverage": 0.7264492753623187,
+        "evidence_n": 92,
+        "failure_rate": 0.0,
+        "fallback_rate": 0.0,
+        "latency_kind": "component_replay_estimate",
+        "n": 100,
+        "p50_latency_s": 1.1478909999987081,
+        "p95_latency_s": 1.637080479999713,
+        "unanswerable_n": 8,
+        "wrong_abstain_rate": 0.0
+      },
+      "training": {
+        "config": {
+          "embedding_size": 64,
+          "hidden_size": 64,
+          "max_epochs": 20,
+          "max_tokens": 128,
+          "max_vocabulary": 8000,
+          "patience": 3,
+          "seed": 42
+        },
+        "data_kind": "real_generation_proxy",
+        "dev_hash": "ac67adb58df74a808817b5cc5477b2f321deeb531ce49f17b6fddc03f76158b9",
+        "dev_label_counts": {
+          "bm25": 31,
+          "hybrid": 23,
+          "hybrid_rerank": 6
+        },
+        "dev_n": 60,
+        "input": {
+          "bytes": 272213,
+          "path": "D:\\RAGScope_Runtime\\runs\\20261014_v2_routing\\labels.jsonl",
+          "sha256": "91e16c24641d29a0433833b8e1297d4e3dbc974078f29cdcfc498d11068396bd"
+        },
+        "parameter_count": 69251,
+        "single_class": false,
+        "status": "TRAINED",
+        "train_hash": "ccaaa5e7714adaada99d11eb70304d60aee60a94dd06e12ba8c8212b7c90a63f",
+        "train_label_counts": {
+          "bm25": 128,
+          "hybrid": 42,
+          "hybrid_rerank": 30
+        },
+        "train_n": 200,
+        "training_elapsed_s": 6.794028700001945,
+        "truncated_dev_queries": 0,
+        "truncated_train_queries": 0,
+        "history_n": 9
+      }
+    },
+    "laya": {
+      "dev": {
+        "answer_f1": 0.4297770459808614,
+        "answer_f1_n": 56,
+        "correct_abstention_rate": 0.0,
+        "evidence_coverage": 0.7678571428571429,
+        "evidence_n": 56,
+        "failure_rate": 0.0,
+        "fallback_rate": 0.95,
+        "latency_kind": "component_replay_estimate",
+        "n": 60,
+        "p50_latency_s": 1.899623250001241,
+        "p95_latency_s": 2.7320483599969516,
+        "unanswerable_n": 4,
+        "wrong_abstain_rate": 0.0
+      },
+      "test": {
+        "answer_f1": 0.47756361724443896,
+        "answer_f1_n": 92,
+        "correct_abstention_rate": 0.125,
+        "evidence_coverage": 0.8235507246376813,
+        "evidence_n": 92,
+        "failure_rate": 0.0,
+        "fallback_rate": 0.96,
+        "latency_kind": "component_replay_estimate",
+        "n": 100,
+        "p50_latency_s": 1.883926300002713,
+        "p95_latency_s": 2.380350539999381,
+        "unanswerable_n": 8,
+        "wrong_abstain_rate": 0.0
+      }
+    },
+    "online": {
+      "budget": {
+        "core_calls": 3600,
+        "initial_core_reservation": 3600,
+        "limit": 10000,
+        "reserved_calls": 6259
+      },
+      "deployment": {
+        "actual_request_minimum_met": true,
+        "default": "fixed",
+        "deploy": false,
+        "latency_ok": false,
+        "note": "engineering_threshold_not_statistical_significance",
+        "online_subset_quality_ok": true,
+        "quality_ok": true,
+        "quality_population": {
+          "answerable_n": 56,
+          "fixed_f1": 0.4297770459808614,
+          "kind": "all_frozen_dev",
+          "n": 60,
+          "nonfixed_f1": 0.4266600464928943
+        },
+        "reason": "full_dev_quality_and_actual_paired_latency"
+      },
+      "groups": {
+        "fixed_hybrid": {
+          "n_expected": 30,
+          "n_generation_attempted": 30,
+          "n_pending": 0,
+          "n_pre_generation_failures": 0,
+          "summary": {
+            "answer_f1": 0.40883048555667845,
+            "answer_f1_n": 26,
+            "correct_abstention_rate": 0.0,
+            "evidence_coverage": 0.6923076923076923,
+            "evidence_n": 26,
+            "failure_rate": 0.0,
+            "fallback_rate": 0.0,
+            "latency_kind": "actual_online",
+            "n": 30,
+            "p50_latency_s": 1.277656600002956,
+            "p95_latency_s": 2.0265946050003545,
+            "unanswerable_n": 4,
+            "wrong_abstain_rate": 0.0
+          }
+        },
+        "rules": {
+          "n_expected": 30,
+          "n_generation_attempted": 30,
+          "n_pending": 0,
+          "n_pre_generation_failures": 0,
+          "summary": {
+            "answer_f1": 0.411394588120781,
+            "answer_f1_n": 26,
+            "correct_abstention_rate": 0.0,
+            "evidence_coverage": 0.6923076923076923,
+            "evidence_n": 26,
+            "failure_rate": 0.0,
+            "fallback_rate": 0.0,
+            "latency_kind": "actual_online",
+            "n": 30,
+            "p50_latency_s": 1.2132038999989163,
+            "p95_latency_s": 2.201953934998164,
+            "unanswerable_n": 4,
+            "wrong_abstain_rate": 0.0
+          }
+        }
+      },
+      "load_timings_ms": {
+        "index_load_ms": 2882.769299998472,
+        "reranker_load_ms": 28903.334800001176,
+        "router_load_ms": 0.03300000389572233
+      },
+      "note": "Measured host/device sampling is in individual records; no inferred layer offload.",
+      "online_hash": "0c82613047a1b8e8041d2a3129faa0627aaea29e571b84e0a7f30ca0065cc5f1",
+      "records": {
+        "bytes": 11658417,
+        "path": "D:\\RAGScope_Runtime\\runs\\20261014_v2_routing\\online\\records.jsonl",
+        "sha256": "2c76fc69bedeea7c7f36316e15c53122d33282bbe006b73facba4dcc068d7b93"
+      },
+      "status": "COMPLETE",
+      "stop_reason": null,
+      "test_used": false,
+      "warmup_records": 6
+    },
+    "diagnostic": {
+      "linear": {
+        "dev_accuracy": 0.5166666666666667,
+        "dev_label_counts": {
+          "bm25": 31,
+          "hybrid": 23,
+          "hybrid_rerank": 6
+        },
+        "dev_n": 60,
+        "dev_predicted_counts": {
+          "bm25": 60
+        },
+        "minimum_host_available": 3736047616,
+        "peak_rss": 166961152,
+        "train_accuracy": 0.675,
+        "train_label_counts": {
+          "bm25": 128,
+          "hybrid": 42,
+          "hybrid_rerank": 30
+        },
+        "train_minus_dev_accuracy": 0.15833333333333333,
+        "train_n": 200,
+        "train_predicted_counts": {
+          "bm25": 191,
+          "hybrid": 9
+        }
+      },
+      "lstm": {
+        "dev_accuracy": 0.5166666666666667,
+        "dev_label_counts": {
+          "bm25": 31,
+          "hybrid": 23,
+          "hybrid_rerank": 6
+        },
+        "dev_n": 60,
+        "dev_predicted_counts": {
+          "bm25": 60
+        },
+        "minimum_host_available": 3699929088,
+        "peak_rss": 213782528,
+        "train_accuracy": 0.64,
+        "train_label_counts": {
+          "bm25": 128,
+          "hybrid": 42,
+          "hybrid_rerank": 30
+        },
+        "train_minus_dev_accuracy": 0.1233333333333333,
+        "train_n": 200,
+        "train_predicted_counts": {
+          "bm25": 200
+        }
+      },
+      "mlp": {
+        "dev_accuracy": 0.5166666666666667,
+        "dev_label_counts": {
+          "bm25": 31,
+          "hybrid": 23,
+          "hybrid_rerank": 6
+        },
+        "dev_n": 60,
+        "dev_predicted_counts": {
+          "bm25": 60
+        },
+        "minimum_host_available": 3748773888,
+        "peak_rss": 169287680,
+        "train_accuracy": 0.64,
+        "train_label_counts": {
+          "bm25": 128,
+          "hybrid": 42,
+          "hybrid_rerank": 30
+        },
+        "train_minus_dev_accuracy": 0.1233333333333333,
+        "train_n": 200,
+        "train_predicted_counts": {
+          "bm25": 200
+        }
+      }
+    },
+    "laya_raw": {
+      "checked_at": "2026-10-14T05:17:38.990287+00:00",
+      "errors": 0,
+      "fallbacks": 646,
+      "input_hash": "b82d4b56253f1773672fc35a49402b38409256a6e892777cd55fa64c20b270f5",
+      "n_decisions": 1080,
+      "n_queries": 360,
+      "note": "Execution/provenance acceptance only; errors and confidence fallbacks remain in all denominators.",
+      "quality_labels_read": false,
+      "quality_scoring": "PENDING_REAL_ROUTE_LABELS",
+      "queries_with_order_dependent_selected_route": 142,
+      "status": "PASS",
+      "warmups_excluded": 3,
+      "worker_exited": true
+    }
+  },
+  "environments": [
+    {
+      "name": "core",
+      "pyvenv_cfg": "home = D:\\RAGScope_Runtime\\tools\\python\\cpython-3.12-windows-x86_64-none\nimplementation = CPython\nuv = 0.11.19\nversion_info = 3.12.13\ninclude-system-site-packages = false\n",
+      "visible_packages": {
+        "torch": null,
+        "transformers": null,
+        "peft": null,
+        "accelerate": null,
+        "tokenizers": "0.23.3",
+        "streamlit": "1.65.0",
+        "sentence-transformers": null,
+        "bert-score": null,
+        "laya": null,
+        "numpy": "2.5.4",
+        "psutil": "7.2.2"
+      },
+      "direct_distribution_count": 74,
+      "read_only_dependency_paths": [],
+      "locks": []
+    },
+    {
+      "name": "core_acceptance_20261014",
+      "pyvenv_cfg": "home = D:\\RAGScope_Runtime\\tools\\python\\cpython-3.12-windows-x86_64-none\nimplementation = CPython\nuv = 0.11.19\nversion_info = 3.12.13\ninclude-system-site-packages = false\n",
+      "visible_packages": {
+        "torch": null,
+        "transformers": null,
+        "peft": null,
+        "accelerate": null,
+        "tokenizers": "0.23.3",
+        "streamlit": "1.65.0",
+        "sentence-transformers": null,
+        "bert-score": null,
+        "laya": null,
+        "numpy": "2.5.4",
+        "psutil": "7.2.2"
+      },
+      "direct_distribution_count": 74,
+      "read_only_dependency_paths": [],
+      "locks": []
+    },
+    {
+      "name": "models",
+      "pyvenv_cfg": "home = D:\\RAGScope_Runtime\\tools\\python\\cpython-3.12-windows-x86_64-none\nimplementation = CPython\nuv = 0.11.19\nversion_info = 3.12.13\ninclude-system-site-packages = false\n",
+      "visible_packages": {
+        "torch": "2.9.1+cpu",
+        "transformers": "4.57.6",
+        "peft": null,
+        "accelerate": null,
+        "tokenizers": "0.22.2",
+        "streamlit": "1.65.0",
+        "sentence-transformers": "5.2.0",
+        "bert-score": null,
+        "laya": "0.4.6",
+        "numpy": "2.5.4",
+        "psutil": "7.2.2"
+      },
+      "direct_distribution_count": 72,
+      "read_only_dependency_paths": [],
+      "locks": [
+        {
+          "path": "D:\\RAGScope_Runtime\\envs\\models\\requirements.0a9f751bbbcd21195abb98e2ec1bdbfedc72ea2a2aaeb54e414dff38590d7a85.lock.txt",
+          "bytes": 732,
+          "sha256": "0a9f751bbbcd21195abb98e2ec1bdbfedc72ea2a2aaeb54e414dff38590d7a85"
+        },
+        {
+          "path": "D:\\RAGScope_Runtime\\envs\\models\\requirements.0add3cfa267fd2f4c18dae8692b62bb60eb028679b2e08949abad54a4e9ff902.lock.txt",
+          "bytes": 824,
+          "sha256": "0add3cfa267fd2f4c18dae8692b62bb60eb028679b2e08949abad54a4e9ff902"
+        },
+        {
+          "path": "D:\\RAGScope_Runtime\\envs\\models\\requirements.89ab075116c9fb665d2a847b2f1a9f162b24992e2d66d40797c909de344bf761.lock.txt",
+          "bytes": 704,
+          "sha256": "89ab075116c9fb665d2a847b2f1a9f162b24992e2d66d40797c909de344bf761"
+        },
+        {
+          "path": "D:\\RAGScope_Runtime\\envs\\models\\requirements.lock.txt",
+          "bytes": 1315,
+          "sha256": "4248ab17be28f682c46c8425870a5e5361ca55ad19a37ef5342dc246356addee"
+        }
+      ]
+    },
+    {
+      "name": "reports",
+      "pyvenv_cfg": "home = D:\\RAGScope_Runtime\\tools\\python\\cpython-3.12-windows-x86_64-none\nimplementation = CPython\nuv = 0.11.19\nversion_info = 3.12.13\ninclude-system-site-packages = false\n",
+      "visible_packages": {
+        "torch": null,
+        "transformers": null,
+        "peft": null,
+        "accelerate": null,
+        "tokenizers": null,
+        "streamlit": null,
+        "sentence-transformers": null,
+        "bert-score": null,
+        "laya": null,
+        "numpy": "2.5.4",
+        "psutil": null
+      },
+      "direct_distribution_count": 11,
+      "read_only_dependency_paths": [],
+      "locks": []
+    },
+    {
+      "name": "train",
+      "pyvenv_cfg": "home = D:\\RAGScope_Runtime\\tools\\python\\cpython-3.12-windows-x86_64-none\nimplementation = CPython\nuv = 0.11.19\nversion_info = 3.12.13\ninclude-system-site-packages = false\n",
+      "visible_packages": {
+        "torch": "2.9.1+cu128",
+        "transformers": "5.19.0",
+        "peft": "0.21.2",
+        "accelerate": "1.15.0",
+        "tokenizers": "0.23.3",
+        "streamlit": null,
+        "sentence-transformers": null,
+        "bert-score": null,
+        "laya": null,
+        "numpy": "2.5.4",
+        "psutil": "7.2.2"
+      },
+      "direct_distribution_count": 47,
+      "read_only_dependency_paths": [],
+      "locks": [
+        {
+          "path": "D:\\RAGScope_Runtime\\envs\\train\\requirements.8f92040cbfcb2469c278f828c9496a206a0a1ad121b9950a1d4460eb51332554.lock.txt",
+          "bytes": 663,
+          "sha256": "8f92040cbfcb2469c278f828c9496a206a0a1ad121b9950a1d4460eb51332554"
+        },
+        {
+          "path": "D:\\RAGScope_Runtime\\envs\\train\\requirements.lock.txt",
+          "bytes": 818,
+          "sha256": "e2cd66b2d9bb305c554c9e123e556870b663a4820abd84de784e0a24ee67f5e2"
+        },
+        {
+          "path": "D:\\RAGScope_Runtime\\envs\\train\\requirements.r3_gpu.lock.txt",
+          "bytes": 836,
+          "sha256": "1a955cc8f6db69ff61ba4ebaa2b918ec06a6b7ab1f4054142e13e997d54bc742"
+        }
+      ]
+    },
+    {
+      "name": "v3_metrics",
+      "pyvenv_cfg": "home = D:\\RAGScope_Runtime\\tools\\python\\cpython-3.12-windows-x86_64-none\ninclude-system-site-packages = false\nversion = 3.12.13\nexecutable = D:\\RAGScope_Runtime\\envs\\train\\Scripts\\python.exe\ncommand = D:\\RAGScope_Runtime\\envs\\train\\Scripts\\python.exe -m venv --without-pip D:\\RAGScope_Runtime\\envs\\v3_metrics\n",
+      "visible_packages": {
+        "torch": "2.9.1+cu128",
+        "transformers": "5.19.0",
+        "peft": "0.21.2",
+        "accelerate": "1.15.0",
+        "tokenizers": "0.23.3",
+        "streamlit": null,
+        "sentence-transformers": null,
+        "bert-score": "0.3.13",
+        "laya": null,
+        "numpy": "2.5.4",
+        "psutil": "7.2.2"
+      },
+      "direct_distribution_count": 6,
+      "read_only_dependency_paths": [
+        "D:\\RAGScope_Runtime\\envs\\train\\Lib\\site-packages",
+        "D:\\RAGScope_Runtime\\envs\\reports\\Lib\\site-packages"
+      ],
+      "locks": []
+    },
+    {
+      "name": "v3_metrics_cpu",
+      "pyvenv_cfg": "home = D:\\RAGScope_Runtime\\tools\\python\\cpython-3.12-windows-x86_64-none\ninclude-system-site-packages = false\nversion = 3.12.13\nexecutable = D:\\RAGScope_Runtime\\envs\\models\\Scripts\\python.exe\ncommand = D:\\RAGScope_Runtime\\envs\\models\\Scripts\\python.exe -m venv --without-pip D:\\RAGScope_Runtime\\envs\\v3_metrics_cpu\n",
+      "visible_packages": {
+        "torch": "2.9.1+cpu",
+        "transformers": "4.57.6",
+        "peft": null,
+        "accelerate": null,
+        "tokenizers": "0.22.2",
+        "streamlit": "1.65.0",
+        "sentence-transformers": "5.2.0",
+        "bert-score": "0.3.13",
+        "laya": "0.4.6",
+        "numpy": "2.5.4",
+        "psutil": "7.2.2"
+      },
+      "direct_distribution_count": 1,
+      "read_only_dependency_paths": [
+        "D:\\RAGScope_Runtime\\envs\\models\\Lib\\site-packages",
+        "D:\\RAGScope_Runtime\\envs\\reports\\Lib\\site-packages"
+      ],
+      "locks": []
+    }
+  ],
+  "models": [
+    {
+      "receipt": {
+        "path": "D:\\RAGScope_Runtime\\models\\generation\\lfm2.5_metadata.json",
+        "bytes": 2790,
+        "sha256": "5bbb96fc7bc6faef5b2f5a888084f597e54a6fdbbab6b32330250be0822be48c"
+      },
+      "model": "liquidai/lfm2.5-1.2b-instruct:q4_k_m",
+      "quantization": "Q4_K_M",
+      "weight_assets": []
+    },
+    {
+      "receipt": {
+        "path": "D:\\RAGScope_Runtime\\models\\generation\\lfm2.5_q4_k_m.json",
+        "bytes": 3377,
+        "sha256": "c0166be403f9ad7c187b286526e63eb0b5e84998256a66f9a03687d3b3a26ed6"
+      },
+      "model": "liquidai/lfm2.5-1.2b-instruct:q4_k_m",
+      "quantization": "Q4_K_M",
+      "weight_assets": [
+        {
+          "path": "D:\\RAGScope_Runtime\\models\\ollama\\blobs\\sha256-b1b3de114215d9507409a662a501a631095a479a419584e8a2ded6304b19b4f5",
+          "bytes": 730895168,
+          "sha256": "b1b3de114215d9507409a662a501a631095a479a419584e8a2ded6304b19b4f5",
+          "exists": true,
+          "actual_bytes": 730895168
+        }
+      ]
+    },
+    {
+      "receipt": {
+        "path": "D:\\RAGScope_Runtime\\models\\generation\\qwen3.5_2b-q4_K_M.json",
+        "bytes": 3254,
+        "sha256": "7c51c337f4217087f508ea03a0576379519ac71cc4678bda25b13a38106b89d0"
+      },
+      "model": "qwen3.5:2b-q4_K_M",
+      "quantization": "Q4_K_M",
+      "weight_assets": [
+        {
+          "path": "D:\\RAGScope_Runtime\\models\\ollama\\blobs\\sha256-20cb277f0967ace47b0b5d5658e5e494a88937f7378b74b5a266496400938f4c",
+          "bytes": 1274396992,
+          "sha256": "20cb277f0967ace47b0b5d5658e5e494a88937f7378b74b5a266496400938f4c",
+          "exists": true,
+          "actual_bytes": 1274396992
+        }
+      ]
+    },
+    {
+      "receipt": {
+        "path": "D:\\RAGScope_Runtime\\models\\generation\\qwen3.5_4b-q4_K_M.json",
+        "bytes": 3191,
+        "sha256": "8f89c0e8d9be36b171bde5833e43c8534d5eb5c6e86c640baa710e6a75f5f4f8"
+      },
+      "model": "qwen3.5:4b-q4_K_M",
+      "quantization": "Q4_K_M",
+      "weight_assets": [
+        {
+          "path": "D:\\RAGScope_Runtime\\models\\ollama\\blobs\\sha256-a9d0a3e1d8c91732a3812becd31f8d4a8ff57414903f226306069f0437e2ac50",
+          "bytes": 2648593216,
+          "sha256": "a9d0a3e1d8c91732a3812becd31f8d4a8ff57414903f226306069f0437e2ac50",
+          "exists": true,
+          "actual_bytes": 2648593216
+        }
+      ]
+    },
+    {
+      "receipt": {
+        "path": "D:\\RAGScope_Runtime\\models\\generation\\qwen3.5_9b-q4_K_M.json",
+        "bytes": 3191,
+        "sha256": "34e407a131afdd6b918c25eb689a2fa447fd9576284be2d472c1e59026d66a99"
+      },
+      "model": "qwen3.5:9b-q4_K_M",
+      "quantization": "Q4_K_M",
+      "weight_assets": [
+        {
+          "path": "D:\\RAGScope_Runtime\\models\\ollama\\blobs\\sha256-02d45dc1cf451ba2475ac33b301c2dd8f985abe4c182ce04a1f2f5bf0260278d",
+          "bytes": 5629109120,
+          "sha256": "02d45dc1cf451ba2475ac33b301c2dd8f985abe4c182ce04a1f2f5bf0260278d",
+          "exists": true,
+          "actual_bytes": 5629109120
+        }
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "path": "D:\\RAGScope_Runtime\\runs\\20261014_v2_lora\\prepared_2b_1024_v2\\train_manifest.json",
+      "bytes": 2124,
+      "sha256": "d05b860e58917709ad0869c0b414f8488baebdef1d449b74031ce24cef8e2368"
+    },
+    {
+      "path": "D:\\RAGScope_Runtime\\runs\\20261014_v2_lora\\prepared_2b_1024_v2\\dev_manifest.json",
+      "bytes": 2116,
+      "sha256": "bf287e62d441697823868f43c14f8fdf4275d6b92bd4f654bfcdac6f3f1c1980"
+    },
+    {
+      "path": "D:\\RAGScope_Runtime\\runs\\20261014_v2_lora\\prepared_2b_1024_v2\\MASK_AND_SPLIT_AUDIT.json",
+      "bytes": 1022,
+      "sha256": "0d1c7815dd2258e437af444ae43cff34de2a9c8822fdb2fea07e0e6c39048319"
+    },
+    {
+      "path": "D:\\RAGScope_Runtime\\runs\\20261014_v2_lora\\train_2b_1024_seed42\\steps.jsonl",
+      "bytes": 98874,
+      "sha256": "6eb8227af30206a94c2eed25cc606d192be0b45cd45c49ff0d8cea31cc25c87c"
+    },
+    {
+      "path": "D:\\RAGScope_Runtime\\runs\\20261014_v2_lora\\train_2b_1024_seed42\\steps.config.json",
+      "bytes": 49878,
+      "sha256": "e77817d6f35cc0eeb5dd25695d58e10e3d69506cf9835c589afc014a154bf38e"
+    },
+    {
+      "path": "D:\\RAGScope_Runtime\\runs\\20261014_v2_lora\\train_2b_1024_seed42\\model_observed.json",
+      "bytes": 27891,
+      "sha256": "7658fca73b4ee24fef4666f96ebc0efce745716dc2763908b204207f8ce56cef"
+    },
+    {
+      "path": "D:\\RAGScope_Runtime\\runs\\20261014_v2_lora\\train_2b_1024_seed42\\TRAINING_AUDIT.json",
+      "bytes": 3515,
+      "sha256": "992dafabdab41a4c4c443a1e172c09ddff15024f2e7e9d717d27395021e60ae3"
+    },
+    {
+      "path": "D:\\RAGScope_Runtime\\runs\\20261014_v2_lora\\train_2b_1024_seed42\\training_result.json",
+      "bytes": 4731,
+      "sha256": "a154622c7c23d656545050f16b92697481f3c50c13a5312fe101127614273aea"
+    },
+    {
+      "path": "D:\\RAGScope_Runtime\\runs\\20261014_v2_lora\\train_2b_1024_seed42\\resume_from_step_000005.json",
+      "bytes": 1630,
+      "sha256": "df6723741270b63e23794e9bdab23cef0042adbafbeb5d586a13181e64b9e268"
+    },
+    {
+      "path": "D:\\RAGScope_Runtime\\runs\\20261014_v2_lora\\train_2b_1024_seed42\\resume_from_step_000010.json",
+      "bytes": 1631,
+      "sha256": "02c8c27e68c934310a287354054b12bc38be4e7cc56027b8b0ce869a3b677b06"
+    },
+    {
+      "path": "D:\\RAGScope_Runtime\\runs\\20261014_v2_lora\\train_2b_1024_seed42\\checkpoints\\step-000122\\manifest.json",
+      "bytes": 1152,
+      "sha256": "509feca3e68f4ac12c1318c289102ae94809d3bb5e62f86506362187f140faba"
+    },
+    {
+      "path": "D:\\RAGScope_Runtime\\runs\\20261014_v2_lora\\train_2b_1024_seed42\\checkpoints\\step-000122\\adapter\\adapter_config.json",
+      "bytes": 1326,
+      "sha256": "06048ba86c8c9e51f7f2da17721f99fe93ac2ea074b96d62a8a148a3ec9aeeab"
+    },
+    {
+      "path": "D:\\RAGScope_Runtime\\runs\\20261014_v2_lora\\train_2b_1024_seed42\\checkpoints\\step-000122\\adapter\\adapter_model.safetensors",
+      "bytes": 14798456,
+      "sha256": "a532dc22942d84e4dceabacb64b936c191b37ebdfa9fda092f3f87464d0bbae4"
+    },
+    {
+      "path": "D:\\RAGScope_Runtime\\runs\\20261014_v2_lora\\train_2b_1024_seed42\\paired_test100\\SUMMARY.json",
+      "bytes": 2763,
+      "sha256": "c47d9fb6bcdf975c4f0219b33bc4b47bfa52dcd78de6dab9bf837c2a74df3de9"
+    },
+    {
+      "path": "D:\\RAGScope_Runtime\\runs\\20261014_v2_routing\\LABEL_PROVENANCE.json",
+      "bytes": 1149,
+      "sha256": "765e3a880b05742f9cf9e5b1c36df8bf97972af4f4952b7a5675554faa9965a5"
+    },
+    {
+      "path": "D:\\RAGScope_Runtime\\runs\\20261014_v2_routing\\train_diagnostics\\ACCEPTANCE.json",
+      "bytes": 4291,
+      "sha256": "7c56366f6dd32202118e0581f18a754e060c44c12fa8bfb4ab891c92b2e8783e"
+    },
+    {
+      "path": "D:\\RAGScope_Runtime\\runs\\20261014_v2_routing\\online\\SUMMARY.json",
+      "bytes": 1946,
+      "sha256": "d3fabde7044ecaf04c38dffbb9c763161c3d473ba00f92c0084de2c7df653378"
+    },
+    {
+      "path": "D:\\RAGScope_Runtime\\runs\\v3_20261015_014506\\S5_MERGE_LOGIT_GATE.json",
+      "bytes": 2747,
+      "sha256": "57c19053a95898c45c23a82406e91a89cc7e18eea09fa4fdc878735a237405d6"
+    },
+    {
+      "path": "D:\\RAGScope_Runtime\\runs\\v3_20261015_014506\\S5_RUNTIME_INDEPENDENT_ANALYSIS.json",
+      "bytes": 1830,
+      "sha256": "9c94a15c3a2f6686efccf5cec42736b5738eda6a1c08648ba23ae09840f1dde3"
+    },
+    {
+      "path": "D:\\RAGScope_Runtime\\runs\\v3_20261015_014506\\S5_SUPERVISION_DISTRIBUTION_DIAGNOSIS.json",
+      "bytes": 21273,
+      "sha256": "d4ec156b8b0027f768b0dabcbd41eba4a7cc7826d3f9668464052b8be0033448"
+    },
+    {
+      "path": "D:\\RAGScope_Runtime\\runs\\v3_20261015_014506\\S4_WORKFLOW_UTILITY_ANALYSIS.json",
+      "bytes": 2527,
+      "sha256": "69fcbf41df9fb32db3d328575b3fe9f5cedde5f67863fb5379b396b003056887"
+    },
+    {
+      "path": "configs\\v3\\dependencies.lock.json",
+      "bytes": 4656,
+      "sha256": "667621d23d8ba7e6a3a0c18a4180d0e1aa73df6c6ec9c6114fbc975aff7f5ac0"
+    }
+  ]
+}

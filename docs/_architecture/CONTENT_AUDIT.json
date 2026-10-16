@@ -1,0 +1,1065 @@
+{
+  "status": "COMPLETE_WITH_DECLARED_BROWSER_PREVIEW_LIMITATION",
+  "documentation_complete": true,
+  "requirements_passed": 19,
+  "checks": [
+    {
+      "requirement": "Current repository identity and protected functional source",
+      "passed": true,
+      "evidence": {
+        "head": "493dbdad37cd7f372c3121b8332a055d6faa8f7a",
+        "python_files_unchanged": 405,
+        "tracked_diff": ""
+      }
+    },
+    {
+      "requirement": "All required chapters 0 through 18",
+      "passed": true,
+      "evidence": [
+        [
+          "0",
+          "阅读说明与证据分级"
+        ],
+        [
+          "1",
+          "RAGScope 是什么"
+        ],
+        [
+          "2",
+          "V1—V3 演进历程"
+        ],
+        [
+          "3",
+          "完整术语与技术原理"
+        ],
+        [
+          "4",
+          "系统架构总览"
+        ],
+        [
+          "5",
+          "数据来源与数据处理"
+        ],
+        [
+          "6",
+          "Chunking 模块"
+        ],
+        [
+          "7",
+          "Embedding 与索引模块"
+        ],
+        [
+          "8",
+          "Retrieval 检索模块"
+        ],
+        [
+          "9",
+          "Generation 生成模块"
+        ],
+        [
+          "10",
+          "Routing 与任务工作流"
+        ],
+        [
+          "11",
+          "微调与模型训练"
+        ],
+        [
+          "12",
+          "评价系统与实验设计"
+        ],
+        [
+          "13",
+          "工程与运行环境"
+        ],
+        [
+          "14",
+          "当前真实运行路径"
+        ],
+        [
+          "15",
+          "关键技术决策"
+        ],
+        [
+          "16",
+          "已知问题、技术债和局限"
+        ],
+        [
+          "17",
+          "面试问题与个人学习清单"
+        ],
+        [
+          "18",
+          "附录与个人速查"
+        ]
+      ]
+    },
+    {
+      "requirement": "Appendices A through H",
+      "passed": true,
+      "evidence": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "G",
+        "H"
+      ]
+    },
+    {
+      "requirement": "At least 30 complete interview questions",
+      "passed": true,
+      "evidence": {
+        "questions": 36,
+        "required_fields": [
+          "面试官问法",
+          "通俗答案",
+          "技术答案要点",
+          "项目真实例子",
+          "源码位置",
+          "还需补充知识",
+          "现有证据是否足够"
+        ]
+      }
+    },
+    {
+      "requirement": "All explicitly requested technical terms explained",
+      "passed": true,
+      "evidence": {
+        "terms": 47,
+        "missing": []
+      }
+    },
+    {
+      "requirement": "Five evidence levels",
+      "passed": true,
+      "evidence": "Chapter0 definitions, per-claim references, and unknown limitations"
+    },
+    {
+      "requirement": "Actual local file and line citations",
+      "passed": true,
+      "evidence": {
+        "occurrences": 194,
+        "unique": 103
+      }
+    },
+    {
+      "requirement": "Raw experimental evidence still matches the numeric audit",
+      "passed": true,
+      "evidence": {
+        "files_rehashed": 105,
+        "source": "experiment_audit.json; no model rerun"
+      }
+    },
+    {
+      "requirement": "Final score table values and their denominators",
+      "passed": true,
+      "evidence": "Four groups independently recomputed from440 score records; every metric/table column numerically bound at six-decimal precision, including zero displayed as0"
+    },
+    {
+      "requirement": "V2 main experiment scope and retained failures",
+      "passed": true,
+      "evidence": {
+        "n": 5520,
+        "groups": 39,
+        "failures": 32
+      }
+    },
+    {
+      "requirement": "Global and online current-vs-baseline scope",
+      "passed": true,
+      "evidence": "Global1200; online30+30; B0ctx4096 and FINALctx8192 explicitly distinguished"
+    },
+    {
+      "requirement": "Documented real training and routing proof",
+      "passed": true,
+      "evidence": "Training source arrays/mask/splits and122 steps; route replays vs actual requests; seven env metadata inventories"
+    },
+    {
+      "requirement": "Shared Markdown-to-HTML body and table/code equality",
+      "passed": true,
+      "evidence": "CONSISTENCY_CHECK.json full deterministic transform, not a visual browser assertion"
+    },
+    {
+      "requirement": "Six actual inline and raster-rendered SVG diagrams",
+      "passed": true,
+      "evidence": [
+        {
+          "svg": "01-global.svg",
+          "sha256": "52a634d3601a585f8805be2df7355ad46b559629b94554f3c92e70a58052e124",
+          "png": "D:\\MCS_26S1课程资料\\个人项目\\RAGScope\\docs\\_architecture\\previews\\01-global.png",
+          "png_sha256": "c63852c4bd1cb4d9ae714db2f102791a3ea8ff7ab2fcfc5ce9116f6a9d54d11d"
+        },
+        {
+          "svg": "02-offline.svg",
+          "sha256": "a3c829b9684726f5e5b3657d7f351e5fcdc581c5906df845382487123b73245a",
+          "png": "D:\\MCS_26S1课程资料\\个人项目\\RAGScope\\docs\\_architecture\\previews\\02-offline.png",
+          "png_sha256": "93a7fa7e92d6c3c1bd515f9f513a01ef64b18ecac9da37d8228009b56f30ca08"
+        },
+        {
+          "svg": "03-online.svg",
+          "sha256": "8efd4c94c64bd300c9b72c9becd1f8c4428d38d96051b3a63033b83e23d7623d",
+          "png": "D:\\MCS_26S1课程资料\\个人项目\\RAGScope\\docs\\_architecture\\previews\\03-online.png",
+          "png_sha256": "560c52dadc2665c1d562b3cd53e7de760491d04c03eb3c2bd6ab73067902063e"
+        },
+        {
+          "svg": "04-retrieval.svg",
+          "sha256": "f889fce20f9c3d2c3aafe41de9b1efdfd6f7c48c0c321fdcc268727dbf42cb5f",
+          "png": "D:\\MCS_26S1课程资料\\个人项目\\RAGScope\\docs\\_architecture\\previews\\04-retrieval.png",
+          "png_sha256": "0894ed989271056628a66b753e2e794eec7c95a4525ba191005909ffe7235993"
+        },
+        {
+          "svg": "05-evolution.svg",
+          "sha256": "e6fce3fdcbe683a644a0c041c4b59a3798eb0eb68c49b358e47c9ba46cfea59f",
+          "png": "D:\\MCS_26S1课程资料\\个人项目\\RAGScope\\docs\\_architecture\\previews\\05-evolution.png",
+          "png_sha256": "77eacb273b1fe12086dc080721fc4e2dc92503c0bba31188e51f529144dd1133"
+        },
+        {
+          "svg": "06-evaluation.svg",
+          "sha256": "d014555720118be5d5256fe955dc4891a007e16886e7ea770fd861104ebe0da2",
+          "png": "D:\\MCS_26S1课程资料\\个人项目\\RAGScope\\docs\\_architecture\\previews\\06-evaluation.png",
+          "png_sha256": "e2f7240d24938647c6d931066f1186698cfd45b452a715e29d4f4c7aaa4f459d"
+        }
+      ]
+    },
+    {
+      "requirement": "Offline HTML, navigation, Chinese, responsive and print rules",
+      "passed": true,
+      "evidence": {
+        "toc_targets": 162,
+        "verification": "Structure, CSS and SVG renders; full browser layout remains unverified"
+      }
+    },
+    {
+      "requirement": "No unresolved author placeholders",
+      "passed": true,
+      "evidence": "Required unknown facts are intentional prose, not author placeholders"
+    },
+    {
+      "requirement": "QuantMind actual provided references",
+      "passed": true,
+      "evidence": "MD1825lines read in consecutive chunks; entire HTML/CSS parsed; REFERENCE_FILES and REFERENCE_STYLE_AUDIT bind hashes"
+    },
+    {
+      "requirement": "Current path, defaults, commands, choices and known limits",
+      "passed": true,
+      "evidence": "Root inspected code invocation chain; historical/default/experimental paths separated; commands cross-checked with LOCAL_RUN_V3 and scripts"
+    },
+    {
+      "requirement": "No own document-preview process remains",
+      "passed": true,
+      "evidence": "psutil exact workspace-profile matching; no other processes stopped"
+    }
+  ],
+  "source_references": [
+    {
+      "reference": "configs/v3/default.json",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "docs/_architecture/repository_snapshot.json",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "docs/_architecture/audit_repository.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/full_retrieval.py:11",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/full_workbench.py:34",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/generation/context.py:97",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ui/full_workbench.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "docs/_architecture/experiment_audit.json",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "configs/v3/default.json",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/full_workbench.py:50",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/schema.py:38",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/ingestion/chunkers.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/compressed_index.py:12",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/retrieval/reranker.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/evaluation/retrieval_metrics.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "scripts/v3/serve_full_workbench.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/schema.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/ingestion/qasper.py:38",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/ingestion/cleaner.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "scripts/v3/prepare_retrieval_sources.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/ingestion/chunkers.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/indexing/embedding.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/indexing/local_embedding.py:12",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/hierarchical_runtime.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/indexing/array_index.py:14",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "scripts/v3/complete_dense.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "scripts/v3/serve_full_workbench.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "scripts/v3/finish_experiments.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/generation/llm_client.py:113",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/routing/core.py:12",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/routing/core.py:118",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/routing/core.py:180",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/routing/core.py:68",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/routing/learned.py:32",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/routing/lstm.py:24",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/routing/laya_adapter.py:39",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "configs/v2/routing.json",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/routing/core.py:28",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "configs/v3/default.json",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/training/prepare.py:15",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/training/data.py:39",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/training/run.py:117",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "configs/v2/lora.json",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/training/run.py:63",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/training/run.py:215",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/training/checkpoint.py:26",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "reports/v2/TRAINING_REPORT.md:7",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/training/evaluate.py:89",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "configs/v3/default.json",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/practical_quality.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "docs/execution/v3/EXECUTIVE_SUMMARY_ZH.md",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "configs/v3/dependencies.lock.json",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "docs/execution/TRAIN_ENV_AUDIT.md",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "scripts/runtime_env.ps1:1",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ui/full_workbench.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "scripts/v3/serve_full_workbench.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/full_workbench.py:15",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "configs/v3/default.json",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/full_retrieval.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/full_workbench.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ui/full_workbench.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "configs/v3/default.json",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ui/full_workbench.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "scripts/v3/serve_full_workbench.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/full_workbench.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/generation/llm_client.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/evaluation/retrieval_metrics.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/evaluation/generation_metrics.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/practical_quality.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/ingestion/chunkers.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/ingestion/chunkers.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/ingestion/chunkers.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/generation/context.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/indexing/local_embedding.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/finish_runtime.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/generation/llm_client.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "configs/v2/retrieval.json",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/indexing/local_embedding.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/practical_quality.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/full_retrieval.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/finish_runtime.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/indexing/array_index.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "scripts/v3/complete_dense.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/online_runtime.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/compressed_index.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "configs/v2/retrieval.json",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/retrieval/bm25_retriever.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/full_retrieval.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/retrieval/hybrid_retriever.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/deployment.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/full_retrieval.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/hierarchical_runtime.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/retrieval/reranker.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/retrieval/verified_reranker.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/full_retrieval.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/retrieval/verified_reranker.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/generation/context.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/generation/context.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/evaluation/evidence.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/practical_quality.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/ingestion/chunkers.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/generation/context.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/finish_runtime.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/deployment.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/full_workbench.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/full_workbench.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/generation/pipeline.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/practical_quality.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/evaluation/generation_metrics.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/routing/core.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/practical_quality.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/training/run.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/training/evaluate.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/training/run.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/local_runtime.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/finish_runtime.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/deployment.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "scripts/v3/finish_online.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "scripts/runtime_env.ps1",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "configs/v3/dependencies.lock.json",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "scripts/v3/serve_full_workbench.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "configs/v2/lora.json",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/training/run.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/training/data.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/training/data.py:12",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/training/checkpoint.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/training/run.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/training/evaluate.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "scripts/v3/run_lora_runtime_diagnostics.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/routing/core.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "configs/v2/routing.json",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/routing/learned.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/routing/lstm.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/routing/laya_adapter.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/training/prepare.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/training/evaluate.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/routing/core.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/evaluation/generation_metrics.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/practical_quality.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "reports/v3/METRIC_SPEC.md",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/experiments/ledger.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "scripts/v3/finalize_delivery.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "scripts/v3/finish_evaluation.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "scripts/v3/finish_online.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/online_runtime.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "docs/architecture.md",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "docs/architecture.html",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/schema.py:38",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/ingestion/qasper.py:38",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/ingestion/cleaner.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/ingestion/chunkers.py:17",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/ingestion/chunkers.py:175",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/ingestion/chunkers.py:208",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/ingestion/chunkers.py:273",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/ingestion/chunkers.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/indexing/embedding.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/indexing/local_embedding.py:15",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/indexing/array_index.py:14",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/indexing/dense_index.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/indexing/identity.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/compressed_index.py:12",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/hierarchical_runtime.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/full_retrieval.py:11",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/finish_runtime.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/deployment.py:10",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/core_packing.py:6",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/generation/context.py:97",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/generation/prompts.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/generation/llm_client.py:41",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/generation/pipeline.py:165",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/full_workbench.py:50",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "scripts/v3/serve_full_workbench.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ui/full_workbench.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/generation/resources.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/evaluation/generation_metrics.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/evaluation/evidence.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/practical_quality.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/v3/nli.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/routing/core.py:118",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/routing/learned.py:32",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/routing/lstm.py:24",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/routing/laya_adapter.py:39",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/training/data.py:39",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/training/run.py:63",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/training/checkpoint.py:26",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/training/evaluate.py:89",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/experiments/ledger.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "ragscope/experiments/runtime.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "scripts/v3/complete_dense.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "scripts/v3/finish_experiments.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "scripts/v3/finish_evaluation.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "scripts/v3/finish_online.py",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "configs/v3/dependencies.lock.json",
+      "exists_and_line_valid": true
+    },
+    {
+      "reference": "docs/_architecture/training_routing_evidence.json",
+      "exists_and_line_valid": true
+    }
+  ],
+  "markdown": {
+    "path": "D:\\MCS_26S1课程资料\\个人项目\\RAGScope\\docs\\architecture.md",
+    "bytes": 273273,
+    "sha256": "18e1acef4d02c50815c1674d14cb06d6537511ef8111f7af63df026035fe7df3",
+    "lines": 2639,
+    "unicode_characters": 174509,
+    "cjk_characters": 41263
+  },
+  "html": {
+    "path": "D:\\MCS_26S1课程资料\\个人项目\\RAGScope\\docs\\architecture.html",
+    "bytes": 356432,
+    "sha256": "01ca79e9b1ef0b4506895cbd9b5cb8b5380284adbf1c83f2a2cfc38d770fdbb1"
+  },
+  "main_chapters": 19,
+  "interview_questions": 36,
+  "inline_svg": 6,
+  "tables": 38,
+  "code_blocks": 10,
+  "head": "493dbdad37cd7f372c3121b8332a055d6faa8f7a",
+  "functional_code_changed": false,
+  "model_or_training_or_index_rerun": false,
+  "browser_visual_verified": false,
+  "browser_limitation": "Chrome unavailable; Edge crashed; IAB file protocol rejected. No workaround after policy rejection.",
+  "remaining_unknown_facts": [
+    "Independent human answer correctness",
+    "Pretraining contamination",
+    "Generalization beyond exposed tasks",
+    "Unique causal explanation of LoRA/rerank/scale effects",
+    "Full browser desktop/mobile layout"
+  ],
+  "created_unix": 1792045302.7739208
+}

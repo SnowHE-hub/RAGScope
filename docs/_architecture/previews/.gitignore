@@ -1,0 +1,2 @@
+# Dedicated Edge profiles contain ephemeral browser state, not document assets.
+edge-*/profile/

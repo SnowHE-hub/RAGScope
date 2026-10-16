@@ -1,0 +1,45 @@
+{
+  "status": "ATTEMPTED_NATIVE_BROWSER_CRASH_NO_SCREENSHOTS",
+  "scope": "Offline architecture.html document only; not the RAG workbench",
+  "attempted_browser": "C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
+  "version": "155.0.4283.45",
+  "command_script": "docs/_architecture/render_document.ps1 -FirstOnly",
+  "command_receipt": "docs/_architecture/previews/edge-816e714db881-20261015-170750/RENDER_COMMANDS.json",
+  "stderr": "docs/_architecture/previews/edge-816e714db881-20261015-170750/desktop-top.stderr.txt",
+  "html_sha256_at_attempt": "816e714db88120fad8ae03b7e4bf1fafaf2b3b0bc266a7338939f17e688e4498",
+  "owned_direct_pid": 18280,
+  "owned_direct_process_terminal": true,
+  "exit_code": -1073741819,
+  "native_status_hex": "0xC0000005",
+  "requested_desktop": "1440x1000",
+  "screenshot_produced": false,
+  "mobile_or_anchor_attempts": 0,
+  "automatic_approval_rejection": false,
+  "stderr_observations": [
+    "Edge LLM catalog update failed: 5",
+    "USB device enumeration access denied (0x5)"
+  ],
+  "root_cause": "UNKNOWN; stderr observations do not establish the cause of the native crash",
+  "subprocess_cim_check": "Unable to access CIM resources from client; cannot establish complete descendant enumeration",
+  "other_processes_stopped": false,
+  "download_or_install": false,
+  "gpu_disabled_on_command_line": true,
+  "profile_scope": "Dedicated new directory below docs/_architecture/previews",
+  "workbench_8502_accessed": false,
+  "fallback_evidence": [
+    "CONSISTENCY_CHECK.json: deterministic full Markdown/HTML structure and content checks",
+    "RENDERER_QA.json: large-document fidelity and SVG font/viewBox checks",
+    "previews/01-global.png through 06-evaluation.png: actual sharp SVG renders, visually inspected"
+  ],
+  "claim_boundary": "No complete browser screenshot/layout verification is claimed. Static checks and actual SVG rendering are separate completed evidence.",
+  "iab_attempt": {
+    "target": "file:///D:/MCS_26S1课程资料/个人项目/RAGScope/docs/architecture.html",
+    "result": "BLOCKED_BY_URL_PROTOCOL_POLICY",
+    "allowed_protocols": [
+      "http:",
+      "https:"
+    ],
+    "workaround_attempted": false,
+    "alternative": "Static deterministic MD/HTML comparison plus six SVG CPU raster renders; no full HTML visual-pass claim"
+  }
+}

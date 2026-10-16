@@ -1,0 +1,102 @@
+{
+  "status": "PASS",
+  "markdown_sha256": "4a3e9a929d844ddb10ce900816d489f25a4858aa4d37c7237b80b7646a75016d",
+  "html_sha256": "aac59111b901e73b91542603c222c6d142612c6e86302b13464383804b86acbb",
+  "rendered_body_sha256": "535980477453c5b59e4ece8e54c823eecfd6beb03e8bd4498bcb5e2bd37adcc8",
+  "source_characters": 139928,
+  "headings": 20,
+  "main_sections": 19,
+  "tables": 1,
+  "code_blocks": 1,
+  "inline_svg": 6,
+  "toc_targets": 19,
+  "broken_anchors": [],
+  "code_blocks_exact": true,
+  "table_cells_exact": true,
+  "svg_xml_valid": true,
+  "html_deterministic_from_markdown": true,
+  "offline_external_dependencies": 0,
+  "source_bytes": 219512,
+  "html_bytes": 244177,
+  "render_and_full_consistency_seconds": 0.2422489000018686,
+  "large_document_paragraphs": 266,
+  "performance_scope": "CPU-only synthetic document; not a RAG/model benchmark",
+  "extended_fidelity_cases": [
+    "inline path:line",
+    "Windows backslashes and spaces",
+    "code < > & and quotes",
+    "escaped/code/multiple-backtick table pipes",
+    "Chinese headings",
+    "evidence tag followed by actual link"
+  ],
+  "converter_self_test": {
+    "self_test": "PASS",
+    "coverage": [
+      "Chinese duplicate anchors",
+      "fenced code exact",
+      "escaped/code pipe tables",
+      "nested lists",
+      "blockquote",
+      "inline SVG",
+      "tamper detection"
+    ]
+  },
+  "svg_boundary_checks": [
+    {
+      "file": "01-global.svg",
+      "sha256": "52a634d3601a585f8805be2df7355ad46b559629b94554f3c92e70a58052e124",
+      "viewBox": "0 0 1200 850",
+      "text_nodes": 46,
+      "font": "C:\\Windows\\Fonts\\msyh.ttc",
+      "text_outside_viewBox": [],
+      "actual_render": "D:\\MCS_26S1课程资料\\个人项目\\RAGScope\\docs\\_architecture\\previews\\01-global.png"
+    },
+    {
+      "file": "02-offline.svg",
+      "sha256": "a3c829b9684726f5e5b3657d7f351e5fcdc581c5906df845382487123b73245a",
+      "viewBox": "0 0 1200 850",
+      "text_nodes": 34,
+      "font": "C:\\Windows\\Fonts\\msyh.ttc",
+      "text_outside_viewBox": [],
+      "actual_render": "D:\\MCS_26S1课程资料\\个人项目\\RAGScope\\docs\\_architecture\\previews\\02-offline.png"
+    },
+    {
+      "file": "03-online.svg",
+      "sha256": "8efd4c94c64bd300c9b72c9becd1f8c4428d38d96051b3a63033b83e23d7623d",
+      "viewBox": "0 0 1200 1100",
+      "text_nodes": 32,
+      "font": "C:\\Windows\\Fonts\\msyh.ttc",
+      "text_outside_viewBox": [],
+      "actual_render": "D:\\MCS_26S1课程资料\\个人项目\\RAGScope\\docs\\_architecture\\previews\\03-online.png"
+    },
+    {
+      "file": "04-retrieval.svg",
+      "sha256": "f889fce20f9c3d2c3aafe41de9b1efdfd6f7c48c0c321fdcc268727dbf42cb5f",
+      "viewBox": "0 0 1200 1010",
+      "text_nodes": 26,
+      "font": "C:\\Windows\\Fonts\\msyh.ttc",
+      "text_outside_viewBox": [],
+      "actual_render": "D:\\MCS_26S1课程资料\\个人项目\\RAGScope\\docs\\_architecture\\previews\\04-retrieval.png"
+    },
+    {
+      "file": "05-evolution.svg",
+      "sha256": "e6fce3fdcbe683a644a0c041c4b59a3798eb0eb68c49b358e47c9ba46cfea59f",
+      "viewBox": "0 0 1200 800",
+      "text_nodes": 33,
+      "font": "C:\\Windows\\Fonts\\msyh.ttc",
+      "text_outside_viewBox": [],
+      "actual_render": "D:\\MCS_26S1课程资料\\个人项目\\RAGScope\\docs\\_architecture\\previews\\05-evolution.png"
+    },
+    {
+      "file": "06-evaluation.svg",
+      "sha256": "d014555720118be5d5256fe955dc4891a007e16886e7ea770fd861104ebe0da2",
+      "viewBox": "0 0 1200 1000",
+      "text_nodes": 38,
+      "font": "C:\\Windows\\Fonts\\msyh.ttc",
+      "text_outside_viewBox": [],
+      "actual_render": "D:\\MCS_26S1课程资料\\个人项目\\RAGScope\\docs\\_architecture\\previews\\06-evaluation.png"
+    }
+  ],
+  "browser_started": false,
+  "gpu_started": false
+}

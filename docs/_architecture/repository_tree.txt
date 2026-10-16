@@ -1,0 +1,607 @@
+RAGScope/
+├── .claude/
+│   └── settings.local.json
+├── .env.example
+├── .github/
+│   └── workflows/
+│       └── offline-tests.yml
+├── .gitignore
+├── .streamlit/
+│   └── config.toml
+├── AGENTS.md
+├── LOCAL_RUN_V2.md
+├── LOCAL_RUN_V3.md
+├── README.md
+├── configs/
+│   ├── config.yaml
+│   ├── v2/
+│   │   ├── analysis.json
+│   │   ├── assets_cpu.json
+│   │   ├── chart_contracts.json
+│   │   ├── chunking.json
+│   │   ├── data.json
+│   │   ├── lora.json
+│   │   ├── retrieval.json
+│   │   ├── retrieval_auxiliary.json
+│   │   ├── retrieval_statistics.json
+│   │   ├── routing.json
+│   │   ├── squad_e4.json
+│   │   ├── tasks.json
+│   │   └── ui.json
+│   └── v3/
+│       ├── campaign.yaml
+│       ├── default.json
+│       └── dependencies.lock.json
+├── docs/
+│   ├── execution/
+│   │   ├── ACCEPTANCE_GAP_REVIEW.md
+│   │   ├── CHUNKING_AUDIT.md
+│   │   ├── CODE_AUDIT.md
+│   │   ├── CONTEXT_STRESS.md
+│   │   ├── CONTEXT_STRESS_REPORT.md
+│   │   ├── DATA_REPORT.md
+│   │   ├── DATA_RETRIEVAL_CHECKPOINT.md
+│   │   ├── DECISIONS.md
+│   │   ├── E0_RECONSTRUCTION.md
+│   │   ├── E2_CORE_SHARD.md
+│   │   ├── E3_SHARD.md
+│   │   ├── FINAL_DELIVERY.md
+│   │   ├── GENERATION_AUDIT.md
+│   │   ├── GENERATION_HANDOVER.md
+│   │   ├── GENERATION_RESUME_20261014.md
+│   │   ├── INDEXING_AUDIT.md
+│   │   ├── LAYA_LOAD_MEMORY_AUDIT.md
+│   │   ├── LAYA_RAW_RUN.md
+│   │   ├── LAYA_REAL_RUN.md
+│   │   ├── LOCAL_REPORTS.md
+│   │   ├── MASTER_PLAN.md
+│   │   ├── MODELS_ENV_ADDITIONS.md
+│   │   ├── ONLINE_EMBEDDING_WINDOW.md
+│   │   ├── ONLINE_RAM_GUARD.md
+│   │   ├── ONLINE_ROUTING.md
+│   │   ├── PILOT_REPORT.md
+│   │   ├── PRODUCTION_ACCEPTANCE.md
+│   │   ├── R3_MATERIALIZATION.md
+│   │   ├── RECOVERY.md
+│   │   ├── RETRIEVAL_REPORT.md
+│   │   ├── ROOT_CHECKPOINT.md
+│   │   ├── ROUTING_REAL_RESULTS.md
+│   │   ├── ROUTING_REPORT.md
+│   │   ├── ROUTING_TRAIN_DIAGNOSTIC.md
+│   │   ├── RUNNER_AUDIT.md
+│   │   ├── STATUS.md
+│   │   ├── SUPPORT_JUDGE.md
+│   │   ├── TRAINING_REPORT.md
+│   │   ├── TRAIN_ENV_AUDIT.md
+│   │   ├── UI_AUDIT.md
+│   │   ├── UI_CANDIDATE.md
+│   │   └── v3/
+│   │       ├── ACCEPTANCE_V3.json
+│   │       ├── BEFORE_AFTER_CASES.md
+│   │       ├── COMMANDS.md
+│   │       ├── DECISIONS.md
+│   │       ├── DIAGNOSIS_INPUT.md
+│   │       ├── EXECUTIVE_SUMMARY_ZH.md
+│   │       ├── EXPERIMENT_BUDGET.yaml
+│   │       ├── FINAL_RESOURCE_STATE.json
+│   │       ├── FINISH_STATUS.md
+│   │       ├── GENERATION_PROTOCOL_DIAGNOSIS.md
+│   │       ├── HYPOTHESES.jsonl
+│   │       ├── LOCAL_RUN_BEFORE_FINISH.md
+│   │       ├── LORA_DIAGNOSIS.md
+│   │       ├── MASTER_PLAN.md
+│   │       ├── QUALITY_SCORECARD.json
+│   │       ├── QUALITY_SCORECARD.md
+│   │       ├── RECOVERY.md
+│   │       ├── RETRIEVAL_FUNNEL.md
+│   │       ├── ROOT_CAUSE_VERDICTS.md
+│   │       ├── ROUTING_ABLATION.md
+│   │       ├── S1_RESOURCE_AND_QA_AUDIT.md
+│   │       ├── SOURCES_V3.md
+│   │       ├── STATUS.json
+│   │       └── TASK_KEYPOINT_DIAGNOSIS.md
+│   └── learning/
+│       ├── 00_project_map.md
+│       ├── 01_cleaning_chunking.md
+│       ├── 02_evidence_and_metrics.md
+│       ├── 03_retrieval_generation.md
+│       ├── 04_model_size_and_memory.md
+│       ├── 05_routing_experiments.md
+│       ├── 06_reading_the_results.md
+│       ├── 06_v3_diagnosis.md
+│       └── CHANGELOG_FOR_LEARNING.md
+├── notebooks/
+│   └── .gitkeep
+├── pytest.ini
+├── ragscope/
+│   ├── __init__.py
+│   ├── evaluation/
+│   │   ├── __init__.py
+│   │   ├── benchmark.py
+│   │   ├── evidence.py
+│   │   ├── generation_metrics.py
+│   │   ├── retrieval_metrics.py
+│   │   └── v2.py
+│   ├── experiments/
+│   │   ├── __init__.py
+│   │   ├── analysis_report.py
+│   │   ├── assets.py
+│   │   ├── aux_preencode.py
+│   │   ├── context_stress.py
+│   │   ├── error_cases.py
+│   │   ├── generation_campaign.py
+│   │   ├── ledger.py
+│   │   ├── legacy_reconstruction.py
+│   │   ├── legacy_statistics.py
+│   │   ├── production_acceptance.py
+│   │   ├── rerank_campaign.py
+│   │   ├── rerank_gpu.py
+│   │   ├── rerank_sources.py
+│   │   ├── rerank_validation.py
+│   │   ├── retrieval_campaign.py
+│   │   ├── run.py
+│   │   ├── runtime.py
+│   │   ├── simple_scope.py
+│   │   ├── status.py
+│   │   ├── support_judge.py
+│   │   ├── task_catalog.py
+│   │   └── validate.py
+│   ├── generation/
+│   │   ├── __init__.py
+│   │   ├── cache.py
+│   │   ├── context.py
+│   │   ├── llm_client.py
+│   │   ├── pipeline.py
+│   │   ├── prompts.py
+│   │   ├── resources.py
+│   │   └── token_budget.py
+│   ├── indexing/
+│   │   ├── __init__.py
+│   │   ├── array_index.py
+│   │   ├── dense_index.py
+│   │   ├── embedding.py
+│   │   ├── identity.py
+│   │   ├── local_embedding.py
+│   │   ├── scoped_index.py
+│   │   ├── sparse_index.py
+│   │   └── stopwords_en.txt
+│   ├── ingestion/
+│   │   ├── __init__.py
+│   │   ├── chunkers.py
+│   │   ├── cleaner.py
+│   │   ├── loaders.py
+│   │   ├── qasper.py
+│   │   ├── squad_v2.py
+│   │   └── technical.py
+│   ├── observability/
+│   │   └── __init__.py
+│   ├── retrieval/
+│   │   ├── __init__.py
+│   │   ├── base.py
+│   │   ├── bm25_retriever.py
+│   │   ├── dense_retriever.py
+│   │   ├── hybrid_retriever.py
+│   │   ├── reranker.py
+│   │   └── verified_reranker.py
+│   ├── routing/
+│   │   ├── __init__.py
+│   │   ├── campaign.py
+│   │   ├── core.py
+│   │   ├── evaluate.py
+│   │   ├── laya_adapter.py
+│   │   ├── laya_campaign.py
+│   │   ├── laya_report.py
+│   │   ├── laya_supervision.py
+│   │   ├── laya_validation.py
+│   │   ├── learned.py
+│   │   ├── lstm.py
+│   │   ├── online_campaign.py
+│   │   ├── online_retrieval.py
+│   │   └── train.py
+│   ├── schema.py
+│   ├── training/
+│   │   ├── __init__.py
+│   │   ├── checkpoint.py
+│   │   ├── data.py
+│   │   ├── evaluate.py
+│   │   ├── prepare.py
+│   │   └── run.py
+│   └── v3/
+│       ├── __init__.py
+│       ├── atomization.py
+│       ├── audit.py
+│       ├── auxiliary_public.py
+│       ├── budget.py
+│       ├── claim_metrics.py
+│       ├── compressed_index.py
+│       ├── core_packing.py
+│       ├── deployment.py
+│       ├── embedding_service_guard.py
+│       ├── finish_runtime.py
+│       ├── full_retrieval.py
+│       ├── full_workbench.py
+│       ├── generation_protocols.py
+│       ├── gpu.py
+│       ├── hierarchical_retrieval.py
+│       ├── hierarchical_runtime.py
+│       ├── judge_protocol.py
+│       ├── local_runtime.py
+│       ├── nli.py
+│       ├── online_runtime.py
+│       ├── oracle_padding.py
+│       ├── practical_quality.py
+│       ├── private_embeddings.py
+│       ├── protocol_diagnostics.py
+│       ├── quote_atoms.py
+│       ├── records.py
+│       ├── rerank_budget.py
+│       ├── resident_claim_judge.py
+│       ├── retrieval_diagnostics.py
+│       ├── scoped_retrieval.py
+│       ├── semantic_inputs.py
+│       ├── splits.py
+│       ├── task_references.py
+│       ├── task_taxonomy.py
+│       ├── task_workflows.py
+│       ├── workbench.py
+│       └── workflows.py
+├── reports/
+│   ├── .gitkeep
+│   ├── retrieval_results.csv
+│   ├── v2/
+│   │   ├── ACCEPTANCE.json
+│   │   ├── ANALYSIS.json
+│   │   ├── DELIVERY_MANIFEST.json
+│   │   ├── ERROR_CASES.manifest.json
+│   │   ├── ERROR_CASES.md
+│   │   ├── FINAL_REPORT.md
+│   │   ├── GENERATION_TABLES.md
+│   │   ├── RESOURCE_REPORT.md
+│   │   ├── RETRIEVAL_TABLES.md
+│   │   ├── ROUTING_REPORT.md
+│   │   ├── TRAINING_REPORT.md
+│   │   ├── figures/
+│   │   │   ├── context_stress_resource.data.json
+│   │   │   ├── context_stress_resource.png
+│   │   │   ├── context_stress_resource.svg
+│   │   │   ├── e0_reconstructed_retrieval.png
+│   │   │   ├── e1_dev_chunk_counts.png
+│   │   │   ├── e1_dev_evidence_matrix.png
+│   │   │   ├── e1_dev_expansion_delta.png
+│   │   │   ├── evidence_answer.data.json
+│   │   │   ├── evidence_answer.png
+│   │   │   ├── evidence_answer.svg
+│   │   │   ├── lora_training_loss.png
+│   │   │   ├── main_quality.data.json
+│   │   │   ├── main_quality.png
+│   │   │   ├── main_quality.svg
+│   │   │   ├── quality_latency.data.json
+│   │   │   ├── quality_latency.png
+│   │   │   └── quality_latency.svg
+│   │   ├── resource_interim/
+│   │   │   ├── BUILD_RECEIPT.json
+│   │   │   ├── RESOURCE_DATA.json
+│   │   │   ├── RESOURCE_REPORT.md
+│   │   │   └── build_e3_resource_report.py
+│   │   └── retrieval_interim/
+│   │       ├── CHART_CONTRACT.json
+│   │       ├── DEV_RESULTS.md
+│   │       ├── FIGURE_MANIFEST.json
+│   │       ├── SVG_STRUCTURE_CHECK.json
+│   │       ├── VISUAL_QA.json
+│   │       ├── build_dev_figures.py
+│   │       ├── dev_chunk_counts.data.json
+│   │       ├── dev_chunk_counts.png
+│   │       ├── dev_chunk_counts.svg
+│   │       ├── dev_evidence_matrix.data.json
+│   │       ├── dev_evidence_matrix.png
+│   │       ├── dev_evidence_matrix.svg
+│   │       ├── dev_expansion_delta.data.json
+│   │       ├── dev_expansion_delta.png
+│   │       ├── dev_expansion_delta.svg
+│   │       └── summarize_expansion_pairs.py
+│   └── v3/
+│       ├── ERROR_ATTRIBUTION.md
+│       ├── FINISH_ACCEPTANCE.json
+│       ├── FINISH_REPORT_ZH.md
+│       └── METRIC_SPEC.md
+├── requirements-reports.in
+├── requirements-reports.lock
+├── requirements-v2.in
+├── requirements-v2.lock
+├── requirements.txt
+├── scripts/
+│   ├── .gitkeep
+│   ├── accept_generation_v2.py
+│   ├── analyze_error_cases_v2.py
+│   ├── analyze_generation_v2.py
+│   ├── apply_embedding_cpu_threads.py
+│   ├── audit_chunk_preflight_scope_v2.py
+│   ├── audit_embedding_indexes_v2.py
+│   ├── audit_environment.py
+│   ├── audit_final_report_v2.py
+│   ├── audit_generation_numbers_v2.py
+│   ├── audit_gpu_job.py
+│   ├── audit_lora_v2.py
+│   ├── audit_model_pilots.py
+│   ├── audit_retrieval_v2.py
+│   ├── audit_storage_v2.py
+│   ├── benchmark_embedding_batches.py
+│   ├── benchmark_embedding_cpu.py
+│   ├── bootstrap_v2.ps1
+│   ├── build_final_report_v2.py
+│   ├── build_indexes.py
+│   ├── build_local_reports_v2.py
+│   ├── build_ui_model_pins.py
+│   ├── configure_main_sources_v2.py
+│   ├── configure_ui_v2.py
+│   ├── evaluate_lora_v2.py
+│   ├── export_retrieval_source_map_v2.py
+│   ├── freeze_e2_v2.py
+│   ├── freeze_e3_v2.py
+│   ├── freeze_generation_v2.py
+│   ├── generate_eval_report.py
+│   ├── ingest.py
+│   ├── inspect_model_sources.py
+│   ├── manage_previous_jobs.py
+│   ├── materialize_routing_contexts_v2.py
+│   ├── materialize_simple_cache_only_v2.py
+│   ├── materialize_squad_v2.py
+│   ├── monitor_cpu_embedding.py
+│   ├── package_results_v2.py
+│   ├── pilot_generation.py
+│   ├── plot_results_v2.py
+│   ├── preencode_aux_v2.py
+│   ├── prepare_cpu_assets.py
+│   ├── prepare_generation_models.py
+│   ├── prepare_generation_tokenizers.py
+│   ├── prepare_lfm_model.py
+│   ├── prepare_simple_scope_v2.py
+│   ├── prepare_squad_v2.py
+│   ├── prepare_text_only_models.py
+│   ├── prepare_v2_data.py
+│   ├── reenter_structured_after_host_restart.py
+│   ├── resume_embedding_after_training.py
+│   ├── resume_structured_after_low_ram.py
+│   ├── run_all.py
+│   ├── run_context_stress_v2.py
+│   ├── run_generation_campaign.py
+│   ├── run_laya_v2.py
+│   ├── run_legacy_v2.py
+│   ├── run_online_routing_v2.py
+│   ├── run_rerank_gpu_v2.py
+│   ├── run_rerank_v2.py
+│   ├── run_retrieval_eval.py
+│   ├── run_retrieval_v2.py
+│   ├── run_routing_v2.py
+│   ├── run_support_judge_v2.py
+│   ├── run_ui_v2.ps1
+│   ├── run_ui_v3.ps1
+│   ├── run_v2.ps1
+│   ├── run_v2.sh
+│   ├── runtime_env.ps1
+│   ├── serve_embedding.py
+│   ├── serve_embedding_wsl.py
+│   ├── serve_generation.py
+│   ├── serve_online_embedding_v2.py
+│   ├── summarize_retrieval_auxiliary_v2.py
+│   ├── summarize_retrieval_statistics_v2.py
+│   ├── test_generation.py
+│   ├── test_retrieval.py
+│   ├── v3/
+│   │   ├── attribute_old_outputs.py
+│   │   ├── audit_campaign.py
+│   │   ├── audit_development_claim_gate.py
+│   │   ├── audit_document_candidates.py
+│   │   ├── audit_document_dense_candidates.py
+│   │   ├── audit_final_resources.py
+│   │   ├── audit_hierarchical_real_queries.py
+│   │   ├── audit_identities.py
+│   │   ├── audit_lora_runtime_diagnostics.py
+│   │   ├── audit_lora_supervision_distribution.py
+│   │   ├── audit_natural_reranker.py
+│   │   ├── audit_online_cost.py
+│   │   ├── audit_protocol_cases.py
+│   │   ├── audit_protocol_results.py
+│   │   ├── audit_protocol_supplements.py
+│   │   ├── audit_retrieval_funnel.py
+│   │   ├── audit_scoped_generation.py
+│   │   ├── audit_sources.py
+│   │   ├── audit_v2_preservation.py
+│   │   ├── audit_workflow_utility.py
+│   │   ├── bootstrap_campaign.py
+│   │   ├── bridge_and_prepare_query_vectors.py
+│   │   ├── build_acceptance.py
+│   │   ├── build_chunk_dense_index.py
+│   │   ├── build_chunk_dense_index_resource_v3.py
+│   │   ├── build_chunk_sparse_indices.py
+│   │   ├── build_delivery_reports.py
+│   │   ├── build_development_task_references.py
+│   │   ├── build_document_bm25.py
+│   │   ├── build_document_dense.py
+│   │   ├── build_task_references.py
+│   │   ├── calibrate_bge_reranker.py
+│   │   ├── calibrate_claim_completion.py
+│   │   ├── calibrate_gpu_claim_judge.py
+│   │   ├── calibrate_nli.py
+│   │   ├── calibrate_qa_nli.py
+│   │   ├── calibrate_qwen_reranker.py
+│   │   ├── checkpoint_campaign.py
+│   │   ├── close_claim_resource_block.py
+│   │   ├── close_report_pending_notes.py
+│   │   ├── complete_dense.py
+│   │   ├── download_metric_models.py
+│   │   ├── download_reranker.py
+│   │   ├── export_human_review_package.py
+│   │   ├── fetch_generation_cards.py
+│   │   ├── finalize_delivery.py
+│   │   ├── finalize_delivery_state.py
+│   │   ├── finish_deployment_answers.py
+│   │   ├── finish_evaluation.py
+│   │   ├── finish_experiments.py
+│   │   ├── finish_global.py
+│   │   ├── finish_online.py
+│   │   ├── finish_prompt_control.py
+│   │   ├── freeze_candidate_gate.py
+│   │   ├── freeze_scoped_contexts.py
+│   │   ├── polar_prefix_diagnostic.py
+│   │   ├── prepare_atomization_groups.py
+│   │   ├── prepare_auxiliary_splits.py
+│   │   ├── prepare_context_judgements.py
+│   │   ├── prepare_development_task_contexts.py
+│   │   ├── prepare_protocol_study.py
+│   │   ├── prepare_retrieval_sources.py
+│   │   ├── prepare_scoped_vectors.py
+│   │   ├── prepare_semantic_inputs.py
+│   │   ├── prepare_workflow_contexts.py
+│   │   ├── prepare_workflow_labels.py
+│   │   ├── recheck_runtime_identity.py
+│   │   ├── repair_development_task_paragraphs.py
+│   │   ├── repair_task_reference_whitespace.py
+│   │   ├── report_development_source_tasks.py
+│   │   ├── report_generation_diagnosis.py
+│   │   ├── report_lora_diagnostics.py
+│   │   ├── report_retrieval_funnel.py
+│   │   ├── report_root_cause_verdicts.py
+│   │   ├── report_workflow_diagnostics.py
+│   │   ├── rescore_old.py
+│   │   ├── resume_atomization.py
+│   │   ├── run_atomization.py
+│   │   ├── run_campaign.py
+│   │   ├── run_context_judge.py
+│   │   ├── run_development_task_generation.py
+│   │   ├── run_lora_diagnostic_sequence.py
+│   │   ├── run_lora_fixed_token_benchmark.py
+│   │   ├── run_lora_runtime_diagnostics.py
+│   │   ├── run_lora_supervision_smoke.py
+│   │   ├── run_lora_supervision_smoke_v2.py
+│   │   ├── run_natural_reranker.py
+│   │   ├── run_online_cost.py
+│   │   ├── run_protocol_study.py
+│   │   ├── run_protocol_supplements.py
+│   │   ├── run_protocol_supplements_v2.py
+│   │   ├── run_scope_validation.py
+│   │   ├── run_scoped_generation.py
+│   │   ├── run_scoped_generation_resource.py
+│   │   ├── run_workflow_generation.py
+│   │   ├── save_environment_lock.py
+│   │   ├── score_bertscore.py
+│   │   ├── score_claim_metrics.py
+│   │   ├── score_development_source_tasks.py
+│   │   ├── score_development_source_tasks_resident_v2.py
+│   │   ├── score_scoped_development.py
+│   │   ├── screen_chunk_sparse_candidates.py
+│   │   ├── screen_old_core_packing.py
+│   │   ├── seal_splits.py
+│   │   ├── serve_full_workbench.py
+│   │   ├── serve_workbench.py
+│   │   ├── smoke_full_api.py
+│   │   ├── smoke_private_embeddings.py
+│   │   ├── summarize_context_diagnosis.py
+│   │   ├── verify_protocol_supplement_projection.py
+│   │   └── verify_workbench_application.py
+│   ├── validate_gpu_lease.py
+│   ├── validate_laya_raw_v2.py
+│   ├── validate_r3_v2.py
+│   ├── verify_aux_preencode_v2.py
+│   └── verify_ui_candidate_v2.py
+├── tests/
+│   ├── __init__.py
+│   └── unit/
+│       ├── test_analysis_report_v2.py
+│       ├── test_array_index_v2.py
+│       ├── test_aux_preencode_v2.py
+│       ├── test_chunking_v2.py
+│       ├── test_configure_ui_v2.py
+│       ├── test_context_stress_v2.py
+│       ├── test_data_v2.py
+│       ├── test_e2_shard_v2.py
+│       ├── test_error_cases_v2.py
+│       ├── test_final_report_audit_v2.py
+│       ├── test_freeze_generation_v2.py
+│       ├── test_generation_campaign_v2.py
+│       ├── test_generation_number_audit_v2.py
+│       ├── test_generation_resources_v2.py
+│       ├── test_generation_v2.py
+│       ├── test_gpu_lease_v2.py
+│       ├── test_indexing_v2.py
+│       ├── test_laya_campaign_v2.py
+│       ├── test_laya_report_v2.py
+│       ├── test_laya_supervision_v2.py
+│       ├── test_laya_validation_v2.py
+│       ├── test_legacy_reconstruction_v2.py
+│       ├── test_legacy_statistics_v2.py
+│       ├── test_local_reports_v2.py
+│       ├── test_metrics_v2.py
+│       ├── test_online_embedding_service_v2.py
+│       ├── test_online_remote_gpu_v2.py
+│       ├── test_online_retrieval_v2.py
+│       ├── test_online_routing_v2.py
+│       ├── test_package_results_v2.py
+│       ├── test_production_acceptance_v2.py
+│       ├── test_rerank_campaign_v2.py
+│       ├── test_rerank_gpu_v2.py
+│       ├── test_rerank_sources_v2.py
+│       ├── test_rerank_validation_v2.py
+│       ├── test_retrieval_audit_v2.py
+│       ├── test_retrieval_auxiliary_v2.py
+│       ├── test_retrieval_campaign_v2.py
+│       ├── test_retrieval_statistics_v2.py
+│       ├── test_routing_campaign_v2.py
+│       ├── test_routing_context_sources_v2.py
+│       ├── test_routing_record_sources_v2.py
+│       ├── test_routing_v2.py
+│       ├── test_runner_v2.py
+│       ├── test_scoped_index_v2.py
+│       ├── test_simple_cache_only_v2.py
+│       ├── test_squad_v2.py
+│       ├── test_squad_window_v2.py
+│       ├── test_storage_audit_v2.py
+│       ├── test_structured_resume_v2.py
+│       ├── test_support_judge_v2.py
+│       ├── test_task_catalog_v2.py
+│       ├── test_training_v2.py
+│       ├── test_ui_live_generation_v2.py
+│       ├── test_ui_model_identity_v2.py
+│       ├── test_ui_offline_qa_v2.py
+│       ├── test_ui_routing_v2.py
+│       ├── test_ui_v2.py
+│       ├── test_v3_atomization.py
+│       ├── test_v3_budget.py
+│       ├── test_v3_claim_judge_cache.py
+│       ├── test_v3_claim_metrics.py
+│       ├── test_v3_compressed_index.py
+│       ├── test_v3_core_packing.py
+│       ├── test_v3_development_source_paragraph.py
+│       ├── test_v3_finish.py
+│       ├── test_v3_generation_protocols.py
+│       ├── test_v3_gpu_guard.py
+│       ├── test_v3_hierarchical_retrieval.py
+│       ├── test_v3_judge_protocol.py
+│       ├── test_v3_lora_runtime_inputs.py
+│       ├── test_v3_nli_contract.py
+│       ├── test_v3_online_uncached_embedding.py
+│       ├── test_v3_oracle_padding.py
+│       ├── test_v3_protocol_diagnostics.py
+│       ├── test_v3_protocol_transport.py
+│       ├── test_v3_quote_atoms.py
+│       ├── test_v3_records.py
+│       ├── test_v3_rerank_budget.py
+│       ├── test_v3_resident_claim_judge.py
+│       ├── test_v3_retrieval_diagnostics.py
+│       ├── test_v3_scoped_retrieval.py
+│       ├── test_v3_semantic_inputs.py
+│       ├── test_v3_source_audit.py
+│       ├── test_v3_splits.py
+│       ├── test_v3_task_references.py
+│       ├── test_v3_task_taxonomy.py
+│       ├── test_v3_workbench.py
+│       └── test_v3_workflows.py
+└── ui/
+    ├── .gitkeep
+    ├── chat_app.py
+    ├── chat_app_v3.py
+    ├── full_workbench.py
+    ├── live_generation.py
+    ├── model_identity.py
+    └── routing_options.py

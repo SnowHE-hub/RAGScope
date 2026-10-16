@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 1100" role="img" aria-labelledby="ragscope-03-online-title ragscope-03-online-desc">
+<title id="ragscope-03-online-title">在线：一次真实问题的函数调用链</title>
+<desc id="ragscope-03-online-desc">当前完整工作台经本地 API 使用 FullWorkbench；并非旧 Workbench 或 RAGPipeline.answer 全链路。</desc>
+<defs><marker id="ragscope-03-online-arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0,0 L9,4.5 L0,9 Z" fill="#77776f"/></marker></defs>
+<rect width="100%" height="100%" rx="16" fill="#fdfcf9"/>
+<text x="30" y="38" fill="#252522" font-size="24" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="700" text-anchor="start">在线：一次真实问题的函数调用链</text>
+<rect x="55" y="90" width="485" height="120" rx="10" fill="#edf7f2" stroke="#257455" stroke-width="1.6"/>
+<text x="70" y="119" fill="#257455" font-size="19" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="700" text-anchor="start">① 工作台输入</text>
+<text x="70" y="145" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">ui/full_workbench.py</text>
+<text x="70" y="168" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">question / doc_ids / task / method</text>
+<rect x="665" y="90" width="485" height="120" rx="10" fill="#edf7f2" stroke="#257455" stroke-width="1.6"/>
+<text x="680" y="119" fill="#257455" font-size="19" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="700" text-anchor="start">② API 接收</text>
+<text x="680" y="145" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">scripts/v3/serve_full_workbench.py</text>
+<text x="680" y="168" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">POST /api/answer；串行执行</text>
+<polyline points="540,150 665,150" fill="none" stroke="#77776f" stroke-width="1.8" marker-end="url(#ragscope-03-online-arrow)"/>
+<polyline points="1150,150 1180,150 1180,235 30,235 30,320 55,320" fill="none" stroke="#77776f" stroke-width="1.8" marker-end="url(#ragscope-03-online-arrow)"/>
+<rect x="55" y="270" width="485" height="120" rx="10" fill="#edf7f2" stroke="#257455" stroke-width="1.6"/>
+<text x="70" y="299" fill="#257455" font-size="19" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="700" text-anchor="start">③ 请求与范围核验</text>
+<text x="70" y="325" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">FullWorkbench.answer</text>
+<text x="70" y="348" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">空问题 / 无效论文 / 歧义对象处理</text>
+<rect x="665" y="270" width="485" height="120" rx="10" fill="#edf7f2" stroke="#257455" stroke-width="1.6"/>
+<text x="680" y="299" fill="#257455" font-size="19" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="700" text-anchor="start">④ 查询真实编码</text>
+<text x="680" y="325" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">ReusableEncoder.query(cached=True)</text>
+<text x="680" y="348" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">同身份查询缓存；Qwen 1024 维</text>
+<polyline points="540,330 665,330" fill="none" stroke="#77776f" stroke-width="1.8" marker-end="url(#ragscope-03-online-arrow)"/>
+<polyline points="1150,330 1180,330 1180,415 30,415 30,500 55,500" fill="none" stroke="#77776f" stroke-width="1.8" marker-end="url(#ragscope-03-online-arrow)"/>
+<rect x="55" y="450" width="485" height="120" rx="10" fill="#edf7f2" stroke="#257455" stroke-width="1.6"/>
+<text x="70" y="479" fill="#257455" font-size="19" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="700" text-anchor="start">⑤ 任务与证据选择</text>
+<text x="70" y="505" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">deployment_context</text>
+<text x="70" y="528" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">普通问答 / 总结 / 比较 / 多篇</text>
+<rect x="665" y="450" width="485" height="120" rx="10" fill="#edf7f2" stroke="#257455" stroke-width="1.6"/>
+<text x="680" y="479" fill="#257455" font-size="19" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="700" text-anchor="start">⑥ 完整索引检索</text>
+<text x="680" y="505" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">FullCorpusRetriever.search</text>
+<text x="680" y="528" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">范围过滤 / BM25 + Dense / RRF</text>
+<polyline points="540,510 665,510" fill="none" stroke="#77776f" stroke-width="1.8" marker-end="url(#ragscope-03-online-arrow)"/>
+<polyline points="1150,510 1180,510 1180,595 30,595 30,680 55,680" fill="none" stroke="#77776f" stroke-width="1.8" marker-end="url(#ragscope-03-online-arrow)"/>
+<rect x="55" y="630" width="485" height="120" rx="10" fill="#edf7f2" stroke="#257455" stroke-width="1.6"/>
+<text x="70" y="659" fill="#257455" font-size="19" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="700" text-anchor="start">⑦ 原文证据打包</text>
+<text x="70" y="685" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">pack_context / answer_messages</text>
+<text x="70" y="708" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">参考预算 2048 或最多 6144 token</text>
+<rect x="665" y="630" width="485" height="120" rx="10" fill="#edf7f2" stroke="#257455" stroke-width="1.6"/>
+<text x="680" y="659" fill="#257455" font-size="19" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="700" text-anchor="start">⑧ 本地真实生成</text>
+<text x="680" y="685" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">DeploymentClient.chat → 私有 Ollama</text>
+<text x="680" y="708" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">2B / 后端窗口 8192 / 输出 512 或 768</text>
+<polyline points="540,690 665,690" fill="none" stroke="#77776f" stroke-width="1.8" marker-end="url(#ragscope-03-online-arrow)"/>
+<polyline points="1150,690 1180,690 1180,775 30,775 30,860 55,860" fill="none" stroke="#77776f" stroke-width="1.8" marker-end="url(#ragscope-03-online-arrow)"/>
+<rect x="55" y="810" width="485" height="120" rx="10" fill="#edf7f2" stroke="#257455" stroke-width="1.6"/>
+<text x="70" y="839" fill="#257455" font-size="19" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="700" text-anchor="start">⑨ 解析与引用检查</text>
+<text x="70" y="865" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">RAGPipeline.parse_output</text>
+<text x="70" y="888" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">JSON 字段 / 可见 chunk ID / token 核验</text>
+<rect x="665" y="810" width="485" height="120" rx="10" fill="#edf7f2" stroke="#257455" stroke-width="1.6"/>
+<text x="680" y="839" fill="#257455" font-size="19" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="700" text-anchor="start">⑩ 返回与可追溯记录</text>
+<text x="680" y="865" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">answer / citations / abstain / 原文</text>
+<text x="680" y="888" fill="#252522" font-size="15" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">独立 APPLICATION_*.jsonl 保留失败</text>
+<polyline points="540,870 665,870" fill="none" stroke="#77776f" stroke-width="1.8" marker-end="url(#ragscope-03-online-arrow)"/>
+<text x="55" y="1026" fill="#252522" font-size="17" font-family="Microsoft YaHei, PingFang SC, Segoe UI, sans-serif" font-weight="400" text-anchor="start">模型异常或 JSON/引用校验失败：记录 EXECUTION_ERROR；不会用 Mock 冒充真实答案。</text>
+</svg>
