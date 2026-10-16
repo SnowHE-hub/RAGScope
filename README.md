@@ -1,209 +1,106 @@
 # RAGScope
 
-## RAGScope v2 本地执行
+**A local question-answering and evaluation workbench for long research papers.**
 
-v2 使用免费本地模型、可追溯证据坐标和逐条实验账本。当前执行状态以
-[`docs/execution/STATUS.md`](docs/execution/STATUS.md) 为准；预检通过、功能测试通过与正式问答实验完成分别记录。
-原始任务书保存在 [`MASTER_PLAN.md`](docs/execution/MASTER_PLAN.md)，决策和资源恢复记录分别在
-[`DECISIONS.md`](docs/execution/DECISIONS.md) 与 [`RECOVERY.md`](docs/execution/RECOVERY.md)。
+RAGScope answers questions over 1,585 QASPER papers with a fully local pipeline: hybrid retrieval (BM25 + dense embeddings), evidence packing that keeps every passage traceable to its exact position in the original text, and citation-constrained generation with a small local model. Every request is logged with its actual model input, raw output and configuration, so a wrong answer can be traced to retrieval, packing or generation.
 
-Windows 主路径使用项目外的 `D:/RAGScope_Runtime`，模型、环境、数据、索引、日志和断点均放在那里。
-从项目目录执行：
+The project grew in three stages: a short-text retrieval benchmark (V1), controlled experiments on long papers (V2), and a full-corpus workbench (V3, October 2026). This README describes V3. The full technical and evidence handbook (in Chinese) is [`docs/architecture.md`](docs/architecture.md).
+
+![System overview](docs/_architecture/diagrams/01-global.svg)
+
+---
+
+## What V3 does
+
+| Capability | Implementation |
+|---|---|
+| Corpus | 1,585 QASPER papers, 19,673 structure-aware chunks; text normalised (NFC) with section and character offsets preserved |
+| Scope | Ask across the whole corpus, within one paper, or across several selected papers; answer modes: auto, fact, explanation, comparison, summary |
+| Retrieval | Compressed BM25 (SciPy CSC sparse matrix) + 1,024-d Qwen3-Embedding-0.6B vectors (NumPy memory-mapped, exact search), fused with weighted RRF |
+| Evidence packing | Projection back to original offsets, de-duplication, neighbour expansion and a token budget (2,048 reference tokens for ordinary QA; 6,144 for summary and comparison) |
+| Generation | Qwen3.5-2B (Q4_K_M) served by a private local Ollama backend, 8K context kept resident; JSON-schema output with citation IDs restricted to the supplied evidence |
+| Traceability | Per-request JSONL ledger (actual input, raw response, config hash, errors); answers, citations and the full evidence shown in the Streamlit workbench; history replay |
+| Privacy | No cloud API and no automatic downloads at query time |
+
+Cross-encoder reranking, learned routing and the LoRA adapter were implemented and tested, but are **off by default** because they did not show a stable benefit (see below).
+
+---
+
+## Results
+
+All comparisons use fixed question sets and identical conditions; failed generations stay in the denominator. Paper-level cluster bootstrap (2,000 resamples) was used for V2 analyses.
+
+| Experiment | Result | Notes |
+|---|---|---|
+| Structure-aware vs simple chunking (V2, 100 questions, 92 answerable) | Answer token F1 of the 2B model **0.443 → 0.484** | Local observation on this subset |
+| Final deployment vs ported V2 baseline (H_QA200, 170 answerable) | Token F1 **0.390 → 0.407**; 25 better, 17 worse, 128 unchanged | Small, descriptive improvement |
+| Task-aware evidence for summary/comparison (20 tasks) | Annotated key points reaching the context **57% → 100%**; F1 **0.427 → 0.458** | References are AI-constructed and quote-verified, not human-reviewed; whole deployment strategy compared |
+| Reranking funnel (100 held-out questions) | Fully packed evidence **0.79 (hybrid) → 0.65 (BGE reranker)**, while candidate coverage stays 1.0 | Reordering pushed needed passages out of the fixed budget → reranking disabled |
+| Model scale (V2, 200 questions × 4 retrieval settings) | Hybrid-retrieval F1: 2B 0.482, 4B 0.379, 9B 0.333 | Protocol-dependent (answer length, templates, quantisation); not a general claim about model size |
+| Online latency (30 warm requests) | Fixing model reloads caused by 4K/8K window switching: P95 **10.13 s → 1.99 s** | Still slower than the same-round baseline (P95 1.48 s, 4K window) |
+| LoRA on Qwen3.5-2B (BF16, 972 samples, r = 8, 122 steps) | Same-precision 100-question F1 **0.465 → 0.427**; more refusals, slower | Adapter kept for analysis, not loaded by default |
+
+### Known limitations
+
+- **Abstention is weak**: only 3 of 30 unanswerable questions were correctly refused.
+- **Whole-corpus retrieval is hard**: without a paper scope, hybrid full-evidence coverage is 0.18 and document Hit@10 is 0.38.
+- **Factual correctness is not human-verified.** Citation validity does not imply factual support; the semantic score is an embedding cosine, not BERTScore.
+- The API is a local, single-user standard-library HTTP server (loopback only, no authentication or concurrency).
+- The runtime was built on one Windows machine; models, indexes and environments live outside the repository and are not included.
+
+---
+
+## Running locally (Windows)
+
+Prerequisites: a prepared runtime directory (`D:/RAGScope_Runtime`, created with `scripts/bootstrap_v2.ps1`), the local models listed in the handbook, the full index, and a GPU for generation. Detailed instructions, including how to shut services down cleanly, are in [`LOCAL_RUN_V3.md`](LOCAL_RUN_V3.md).
 
 ```powershell
-# 新机器首次安装隔离的 core 环境，按哈希锁文件验证依赖
-./scripts/bootstrap_v2.ps1
+# Terminal 1: check, then start the QA service (API on 127.0.0.1:11437)
+. ./scripts/runtime_env.ps1
+& D:/RAGScope_Runtime/envs/core/Scripts/python.exe scripts/v3/serve_full_workbench.py --check-only
+& D:/RAGScope_Runtime/envs/core/Scripts/python.exe scripts/v3/serve_full_workbench.py
 
-# 只读核对持久任务状态，不重新执行已完成的模型实验
-./scripts/run_v2.ps1 -Profile full -CpuOnly -Resume -ReconcileOnly
+# Terminal 2: open the workbench (http://127.0.0.1:8502)
+. ./scripts/runtime_env.ps1
+./scripts/run_ui_v3.ps1
+```
 
-# 单元测试不下载模型，不触发 GPU 推理
+Unit tests do not download models or use the GPU:
+
+```powershell
 . ./scripts/runtime_env.ps1
 & "$env:RAGSCOPE_HOME/envs/core/Scripts/python.exe" -m pytest tests/unit -q
-
-# 打开本地 UI；需要已完成并校验的 v2 索引
-./scripts/run_ui_v2.ps1 -Environment models -Port 8501
-```
-
-runner 在任务未齐备时返回退出码 `2` 并留下具体原因；这不表示整套实验已经完成。
-GPU 服务、真实训练和正式生成另有资源交接及冻结清单校验，不会因为打开 UI 而自动下载或训练模型。
-UI 启动器先检查端口，只监听 `127.0.0.1`；可用 `-Port 18501` 指定其他本机端口，`-CheckOnly` 只检查依赖与端口。
-启动器优先使用已具备 Streamlit 的 CPU `models` 环境以支持重排，否则使用 `core`；可用 `-Environment core` 明确只运行轻量界面。所有模型在实际点击运行时仍检查就绪与资源。
-完整本机启动、普通CPU embedding服务、私有GPU服务和正常退出命令见 [LOCAL_RUN_V2.md](LOCAL_RUN_V2.md)。最终交付时本项目服务均已关闭；打开UI不会自动启动embedding或生成服务。GPU必须通过当前主机启动周期的租约校验并单卡串行；UI和CPU客户端保留空CUDA mask，仅向已核验的私有服务请求生成。原用户任务采用 `USER_MANUAL_RESUME`，不自动续跑。
-Linux 启动脚本要求单独的 Linux 环境，不能复用 Windows 虚拟环境；本轮未安装 Linux 模型环境。
-
-阅读实现与结果解释可从 [`docs/learning/00_project_map.md`](docs/learning/00_project_map.md) 开始。
-v2 不需要配置云 API 密钥，Mock 仅用于离线功能测试。
-
-## 历史版本说明与结果
-
-以下保留原版本的架构、启动方式和报告数字，**不是本轮 v2 的实测结果**。
-历史 Dense/Hybrid 的原始 embedding revision 不完整；本轮另以固定版本重建并独立记录，不将两者冒充同一个实验。
-
-A modular **Retrieval-Augmented Generation** benchmarking system that lets you compare chunking strategies, retrieval methods, and generation quality side-by-side — with a transparent Streamlit UI.
-
----
-
-## Architecture
-
-```
-User Query
-    │
-    ▼
-┌─────────────────────────────────────────────────────────┐
-│                      RAGPipeline                        │
-│                                                         │
-│  ┌─────────────┐    ┌──────────────────────────────┐   │
-│  │  Retriever  │    │       LLM Client             │   │
-│  │             │    │  (OpenAI gpt-4o-mini /        │   │
-│  │  ┌────────┐ │    │   MockLLMClient)              │   │
-│  │  │ Dense  │ │    └──────────────────────────────┘   │
-│  │  │(Chroma)│ │              │                         │
-│  │  └────┬───┘ │    ┌─────────▼──────────┐             │
-│  │       │ RRF │    │   format_context    │             │
-│  │  ┌────▼───┐ │    │   (tiktoken budget) │             │
-│  │  │  BM25  │ │    └─────────┬──────────┘             │
-│  │  └────────┘ │              │                         │
-│  │     │       │    ┌─────────▼──────────┐             │
-│  │  Reranker   │    │   RAGResult        │             │
-│  │ (optional)  │    │  answer/citations  │             │
-│  └─────────────┘    │  confidence/cost   │             │
-│                     └────────────────────┘             │
-│                              │                          │
-│                     ┌────────▼────────┐                │
-│                     │   RAGCache      │                │
-│                     │  (diskcache)    │                │
-│                     └─────────────────┘                │
-└─────────────────────────────────────────────────────────┘
-
-Data flow:
-  Raw docs → Cleaner → Chunker → EmbeddingService → DenseIndex
-                                                  └→ BM25Index
 ```
 
 ---
 
-## Directory Structure
+## Repository layout
 
 ```
-RAGScope/
-├── ragscope/
-│   ├── ingestion/        # Loaders (SQuAD, arXiv) + cleaner + chunkers
-│   ├── indexing/         # EmbeddingService, DenseIndex (ChromaDB), BM25Index
-│   ├── retrieval/        # Dense / BM25 / Hybrid (RRF) / Reranker
-│   ├── generation/       # LLMClient, MockLLMClient, RAGPipeline, RAGCache
-│   └── evaluation/       # Retrieval metrics, generation metrics, benchmark
-├── scripts/
-│   ├── ingest.py                  # Step 1 — download & clean data
-│   ├── build_indexes.py           # Step 2 — chunk & index
-│   ├── run_retrieval_eval.py      # Step 3 — benchmark retrieval
-│   ├── generate_eval_report.py    # Step 4 — render HTML report
-│   └── run_all.py                 # Orchestrator (--from N to skip steps)
-├── ui/
-│   └── chat_app.py       # Streamlit demo (transparent RAG UI)
-├── data/
-│   ├── raw/              # Downloaded datasets (git-ignored)
-│   ├── processed/        # Cleaned JSONL + eval_queries.jsonl
-│   ├── chunks/           # Parquet chunk files
-│   └── indexes/          # ChromaDB + BM25 pickle indexes
-├── reports/
-│   ├── retrieval_results.csv
-│   └── eval_report.html
-├── configs/config.yaml
-└── requirements.txt
+ragscope/            core library: ingestion, indexing, retrieval, generation, evaluation, routing, training
+ragscope/v3/         full-corpus retrieval, evidence packing, deployment client, workbench service
+scripts/v3/          V3 build, experiment and service entry points
+ui/                  Streamlit workbench
+configs/v3/          release pointer (configs/v3/default.json)
+tests/               unit and regression tests
+reports/v3/          final report, metric specification, error attribution
+docs/architecture.md full architecture and evidence handbook (Chinese)
 ```
 
 ---
 
-## Quick Start (6 Steps)
+## Version history
 
-```bash
-# 1. Clone and enter
-git clone <repo-url> && cd RAGScope
-
-# 2. Create virtual environment
-python -m venv .venv
-source .venv/bin/activate      # Windows: .venv\Scripts\activate
-
-# 3. Install dependencies
-pip install -r requirements.txt
-
-# 4. (Optional) Add OpenAI key for real LLM calls
-cp .env.example .env
-# Edit .env → set OPENAI_API_KEY=sk-...
-# Skip this step to use MockLLMClient (no API key needed)
-
-# 5. Run the full pipeline
-python scripts/run_all.py
-# Or resume from a specific step:
-# python scripts/run_all.py --from 3
-
-# 6. Launch the interactive UI
-streamlit run ui/chat_app.py
-```
+| Version | Focus | Note |
+|---|---|---|
+| V1 (May 2026) | Retrieval benchmark on SQuAD passages and arXiv abstracts: BGE-small + Chroma, BM25, RRF, BGE reranker | Hybrid Recall@10 of 0.95 on 200 queries is a **retrieval recall** on short texts, not answer accuracy |
+| V2 | QASPER long papers: structure-aware chunking, original-text offsets, local 2B/4B/9B generation, routing and LoRA studies | 5,520 logged generations across 39 conditions (32 failures kept) |
+| V3 (Oct 2026) | Full 1,585-paper index, scoped QA workbench, task-aware evidence, resident 8K backend | Current version |
 
 ---
 
-## Retrieval Evaluation Results
+## 中文简介
 
-Evaluated on 200 sampled SQuAD + arXiv queries, fixed-512 chunking strategy.
+RAGScope 是一个在本地运行的长论文问答与评测平台。V3 覆盖 1,585 篇 QASPER 论文(19,673 个结构块),支持全库、单篇和多篇范围问答:检索融合压缩 BM25 与 1,024 维 Qwen 向量(加权 RRF),证据按原文坐标投影、去重并控制 token 预算,由本地量化的 Qwen3.5-2B 生成带引用的回答,每次请求的实际输入、原始输出和配置都记入账本。
 
-| Config         | Recall@5 | Recall@10 | MRR   | NDCG@10 | Latency  |
-|----------------|----------|-----------|-------|---------|----------|
-| Dense          | 0.865    | 0.900     | 0.757 | 0.792   | 35 ms    |
-| BM25           | 0.845    | 0.905     | 0.726 | 0.770   | 40 ms    |
-| Hybrid (RRF)   | 0.915    | 0.950     | 0.788 | 0.828   | 50 ms    |
-| Hybrid+Rerank  | 0.885    | 0.950     | 0.678 | 0.745   | 1 736 ms |
-
-> Full interactive report: `reports/eval_report.html`
-> (run `scripts/generate_eval_report.py` to regenerate)
-
----
-
-## Key Findings
-
-**Hybrid RRF leads on recall and NDCG**
-Combining dense and sparse signals via Reciprocal Rank Fusion (α = 0.5) achieves the best Recall@5 (0.915) and NDCG@10 (0.828), outperforming either retriever alone by 5–7%.
-
-**Reranker raises Recall@10 but hurts MRR**
-Adding a cross-encoder reranker (BAAI/bge-reranker-base) matches Hybrid's Recall@10 (0.950) but drops MRR from 0.788 to 0.678, suggesting the model still struggles with exact top-1 precision. Latency jumps to 1 736 ms — suitable for offline batch evaluation, not real-time serving.
-
-**BM25 is a strong baseline for rare-term queries**
-BM25 latency (∼40 ms) is comparable to Dense retrieval and excels on queries with specific technical terms or proper nouns. In hybrid configurations it consistently adds signal not captured by embedding similarity alone.
-
----
-
-## Module Overview
-
-| Module | Key Classes | Description |
-|--------|-------------|-------------|
-| `ingestion` | `SQuADLoader`, `ArXivLoader`, `DocumentCleaner` | Download, deduplicate, NFKC-clean |
-| `ingestion` | `FixedSizeChunker`, `SentenceAwareChunker`, `SemanticChunker` | Three chunking strategies |
-| `indexing` | `EmbeddingService` | BGE-small embeddings, diskcache-backed |
-| `indexing` | `DenseIndex`, `BM25Index` | ChromaDB (cosine) + rank_bm25 |
-| `retrieval` | `DenseRetriever`, `BM25Retriever` | Single-modal retrievers |
-| `retrieval` | `HybridRetriever`, `Reranker` | RRF fusion + CrossEncoder reranking |
-| `generation` | `RAGPipeline`, `RAGCache` | End-to-end pipeline with diskcache |
-| `generation` | `LLMClient`, `MockLLMClient` | OpenAI wrapper + offline mock |
-| `evaluation` | `run_retrieval_benchmark` | Multi-config benchmark runner |
-| `evaluation` | `recall_at_k`, `ndcg_at_k`, `mrr`, … | Retrieval metrics |
-| `evaluation` | `exact_match`, `token_f1`, `rouge_l` | Generation metrics |
-
----
-
-## Configuration
-
-All key parameters live in [`configs/config.yaml`](configs/config.yaml).
-API keys and paths go in `.env` (copy from `.env.example`).
-
-```yaml
-# configs/config.yaml (excerpt)
-chunking:
-  fixed:
-    chunk_size: 512
-    overlap: 64
-embedding:
-  model: BAAI/bge-small-en-v1.5
-retrieval:
-  hybrid_alpha: 0.5   # 1.0 = pure dense, 0.0 = pure BM25
-```
+项目的重点是受控评测:把检索覆盖、实际送入模型的证据、答案质量、拒答和耗时分开评估。重排、学习路由和 LoRA 都实现并测试过,但在已测条件下没有稳定收益,所以默认关闭。完整的架构说明与证据手册见 [`docs/architecture.md`](docs/architecture.md)。
